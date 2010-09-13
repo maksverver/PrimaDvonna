@@ -11,27 +11,21 @@ with characters from the following 62-character sequence:
     ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 (This is a standard Base64 encoding without the two non-standard characters.)
 
-Digit 0 is encoded as 2*phase + player, where:
-  phase = 0 for placing pieces or 1 for stacking pieces;
-  player = 0 for white or 1 for black.
+Digit 0 is encoded as 2*game_phase + next_player, where:
+  game_phase = 0 when placing pieces, 1 when stacking pieces, 2 when finished.
+  next_player = 0 for white, 1 for black.
 
 Digit 1 through 49 describe the fields of the board in row-major order, one
 digit per field, with each field encoded as:
   0 if it is empty;
   1 if it contains just a Dvonn piece;
   n otherwise, where n = 4*pieces + 2*dvonn + player - 2, where:
-    player = 0 for white or 1 for black;
-    dvonn  = 0 if the stack contains no Dvonn piece, 1 otherwise;
+    player: 0 for white or 1 for black;
+    dvonn: 0 if the stack contains no Dvonn piece, 1 otherwise;
     pieces = the number of pieces in the stack.
 
-A state description gives a representation of an intermediate state. It is
-formatted as: "<moves>:<board>" where <moves> is the number of moves played
-(a decimal integer without leading zeroes) and <board> is a 49-character string
-describing the fields of the board, one character per field in row-major order.
-
-Note that dvonn = 1 even if the stack contains more than one Dvonn piece and
-pieces is the total number of pieces in the stack (including white, black and
+Note that `dvonn' is 1 even if the stack contains more than one Dvonn piece and
+`pieces' is the total number of pieces in the stack (including white, black and
 Dvonn pieces). This encoding limits stacks to a maximum height of 15, which is
 insufficient for all possible states, but states with very high stacks occur
 rarely in practice.
-

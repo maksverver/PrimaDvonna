@@ -2,7 +2,7 @@
 #include <string.h>
 #include "Game.h"
 
-Move move_pass = { 0, 0, 0, 0 };
+Move move_pass = { -1, -1, -1, -1 };
 
 static int dr[6] = { -1, -1,  0,  0, +1, +1 }; 
 static int dc[6] = { -1,  0, -1, +1,  0, +1 };
@@ -189,33 +189,75 @@ static bool mobile(const Board *board, int r, int c)
 	return false;
 }
 
-int generate_moves(const Board *board, Move moves[M])
+void generate_all_moves( const Board *board,
+	Move *moves1, Move *moves2, int *nmove1, int *nmove2 )
 {
 	const Field *f, *g;
-	int r1, c1, d, r2, c2, n = 0;
-	Color player = (board->moves - N)&1;
+	int r1, c1, d, r2, c2;
+	Move *moves[2] = { moves1, moves2 }, **pmoves;
 
 	for (r1 = 0; r1 < H; ++r1) {
 		for (c1 = 0; c1 < W; ++c1) {
 			f = &board->fields[r1][c1];
-			if (!f->removed && mobile(board, r1, c1) && f->player == player) {
+			if (f->removed || f->player == NONE) continue;
+			pmoves = &moves[f->player];
+			if (!*pmoves) continue;
+			if (mobile(board, r1, c1)) {
 				for (d = 0; d < 6; ++d) {
 					r2 = r1 + f->pieces*dr[d];
 					c2 = c1 + f->pieces*dc[d];
 					if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
 						g = &board->fields[r2][c2];
 						if (!g->removed) {
-							moves[n].r1 = r1;
-							moves[n].c1 = c1;
-							moves[n].r2 = r2;
-							moves[n].c2 = c2;
-							++n;
+							Move new_move = { r1, c1, r2, c2};
+							*(*pmoves)++ = new_move;
 						}
 					}
 				}
 			}
 		}
 	}
-	if (n == 0) moves[n++] = move_pass;
-	return n;
+
+	if (moves1 != NULL) {
+		if (moves1 == moves[0]) *moves[0]++ = move_pass;
+		*nmove1 = moves[0] - moves1;
+	}
+	if (moves2 != NULL) {
+		if (moves2 == moves[1]) *moves[1]++ = move_pass;
+		*nmove2 = moves[1] - moves2;
+	}
+}
+
+int generate_moves(const Board *board, Move moves[M])
+{
+	int nmove;
+	if (((board->moves - N)&1) == 0) {
+		generate_all_moves(board, moves, NULL, &nmove, NULL);
+	} else {
+		generate_all_moves(board, NULL, moves, NULL, &nmove);
+	}
+	return nmove;
+}
+
+void board_scores(const Board *board, int scores[2])
+{
+	int r, c;
+
+	scores[0] = scores[1] = 0;
+	for (r = 0; r < H; ++r) {
+		for (c = 0; c < W; ++c) {
+			const Field *f = &board->fields[r][c];
+
+			if (!f->removed && (f->player == 0 || f->player == 1)) {
+				scores[f->player] += f->pieces;
+			}
+		}
+	}
+}
+
+int board_score(const Board *board)
+{
+	int sc[2], player = next_player(board);
+	board_scores(board, sc);
+	return sc[player] - sc[1 - player];
 }

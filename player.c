@@ -1,5 +1,6 @@
-#include "AI.h"
 #include "Game.h"
+#include "AI.h"
+#include "IO.h"
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -7,6 +8,9 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
+static int arg_seed = 0;
+static const char *arg_state = NULL;
 
 static char *trim(char *s)
 {
@@ -39,59 +43,6 @@ static const char *read_line(void)
 			}
 		}
 	}
-}
-
-static bool parse_place(const char *line, Place *place)
-{
-	if (line[0] >= 'A' && line[0] <= 'K' &&
-		line[1] >= '1' && line[1] <= '5' && line[2] == '\0') {
-		place->r = line[1] - '1';
-		place->c = line[0] - 'A';
-		return true;
-	}
-	return false;
-}
-
-static bool parse_move(const char *line, Move *move)
-{
-	if (strcmp(line, "PASS") == 0) {
-		*move = move_pass;
-		return true;
-	}
-	if (line[0] >= 'A' && line[0] <= 'K' && line[1] >= '1' && line[1] <= '5' &&
-		line[2] >= 'A' && line[2] <= 'K' && line[3] >= '1' && line[3] <= '5' &&
-		line[4] == '\0') {
-		move->c1 = line[0] - 'A';
-		move->r1 = line[1] - '1';
-		move->c2 = line[2] - 'A';
-		move->r2 = line[3] - '1';
-		return true;
-	}
-	return false;
-}
-
-static const char *format_place(const Place *place)
-{
-	static char buf[3];
-	buf[0] = (char)('A' + place->c);
-	buf[1] = (char)('1' + place->r);
-	buf[2] = '\0';
-	return buf;
-}
-
-static const char *format_move(const Move *move)
-{
-	static char buf[5];
-	if (move_is_pass(move)) {
-		strcpy(buf, "PASS");
-	} else {
-		buf[0] = 'A' + move->c1;
-		buf[1] = '1' + move->r1;
-		buf[2] = 'A' + move->c2;
-		buf[3] = '1' + move->r2;
-		buf[4] = '\0';
-	}
-	return buf;
 }
 
 /* Parses a move string and then executes it.
@@ -141,7 +92,7 @@ static void parse_and_execute_move(Board *board, const char *line)
 	board_validate(board);
 }
 
-static void run()
+static void run_game()
 {
 	Color my_color;
 	Board board;
@@ -186,18 +137,91 @@ static void run()
 	}
 }
 
-int main()
+static void solve_state(const char *descr)
+{
+	Color next_player;
+	Board board;
+	if (!parse_state(descr, &board, &next_player)) {
+		fprintf(stderr, "Couldn't parse game description: `%s'!\n", descr);
+		exit(EXIT_FAILURE);
+	}
+	if (next_player == NONE) {
+		fprintf(stderr, "Game already finished!\n");
+	} else if (board.moves < N) {
+		Place place;
+		if (!ai_select_place(&board, &place)) {
+			fprintf(stderr, "Internal error: no placement selected!\n");
+			exit(EXIT_FAILURE);
+		}
+		printf("%s\n", format_place(&place));
+	} else {
+		Move move;
+		if (!ai_select_move(&board, &move)) {
+			fprintf(stderr, "Internal error: no move selected!\n");
+			exit(EXIT_FAILURE);
+		}
+		printf("%s\n", format_move(&move));
+	}
+}
+
+static void print_usage()
+{
+	printf(
+		"Usage:\n"
+		"\tplayer <options>\n"
+		"Options:\n"
+		"\t--seed=<int>      initialize RNG with given seed\n"
+		"\t--help            display this help message and exit\n"
+		"\t--state=<descr>   solve given state\n");
+}
+
+static void parse_args(int argc, char *argv[])
+{
+	int pos;
+
+	for (pos = 1; pos < argc && argv[pos][0] == '-'; ++pos)
+	{
+		if (sscanf(argv[pos], "--seed=%d", &arg_seed) == 1) {
+			continue;
+		}
+		if (memcmp(argv[pos], "--state=", 8) == 0) {
+			arg_state = argv[pos] + 8;
+			continue;
+		}
+		if (strcmp(argv[pos], "--help") == 0) {
+			pos += 1;
+			print_usage();
+			exit(EXIT_SUCCESS);
+		}
+		break;
+	}
+	if (pos < argc) {
+		printf("Invalid command line argument: `%s'!\n\n", argv[pos]);
+		print_usage();
+		exit(EXIT_FAILURE);
+	}
+}
+
+int main(int argc, char *argv[])
 {
 	static char buf_stdout[512], buf_stderr[512];
+
+	parse_args(argc, argv);
 
 	/* Make stdout and stderr line buffered: */
 	setvbuf(stdout, buf_stdout, _IOLBF, sizeof(buf_stdout));
 	setvbuf(stderr, buf_stderr, _IOLBF, sizeof(buf_stderr));
 
 	/* Initialize RNG: */
-	srand((int)time(NULL) + 1337*(int)getpid());
+	if (!arg_seed) arg_seed = (1337*(int)getpid() + 17*(int)time(NULL))%1000000;
+	fprintf(stderr, "RNG seed %d.\n", arg_seed);
+	srand(arg_seed);
 
-	run();
+	if (arg_state) {
+		solve_state(arg_state);
+	} else {
+		run_game();
+	}
 
 	return EXIT_SUCCESS;
 }

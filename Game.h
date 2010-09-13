@@ -33,8 +33,9 @@ typedef struct Place { unsigned char r, c; } Place;
 
 /* Describes the moving of a stack unto another stack: */
 typedef struct Move { unsigned char r1, c1, r2, c2; } Move;
+
 extern Move move_pass;
-#define move_is_pass(m) (*(int*)(m) == 0)
+#define move_is_pass(m) ((m)->r1 == (unsigned char)-1)
 
 /* Board creation/modification functions: */
 void board_clear(Board *board);
@@ -47,7 +48,19 @@ void board_validate(const Board *board);
 /* Generates a list of possible placements and returns its length: */
 int generate_places(const Board *board, Place places[N]);
 
-/* Generates a list of possible moves and returns its length: */
+/* Generates all moves for both players: */
+void generate_all_moves( const Board *board,
+	Move *moves1, Move *moves2, int *nmove1, int *nmove2 );
+
+#define next_player(b) ((b)->moves < N ? ((b)->moves&1) : ((b)->moves - N)&1)
+
+/* Generates a list of moves for the current player and returns its length: */
 int generate_moves(const Board *board, Move moves[M]);
+
+/* Calculates the score for both players: */
+void board_scores(const Board *board, int scores[2]);
+
+/* Calculates the score for the current player: */
+int board_score(const Board *board);
 
 #endif /* ndef GAME_H_INCLUDED */
