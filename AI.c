@@ -45,9 +45,10 @@ static int eval_intermediate(const Board *board)
 	int nmove[2];
 
 	generate_all_moves(board, moves[0], moves[1], &nmove[0], &nmove[1]);
+	if (nmove[0] + nmove[1] == 0) return eval_end(board);
 	return nmove[(board->moves - N)%2] - nmove[(board->moves - N + 1)%2];
 }
-
+#include "IO.h"
 static int dfs(Board *board, int depth, int pass, Move *best)
 {
 	Move moves[M];
@@ -57,10 +58,16 @@ static int dfs(Board *board, int depth, int pass, Move *best)
 	if (depth == 0) return eval_intermediate(board);
 
 	nmove = generate_moves(board, moves);
+	printf("%d %d %p nmove=%d %s\n", depth, pass, best, nmove, format_state(board));
 	assert(nmove > 0);
 	if (move_is_pass(&moves[0])) {
+		/* Handle pass separately, because it is always a single move, and thus
+		   we don't decrease depth for it: */
 		if (best != NULL) *best = moves[0];
-		return -dfs(board, depth, pass + 1, NULL);
+		board_move(board, &moves[0], NULL);
+		res = -dfs(board, depth, pass + 1, NULL);
+		board_unmove(board, &moves[0], NONE);
+		return res;
 	}
 	for (n = 0; n < nmove; ++n) {
 		int val;
