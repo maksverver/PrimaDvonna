@@ -4,8 +4,11 @@
 
 Move move_pass = { -1, -1, -1, -1 };
 
-static int dr[6] = { -1, -1,  0,  0, +1, +1 }; 
-static int dc[6] = { -1,  0, -1, +1,  0, +1 };
+/* Directions. These are ordered in CCW order starting to the right. Order is
+   important because these values are used to compute neighbour masks (see
+   may_be_bridge() for details). */
+static int dr[6] = {  0, -1, -1,  0, +1, +1 };
+static int dc[6] = { +1,  0, -1, -1,  0, +1 };
 
 static int max(int i, int j) { return i > j ? i : j; }
 
@@ -53,6 +56,7 @@ void board_unplace(Board *board, const Place *p)
 	--board->moves;
 }
 
+/* Temporary space shared by mark_reachable() and remove_reachable(): */
 static bool reachable[H][W];
 
 static void mark_reachable(Board *board, int r1, int c1) {
@@ -91,6 +95,28 @@ static void remove_unreachable(Board *board)
 	}
 }
 
+/* Returns whether the field at (r,c) could be a bridge (a field that connects
+   two or more otherwise unconnected segments of the board) by analyzing its
+   neighbours: a field cannot be a bridge if all of its neighbours are adjacent
+   to each other. */
+static bool may_be_bridge(Board *board, int r, int c)
+{
+	static bool bridge_index[1<<6] = {
+		0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0,
+		0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0,
+		0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0,
+		0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0 };
+
+	int d, mask = 0;
+
+	for (d = 0; d < 6; ++d) {
+		int nr = r + dr[d], nc = c + dc[d];
+		if (nr >= 0 && nr < H && nc >= 0 && nc < W &&
+			!board->fields[nr][nc].removed) mask |= 1<<d;
+	}
+	return bridge_index[mask];
+}
+
 void board_move(Board *board, const Move *m, Color *old_player)
 {
 	if (!move_is_pass(m)) {
@@ -101,12 +127,11 @@ void board_move(Board *board, const Move *m, Color *old_player)
 		g->pieces += f->pieces;
 		g->dvonns += f->dvonns;
 		f->removed = board->moves;
-		/* TODO: elide call to remove_unreachable if the current field contains
-			no dvonn piece itself AND (i have just one neighbour OR all
-			neighbours are adjacent to each other). even if we must check,
-			we only need to flood-fill starting from the neighbours (but
-			we still need to clear the whole reachable array) */
-		remove_unreachable(board);
+		/* We must remove disconnected fields, but since remove_unreachable()
+		   is expensive, we try to elide it if permissible: */
+		if (f->dvonns || may_be_bridge(board, m->r1, m->c1)) {
+			remove_unreachable(board);
+		}
 	}
 	++board->moves;
 }
@@ -149,8 +174,8 @@ void board_validate(const Board *board)
 			assert(f->pieces <= N);
 			assert(f->dvonns <= D);
 			assert(f->dvonns <= f->pieces);
-			assert(f->dvonns == f->pieces ? f->player == NONE :
-				f->player == WHITE || f->player == BLACK);
+			assert(f->dvonns == f->pieces || f->pieces == 0 ?
+				f->player == NONE : f->player == WHITE || f->player == BLACK);
 			if (f->removed == (unsigned char)-1) continue;
 			if (board->moves < N) {
 				assert(f->pieces == 0 || f->pieces == 1);
