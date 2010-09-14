@@ -73,9 +73,14 @@ bool parse_state(const char *descr, Board *board, Color *next_player)
 	*next_player = vals[0]%2;
 	switch (vals[0]/2%3)
 	{
-	case 0: board->moves = *next_player; break;
-	case 1: board->moves = N + *next_player; break;
-	default: *next_player = NONE; break;
+	case 0:  /* placement phase */
+		break;
+	default:  /* game finished */
+		*next_player = NONE;
+		/* falls through */
+	case 1:  /* movement phase */
+		board->moves = N;
+		break;
 	}
 	n = 1;
 	for (r = 0; r < H; ++r) {
@@ -85,14 +90,15 @@ bool parse_state(const char *descr, Board *board, Color *next_player)
 			if (!f->removed) {
 				assert(n < N + 1);
 				if (vals[n] == 0) {
-					if (board->moves > N) {
-						f->removed = N;
-						f->pieces = board->moves < N ? 0 : 1;
+					if (board->moves >= N) {
+						f->removed = board->moves++;
+						f->pieces = 1;
 						f->player = 0;
 					}
 				} else if (vals[n] == 1) {
 					f->dvonns = 1;
 					f->pieces = 1;
+					if (board->moves < N) ++board->moves;
 				} else {
 					f->player = (vals[n] + 2)%2;
 					f->dvonns = (vals[n] + 2)/2%2;
@@ -103,6 +109,9 @@ bool parse_state(const char *descr, Board *board, Color *next_player)
 		}
 	}
 	assert(n == N + 1);
+	while (*next_player != NONE && next_player(board) != *next_player) {
+		++board->moves;
+	}
 	return true;
 }
 
