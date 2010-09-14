@@ -1,3 +1,0 @@
- - maybe: implement elision of remove_unreachable() if benchmark shows
-   this call costs significantly
- - real AI
