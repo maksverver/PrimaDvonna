@@ -84,15 +84,19 @@ bool parse_state(const char *descr, Board *board, Color *next_player)
 
 			if (!f->removed) {
 				assert(n < N + 1);
-				if (vals[n] > 0) {
-					if (vals[n] == 1) {
-						f->dvonns = 1;
-						f->pieces = 1;
-					} else {
-						f->player = (vals[n] + 2)%2;
-						f->dvonns = (vals[n] + 2)/2%2;
-						f->pieces = (vals[n] + 2)/4;
+				if (vals[n] == 0) {
+					if (board->moves > N) {
+						f->removed = N;
+						f->pieces = board->moves < N ? 0 : 1;
+						f->player = 0;
 					}
+				} else if (vals[n] == 1) {
+					f->dvonns = 1;
+					f->pieces = 1;
+				} else {
+					f->player = (vals[n] + 2)%2;
+					f->dvonns = (vals[n] + 2)/2%2;
+					f->pieces = (vals[n] + 2)/4;
 				}
 				++n;
 			}
@@ -100,4 +104,41 @@ bool parse_state(const char *descr, Board *board, Color *next_player)
 	}
 	assert(n == N + 1);
 	return true;
+}
+
+const char *format_state(Board *board)
+{
+	Board init_board;
+	static char buf[N + 2];
+	int r, c, n;
+
+	board_clear(&init_board);
+	if (board->moves < N) {  /* placement phase */
+		buf[0] = digits[board->moves%2];
+	} else {  /* movement phase */
+		buf[0] = digits[2 + (board->moves - N)%2];
+	}
+	n = 1;
+	for (r = 0; r < H; ++r) {
+		for (c = 0; c < W; ++c) {
+			if (!init_board.fields[r][c].removed) {
+				Field *f = &board->fields[r][c];
+
+				assert(n < N + 1);
+				if (f->pieces > 15) {  /* stack too high for this encoding! */
+					buf[n] = '*';
+				} else if (f->removed || !f->pieces) {
+					buf[n] = digits[0];
+				} else if (f->player == NONE) {
+					buf[n] = digits[1];
+				} else {
+					buf[n] = digits[4*f->pieces + (f->dvonns?1:0) + f->player - 2];
+				}
+				++n;
+			}
+		}
+	}
+	assert(n == N + 1);
+	buf[n] = '\0';
+	return buf;
 }

@@ -129,9 +129,11 @@ static void run_game()
 			}
 		}
 		if (move_str) {
+			fprintf(stderr, " --%s--> %s\n", move_str, format_state(&board));
 			printf("%s\n", move_str);
 		} else {
 			move_str = read_line();
+			fprintf(stderr, "<--%s--  %s\n", move_str, format_state(&board));
 		}
 		parse_and_execute_move(&board, move_str);
 	}
@@ -141,10 +143,13 @@ static void solve_state(const char *descr)
 {
 	Color next_player;
 	Board board;
+	const char *move_str = NULL;
+
 	if (!parse_state(descr, &board, &next_player)) {
 		fprintf(stderr, "Couldn't parse game description: `%s'!\n", descr);
 		exit(EXIT_FAILURE);
 	}
+	board_validate(&board);
 	if (next_player == NONE) {
 		fprintf(stderr, "Game already finished!\n");
 	} else if (board.moves < N) {
@@ -153,14 +158,19 @@ static void solve_state(const char *descr)
 			fprintf(stderr, "Internal error: no placement selected!\n");
 			exit(EXIT_FAILURE);
 		}
-		printf("%s\n", format_place(&place));
+		move_str = format_place(&place);
 	} else {
 		Move move;
 		if (!ai_select_move(&board, &move)) {
 			fprintf(stderr, "Internal error: no move selected!\n");
 			exit(EXIT_FAILURE);
 		}
-		printf("%s\n", format_move(&move));
+		move_str = format_move(&move);
+	}
+	if (move_str) {
+		printf("%s\n", move_str);
+		parse_and_execute_move(&board, move_str);
+		fprintf(stderr, "New state: %s\n", format_state(&board));
 	}
 }
 
