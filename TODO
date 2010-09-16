@@ -1,0 +1,18 @@
+ - alpha/beta pruning
+ - implement iterative deepening/time-limited solving
+ - better evaluation function ==> need to beat player 3
+ - think of a name!
+
+Maybe:
+ - implement placement as regular moves?
+ - transposition table?
+
+Later:
+ - better set-up phase
+ - better evaluation function: auto-learning?
+   See:
+   http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
+
+Existing opponents:
+  http://matztias.de/spiele/dvonner/dvonner-e.htm
+  http://www.othello.nl/content/Dvonn.zip
