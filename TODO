@@ -1,4 +1,3 @@
- - alpha/beta pruning
  - implement iterative deepening/time-limited solving
  - better evaluation function ==> need to beat player 3
  - think of a name!

@@ -38,29 +38,29 @@ extern Move move_pass;
 #define move_is_pass(m) ((m)->r1 == (unsigned char)-1)
 
 /* Board creation/modification functions: */
-void board_clear(Board *board);
-void board_place(Board *board, const Place *p);
-void board_unplace(Board *board, const Place *p);
-void board_move(Board *board, const Move *m, Color *old_player);
-void board_unmove(Board *board, const Move *m, Color old_player);
-void board_validate(const Board *board);
+EXTERN void board_clear(Board *board);
+EXTERN void board_place(Board *board, const Place *p);
+EXTERN void board_unplace(Board *board, const Place *p);
+EXTERN void board_move(Board *board, const Move *m, Color *old_player);
+EXTERN void board_unmove(Board *board, const Move *m, Color old_player);
+EXTERN void board_validate(const Board *board);
 
 /* Generates a list of possible placements and returns its length: */
-int generate_places(const Board *board, Place places[N]);
+EXTERN int generate_places(const Board *board, Place places[N]);
 
 /* Generates all moves for both players: */
-void generate_all_moves( const Board *board,
+EXTERN void generate_all_moves( const Board *board,
 	Move *moves1, Move *moves2, int *nmove1, int *nmove2 );
 
 #define next_player(b) ((b)->moves < N ? ((b)->moves&1) : ((b)->moves - N)&1)
 
 /* Generates a list of moves for the current player and returns its length: */
-int generate_moves(const Board *board, Move moves[M]);
+EXTERN int generate_moves(const Board *board, Move moves[M]);
 
 /* Calculates the score for both players: */
-void board_scores(const Board *board, int scores[2]);
+EXTERN void board_scores(const Board *board, int scores[2]);
 
 /* Calculates the score for the current player: */
-int board_score(const Board *board);
+EXTERN int board_score(const Board *board);
 
 #endif /* ndef GAME_H_INCLUDED */

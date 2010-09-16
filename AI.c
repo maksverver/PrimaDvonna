@@ -2,7 +2,9 @@
 #include <assert.h>
 #include <stdio.h>
 
-bool ai_select_place(Board *board, Place *place)
+static const int inf = 999999999;
+
+EXTERN bool ai_select_place(Board *board, Place *place)
 {
 	Place places[N];
 	int n, nplace = generate_places(board, places);
@@ -49,43 +51,40 @@ static int eval_intermediate(const Board *board)
 	return nmove[(board->moves - N)%2] - nmove[(board->moves - N + 1)%2];
 }
 
-static int dfs(Board *board, int depth, int pass, Move *best)
+static int dfs(
+	Board *board, int depth, int pass, int lo, int hi, Move *best )
 {
 	Move moves[M];
-	int n, nmove, res = -10000;
+	int n, nmove;
 
 	if (pass == 2) return eval_end(board);
 	if (depth == 0) return eval_intermediate(board);
 
 	nmove = generate_moves(board, moves);
 	assert(nmove > 0);
-	if (move_is_pass(&moves[0])) {
-		/* Handle pass separately, because it is always a single move, and thus
-		   we don't decrease depth for it: */
-		if (best != NULL) *best = moves[0];
-		board_move(board, &moves[0], NULL);
-		res = -dfs(board, depth, pass + 1, NULL);
-		board_unmove(board, &moves[0], NONE);
-		return res;
-	}
 	for (n = 0; n < nmove; ++n) {
 		int val;
 		Color old_player;
 
 		board_move(board, &moves[n], &old_player);
-		val = -dfs(board, depth - 1, 0, NULL);
+
+		val = -dfs( board, nmove > 1 ? depth - 1 : depth,
+			move_is_pass(&moves[n]) ? pass + 1 : 0, -hi, -lo, NULL );
+
 		board_unmove(board, &moves[n], old_player);
-		if (val > res) {
-			res = val;
+
+		if (val > lo) {
+			lo = val;
 			if (best != NULL) *best = moves[n];
 		}
+		if (lo >= hi) break;
 	}
-	return res;
+	return lo;
 }
 
-bool ai_select_move(Board *board, Move *move)
+EXTERN bool ai_select_move(Board *board, Move *move)
 {
-	int val = dfs(board, 2, 0, move);
+	int val = dfs(board, 4, 0, -inf, +inf, move);
 	fprintf(stderr, "Value: %d\n", val);
 	return true;
 }

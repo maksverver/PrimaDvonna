@@ -1,4 +1,4 @@
-CFLAGS=-g -O2 -Wall -Wextra
+CFLAGS=-g -O2 -Wall -Wextra -DEXTERN=extern
 LDFLAGS=
 SRCS=AI.c Game.c IO.c player.c
 OBJS=AI.o Game.o IO.o player.o

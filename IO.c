@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <string.h>
 
-bool parse_place(const char *text, Place *place)
+EXTERN bool parse_place(const char *text, Place *place)
 {
 	if (text[0] >= 'A' && text[0] <= 'K' &&
 		text[1] >= '1' && text[1] <= '5' && text[2] == '\0') {
@@ -13,7 +13,7 @@ bool parse_place(const char *text, Place *place)
 	return false;
 }
 
-bool parse_move(const char *text, Move *move)
+EXTERN bool parse_move(const char *text, Move *move)
 {
 	if (strcmp(text, "PASS") == 0) {
 		*move = move_pass;
@@ -31,7 +31,7 @@ bool parse_move(const char *text, Move *move)
 	return false;
 }
 
-const char *format_place(const Place *place)
+EXTERN const char *format_place(const Place *place)
 {
 	static char buf[3];
 	buf[0] = (char)('A' + place->c);
@@ -40,7 +40,7 @@ const char *format_place(const Place *place)
 	return buf;
 }
 
-const char *format_move(const Move *move)
+EXTERN const char *format_move(const Move *move)
 {
 	static char buf[5];
 	if (move_is_pass(move)) {
@@ -58,7 +58,7 @@ const char *format_move(const Move *move)
 static const char *digits =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-bool parse_state(const char *descr, Board *board, Color *next_player)
+EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 {
 	int vals[N + 1], n, r, c;
 
@@ -115,7 +115,7 @@ bool parse_state(const char *descr, Board *board, Color *next_player)
 	return true;
 }
 
-const char *format_state(Board *board)
+EXTERN const char *format_state(Board *board)
 {
 	Board init_board;
 	static char buf[N + 2];
@@ -141,7 +141,7 @@ const char *format_state(Board *board)
 				} else if (f->player == NONE) {
 					buf[n] = digits[1];
 				} else {
-					buf[n] = digits[4*f->pieces + (f->dvonns?1:0) + f->player - 2];
+					buf[n] = digits[4*f->pieces + (f->dvonns?2:0) + f->player - 2];
 				}
 				++n;
 			}

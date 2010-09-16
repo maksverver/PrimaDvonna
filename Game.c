@@ -20,7 +20,7 @@ static int distance(int r1, int c1, int r2, int c2)
 	return max(max(abs(dx), abs(dy)), abs(dz));
 }
 
-void board_clear(Board *board)
+EXTERN void board_clear(Board *board)
 {
 	int r, c;
 	board->moves = 0;
@@ -35,7 +35,7 @@ void board_clear(Board *board)
 	}
 }
 
-void board_place(Board *board, const Place *p)
+EXTERN void board_place(Board *board, const Place *p)
 {
 	Field *f = &board->fields[p->r][p->c];
 	f->pieces = 1;
@@ -47,7 +47,7 @@ void board_place(Board *board, const Place *p)
 	++board->moves;
 }
 
-void board_unplace(Board *board, const Place *p)
+EXTERN void board_unplace(Board *board, const Place *p)
 {
 	Field *f = &board->fields[p->r][p->c];
 	f->player = NONE;
@@ -117,7 +117,7 @@ static bool may_be_bridge(Board *board, int r, int c)
 	return bridge_index[mask];
 }
 
-void board_move(Board *board, const Move *m, Color *old_player)
+EXTERN void board_move(Board *board, const Move *m, Color *old_player)
 {
 	if (!move_is_pass(m)) {
 		Field *f = &board->fields[m->r1][m->c1];
@@ -151,7 +151,7 @@ static void restore_unreachable(Board *board, int r1, int c1)
 	}
 }
 
-void board_unmove(Board *board, const Move *m, Color old_player)
+EXTERN void board_unmove(Board *board, const Move *m, Color old_player)
 {
 	--board->moves;
 	if (!move_is_pass(m)) {
@@ -165,7 +165,7 @@ void board_unmove(Board *board, const Move *m, Color old_player)
 	}
 }
 
-void board_validate(const Board *board)
+EXTERN void board_validate(const Board *board)
 {
 	int r, c;
 	for (r = 0; r < H; ++r) {
@@ -188,7 +188,7 @@ void board_validate(const Board *board)
 	}
 }
 
-int generate_places(const Board *board, Place places[N])
+EXTERN int generate_places(const Board *board, Place places[N])
 {
 	int r, c, n = 0;
 	for (r = 0; r < H; ++r) {
@@ -214,7 +214,7 @@ static bool mobile(const Board *board, int r, int c)
 	return false;
 }
 
-void generate_all_moves( const Board *board,
+EXTERN void generate_all_moves( const Board *board,
 	Move *moves1, Move *moves2, int *nmove1, int *nmove2 )
 {
 	const Field *f, *g;
@@ -253,7 +253,7 @@ void generate_all_moves( const Board *board,
 	}
 }
 
-int generate_moves(const Board *board, Move moves[M])
+EXTERN int generate_moves(const Board *board, Move moves[M])
 {
 	int nmove;
 	if (((board->moves - N)&1) == 0) {
@@ -264,7 +264,7 @@ int generate_moves(const Board *board, Move moves[M])
 	return nmove;
 }
 
-void board_scores(const Board *board, int scores[2])
+EXTERN void board_scores(const Board *board, int scores[2])
 {
 	int r, c;
 
@@ -280,7 +280,7 @@ void board_scores(const Board *board, int scores[2])
 	}
 }
 
-int board_score(const Board *board)
+EXTERN int board_score(const Board *board)
 {
 	int sc[2], player = next_player(board);
 	board_scores(board, sc);
