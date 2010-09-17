@@ -4,6 +4,8 @@
 
 static const int inf = 999999999;
 
+static int num_evaluated;
+
 EXTERN bool ai_select_place(Board *board, Place *place)
 {
 	Place places[N];
@@ -43,12 +45,39 @@ static int eval_end(const Board *board)
 
 static int eval_intermediate(const Board *board)
 {
-	Move moves[2][M];
-	int nmove[2];
+	Move moves[2*M];
+	int nmove, n, r, c, p;
+	int score[2] = { 0, 0 };
 
-	generate_all_moves(board, moves[0], moves[1], &nmove[0], &nmove[1]);
-	if (nmove[0] + nmove[1] == 0) return eval_end(board);
-	return nmove[(board->moves - N)%2] - nmove[(board->moves - N + 1)%2];
+	assert(board->moves >= N);
+
+	nmove = generate_all_moves(board, moves);
+	if (nmove == 0) return eval_end(board);
+
+	/* Value moves: */
+	for (n = 0; n < nmove; ++n) {
+		const Field *f = &board->fields[moves[n].r1][moves[n].c1];
+		const Field *g = &board->fields[moves[n].r2][moves[n].c2];
+
+		if (g->player == f->player) score[f->player] += 3;  /* to self */
+		else if (g->player == NONE) score[f->player] += 4;  /* to Dvonn */
+		else                        score[f->player] += 5;  /* to opponent */
+	}
+
+	/* Value material: */
+	for (r = 0; r < H; ++r) {
+		for (c = 0; c < W; ++c) {
+			const Field *f = &board->fields[r][c];
+
+			if (!f->removed && f->player != NONE) {
+				score[f->player] += 1;
+			}
+		}
+	}
+
+	++num_evaluated;
+	p = next_player(board);
+	return score[p] - score[1 - p];
 }
 
 static int dfs(
@@ -84,7 +113,10 @@ static int dfs(
 
 EXTERN bool ai_select_move(Board *board, Move *move)
 {
-	int val = dfs(board, 4, 0, -inf, +inf, move);
-	fprintf(stderr, "Value: %d\n", val);
+	int val;
+
+	num_evaluated = 0;
+	val = dfs(board, 4, 0, -inf, +inf, move);
+	fprintf(stderr, "Value: %d (%d position evaluated)\n", val, num_evaluated);
 	return true;
 }

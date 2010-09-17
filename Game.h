@@ -8,7 +8,7 @@
 #define H     5             /* board height */
 #define N    49             /* maximum number of accessible fields */
 #define D     3             /* nubmer of Dvonn pieces */
-#define M ((N-D)/2*6)       /* maximum number of moves */
+#define M ((N-D)/2*6)       /* maximum number of moves (for one player) */
 
 typedef enum Color { WHITE = 0, BLACK = 1, NONE = -1 } Color;
 
@@ -48,13 +48,15 @@ EXTERN void board_validate(const Board *board);
 /* Generates a list of possible placements and returns its length: */
 EXTERN int generate_places(const Board *board, Place places[N]);
 
-/* Generates all moves for both players: */
-EXTERN void generate_all_moves( const Board *board,
-	Move *moves1, Move *moves2, int *nmove1, int *nmove2 );
+/* Generates a list of all moves for both players and returns it length.
+   This list does not include passes for either player. */
+EXTERN int generate_all_moves(const Board *board, Move moves[2*M]);
 
 #define next_player(b) ((b)->moves < N ? ((b)->moves&1) : ((b)->moves - N)&1)
 
-/* Generates a list of moves for the current player and returns its length: */
+/* Generates a list of moves for the current player and returns its length.
+   If and only if the player has no stacking moves, the result includes a pass
+   move, so the result is at least 1. */
 EXTERN int generate_moves(const Board *board, Move moves[M]);
 
 /* Calculates the score for both players: */

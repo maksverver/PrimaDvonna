@@ -103,6 +103,7 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 					f->player = (vals[n] + 2)%2;
 					f->dvonns = (vals[n] + 2)/2%2;
 					f->pieces = (vals[n] + 2)/4;
+					if (board->moves < N) ++board->moves;
 				}
 				++n;
 			}

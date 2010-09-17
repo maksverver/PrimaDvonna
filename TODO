@@ -1,13 +1,15 @@
- - implement iterative deepening/time-limited solving
- - better evaluation function ==> need to beat player 3
+ - transposition table?
  - think of a name!
 
 Maybe:
- - implement placement as regular moves?
- - transposition table?
+ - implement placement as regular moves? (major overhaul!)
+ - better set-up phase:
+    - mirroring seems to work well against caia's player3
 
 Later:
- - better set-up phase
+ - improve evaluation function
+ - implement iterative deepening/time-limited solving
+ - try move-reordering to make alpha-beta pruning more efficient
  - better evaluation function: auto-learning?
    See:
    http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19

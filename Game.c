@@ -214,20 +214,17 @@ static bool mobile(const Board *board, int r, int c)
 	return false;
 }
 
-EXTERN void generate_all_moves( const Board *board,
-	Move *moves1, Move *moves2, int *nmove1, int *nmove2 )
+static int gen_moves(const Board *board, Move *moves, Color player)
 {
 	const Field *f, *g;
-	int r1, c1, d, r2, c2;
-	Move *moves[2] = { moves1, moves2 }, **pmoves;
+	int r1, c1, d, r2, c2, nmove = 0;
 
 	for (r1 = 0; r1 < H; ++r1) {
 		for (c1 = 0; c1 < W; ++c1) {
 			f = &board->fields[r1][c1];
-			if (f->removed || f->player == NONE) continue;
-			pmoves = &moves[f->player];
-			if (!*pmoves) continue;
-			if (mobile(board, r1, c1)) {
+			if (!f->removed && f->player != NONE &&
+				(player == NONE || player == f->player) &&
+				mobile(board, r1, c1)) {
 				for (d = 0; d < 6; ++d) {
 					r2 = r1 + f->pieces*dr[d];
 					c2 = c1 + f->pieces*dc[d];
@@ -235,33 +232,27 @@ EXTERN void generate_all_moves( const Board *board,
 						g = &board->fields[r2][c2];
 						if (!g->removed) {
 							Move new_move = { r1, c1, r2, c2};
-							*(*pmoves)++ = new_move;
+							moves[nmove++] = new_move;
 						}
 					}
 				}
 			}
 		}
 	}
+	if (player != NONE && nmove == 0) {
+		moves[nmove++] = move_pass;
+	}
+	return nmove;
+}
 
-	if (moves1 != NULL) {
-		if (moves1 == moves[0]) *moves[0]++ = move_pass;
-		*nmove1 = moves[0] - moves1;
-	}
-	if (moves2 != NULL) {
-		if (moves2 == moves[1]) *moves[1]++ = move_pass;
-		*nmove2 = moves[1] - moves2;
-	}
+EXTERN int generate_all_moves(const Board *board, Move moves[2*M])
+{
+	return gen_moves(board, moves, NONE);
 }
 
 EXTERN int generate_moves(const Board *board, Move moves[M])
 {
-	int nmove;
-	if (((board->moves - N)&1) == 0) {
-		generate_all_moves(board, moves, NULL, &nmove, NULL);
-	} else {
-		generate_all_moves(board, NULL, moves, NULL, &nmove);
-	}
-	return nmove;
+	return gen_moves(board, moves, next_player(board));
 }
 
 EXTERN void board_scores(const Board *board, int scores[2])
