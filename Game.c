@@ -7,8 +7,8 @@ Move move_pass = { -1, -1, -1, -1 };
 /* Directions. These are ordered in CCW order starting to the right. Order is
    important because these values are used to compute neighbour masks (see
    may_be_bridge() for details). */
-static int dr[6] = {  0, -1, -1,  0, +1, +1 };
-static int dc[6] = { +1,  0, -1, -1,  0, +1 };
+const int DR[6] = {  0, -1, -1,  0, +1, +1 };
+const int DC[6] = { +1,  0, -1, -1,  0, +1 };
 
 static int max(int i, int j) { return i > j ? i : j; }
 
@@ -18,19 +18,6 @@ EXTERN int distance(int r1, int c1, int r2, int c2)
 	int dy = r2 - r1;
 	int dz = dx - dy;
 	return max(max(abs(dx), abs(dy)), abs(dz));
-}
-
-EXTERN bool is_edge_field(const Board *board, int r, int c)
-{
-	int d;
-
-	if (r == 0 || r == H - 1 || c == 0 || c == W - 1) return true;
-	for (d = 0; d < 6; ++d) {
-		if (board->fields[r + dr[d]][c + dc[d]].removed == (unsigned char)-1) {
-			return true;
-		}
-	}
-	return false;
 }
 
 EXTERN void board_clear(Board *board)
@@ -77,8 +64,8 @@ static void mark_reachable(Board *board, int r1, int c1) {
 
 	reachable[r1][c1] = true;
 	for (d = 0; d < 6; ++d) {
-		r2 = r1 + dr[d];
-		c2 = c1 + dc[d];
+		r2 = r1 + DR[d];
+		c2 = c1 + DC[d];
 		if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W &&
 			!board->fields[r2][c2].removed && !reachable[r2][c2]) {
 			mark_reachable(board, r2, c2);
@@ -123,7 +110,7 @@ static bool may_be_bridge(Board *board, int r, int c)
 	int d, mask = 0;
 
 	for (d = 0; d < 6; ++d) {
-		int nr = r + dr[d], nc = c + dc[d];
+		int nr = r + DR[d], nc = c + DC[d];
 		if (nr >= 0 && nr < H && nc >= 0 && nc < W &&
 			!board->fields[nr][nc].removed) mask |= 1<<d;
 	}
@@ -155,8 +142,8 @@ static void restore_unreachable(Board *board, int r1, int c1)
 
 	board->fields[r1][c1].removed = 0;
 	for (d = 0; d < 6; ++d) {
-		r2 = r1 + dr[d];
-		c2 = c1 + dc[d];
+		r2 = r1 + DR[d];
+		c2 = c1 + DC[d];
 		if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W &&
 			board->fields[r2][c2].removed == board->moves) {
 			restore_unreachable(board, r2, c2);
@@ -222,7 +209,7 @@ static bool mobile(const Board *board, int r, int c)
 
 	if (r == 0 || r == H - 1 || c == 0 || c == W - 1) return true;
 	for (d = 0; d < 6; ++d) {
-		if (board->fields[r + dr[d]][c + dc[d]].removed) return true;
+		if (board->fields[r + DR[d]][c + DC[d]].removed) return true;
 	}
 	return false;
 }
@@ -239,8 +226,8 @@ static int gen_moves(const Board *board, Move *moves, Color player)
 				(player == NONE || player == f->player) &&
 				mobile(board, r1, c1)) {
 				for (d = 0; d < 6; ++d) {
-					r2 = r1 + f->pieces*dr[d];
-					c2 = c1 + f->pieces*dc[d];
+					r2 = r1 + f->pieces*DR[d];
+					c2 = c1 + f->pieces*DC[d];
 					if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
 						g = &board->fields[r2][c2];
 						if (!g->removed) {

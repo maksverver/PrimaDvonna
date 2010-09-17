@@ -22,6 +22,35 @@ static int distance_to_dvonns(Board *board, int r1, int c1)
 	return res;
 }
 
+/* Returns whether the given field lies on the edge of the board: */
+EXTERN bool is_edge_field(const Board *board, int r, int c)
+{
+	int d;
+
+	if (r == 0 || r == H - 1 || c == 0 || c == W - 1) return true;
+	for (d = 0; d < 6; ++d) {
+		if (board->fields[r + DR[d]][c + DC[d]].removed == (unsigned char)-1) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/* Counts how many neighbouring fields are controlled by the given neighbour: */
+EXTERN bool count_neighbours(const Board *board, int r1, int c1, Color player)
+{
+	int d, r2, c2, res = 0;
+
+	for (d = 0; d < 6; ++d) {
+		r2 = r1 + DR[d];
+		c2 = c1 + DC[d];
+		if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
+			if (board->fields[r2][c2].player == player) ++res;
+		}
+	}
+	return res;
+}
+
 EXTERN bool ai_select_place(Board *board, Place *place)
 {
 	if (board->moves%2 == 0) {  /* I play white. Fill board symmetrically: */
@@ -57,12 +86,15 @@ EXTERN bool ai_select_place(Board *board, Place *place)
 			return true;
 
 		} else {
-			int n, val, best_val = 0, best_cnt = 0;
+			int r, c, n, val, best_val = 0, best_cnt = 0;
 
 			/* Place random stone close to Dvonn stones and board's edge: */
 			for (n = 0; n < nplace; ++n) {
-				val = 3*is_edge_field(board, places[n].r, places[n].c)
-					- distance_to_dvonns(board, places[n].r, places[n].c);
+				r = places[n].r;
+				c = places[n].c;
+				val = 3*is_edge_field(board, r, c)
+					- distance_to_dvonns(board, r, c)
+					- count_neighbours(board, r, c, next_player(board));
 				if (best_cnt == 0 || val > best_val) {
 					best_cnt = 0;
 					best_val = val;
