@@ -37,6 +37,12 @@ typedef struct Move { unsigned char r1, c1, r2, c2; } Move;
 extern Move move_pass;
 #define move_is_pass(m) ((m)->r1 == (unsigned char)-1)
 
+/* Returns the distance between two pairs of field coordinates: */
+EXTERN int distance(int r1, int c1, int r2, int c2);
+
+/* Returns whether the given field lies on the edge of the board: */
+EXTERN bool is_edge_field(const Board *board, int r, int c);
+
 /* Board creation/modification functions: */
 EXTERN void board_clear(Board *board);
 EXTERN void board_place(Board *board, const Place *p);

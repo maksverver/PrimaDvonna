@@ -12,12 +12,25 @@ static int dc[6] = { +1,  0, -1, -1,  0, +1 };
 
 static int max(int i, int j) { return i > j ? i : j; }
 
-static int distance(int r1, int c1, int r2, int c2)
+EXTERN int distance(int r1, int c1, int r2, int c2)
 {
 	int dx = c2 - c1;
 	int dy = r2 - r1;
 	int dz = dx - dy;
 	return max(max(abs(dx), abs(dy)), abs(dz));
+}
+
+EXTERN bool is_edge_field(const Board *board, int r, int c)
+{
+	int d;
+
+	if (r == 0 || r == H - 1 || c == 0 || c == W - 1) return true;
+	for (d = 0; d < 6; ++d) {
+		if (board->fields[r + dr[d]][c + dc[d]].removed == (unsigned char)-1) {
+			return true;
+		}
+	}
+	return false;
 }
 
 EXTERN void board_clear(Board *board)
@@ -231,8 +244,11 @@ static int gen_moves(const Board *board, Move *moves, Color player)
 					if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
 						g = &board->fields[r2][c2];
 						if (!g->removed) {
-							Move new_move = { r1, c1, r2, c2};
-							moves[nmove++] = new_move;
+							if (moves) {
+								Move new_move = { r1, c1, r2, c2};
+								moves[nmove] = new_move;
+							}
+							++nmove;
 						}
 					}
 				}

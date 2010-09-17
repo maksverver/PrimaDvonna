@@ -9,6 +9,6 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player);
 
 EXTERN const char *format_place(const Place *place);
 EXTERN const char *format_move(const Move *move);
-EXTERN const char *format_state(Board *board);
+EXTERN const char *format_state(const Board *board);
 
 #endif /* ndef IO_H_INCLUDED */

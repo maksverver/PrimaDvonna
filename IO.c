@@ -116,7 +116,7 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 	return true;
 }
 
-EXTERN const char *format_state(Board *board)
+EXTERN const char *format_state(const Board *board)
 {
 	Board init_board;
 	static char buf[N + 2];
@@ -132,7 +132,7 @@ EXTERN const char *format_state(Board *board)
 	for (r = 0; r < H; ++r) {
 		for (c = 0; c < W; ++c) {
 			if (!init_board.fields[r][c].removed) {
-				Field *f = &board->fields[r][c];
+				const Field *f = &board->fields[r][c];
 
 				assert(n < N + 1);
 				if (f->pieces > 15) {  /* stack too high for this encoding! */

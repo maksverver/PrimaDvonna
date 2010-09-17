@@ -1,19 +1,21 @@
- - transposition table?
+Friday:
  - think of a name!
+ - upload to CodeCup
 
 Maybe:
  - implement placement as regular moves? (major overhaul!)
- - better set-up phase:
-    - mirroring seems to work well against caia's player3
 
 Later:
+ - extend transposition table to store intermediate positions
  - improve evaluation function
+ - improve set-up phase
  - implement iterative deepening/time-limited solving
  - try move-reordering to make alpha-beta pruning more efficient
- - better evaluation function: auto-learning?
+ - consider auto-learning for evaluation parameters?
    See:
    http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
 
 Existing opponents:
   http://matztias.de/spiele/dvonner/dvonner-e.htm
   http://www.othello.nl/content/Dvonn.zip
+  Holtz (open-source!)
