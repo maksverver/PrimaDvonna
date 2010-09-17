@@ -108,6 +108,7 @@ static void run_game()
 		my_color = BLACK;
 	}
 	for (;;) {
+		fprintf(stderr, "%s\n", format_state(&board));
 		move_str = NULL;
 		if (board.moves < N) {
 			if ((board.moves & 1) == my_color) {
@@ -129,11 +130,11 @@ static void run_game()
 			}
 		}
 		if (move_str) {
-			fprintf(stderr, " --%s--> %s\n", move_str, format_state(&board));
+			fprintf(stderr, " --%s-->\n", move_str);
 			printf("%s\n", move_str);
 		} else {
 			move_str = read_line();
-			fprintf(stderr, "<--%s--  %s\n", move_str, format_state(&board));
+			fprintf(stderr, "<--%s--\n", move_str);
 		}
 		parse_and_execute_move(&board, move_str);
 	}

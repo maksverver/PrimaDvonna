@@ -216,8 +216,8 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 
 	num_moves = generate_all_moves(board, NULL);
 	if (num_moves < 10) depth = 6;
-	else if (num_moves < 30) depth = 5;
-	else if (num_moves < 90) depth = 4;
+	else if (num_moves < 20) depth = 5;
+	else if (num_moves < 40) depth = 4;
 	else depth = 3;
 
 	num_evaluated = 0;
