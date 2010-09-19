@@ -60,11 +60,7 @@ class Field():
 		self.dvonn  = False
 
 	def __repr__(self):
-		res = str(self.pieces)
-		if self.pieces > 0:
-			res += 'dbw'[self.player]
-			if self.dvonn: res = res.upper()
-		return res
+		return "+- "[self.player] + ".123456789abcdefghijklmnopqrstuvwxyz"[self.pieces] + " *"[self.dvonn]
 
 def distance(x1, y1, x2, y2):
 	'Returns the distance between fields at coordinates (x1,y1) and (x2,y2)'
@@ -243,6 +239,16 @@ def decode(data):
 	assert pos == N + 1
 	return board, phase, player
 
+def print_plain(board):
+	'Prints the board in a simple, human-readable plain-text format.'
+
+	for y in range(H):
+		line = abs(y - H//2)*"  "
+		for x in range(W):
+			if valid_field(x, y):
+				line += " " + str(board[x][y])
+		print line
+
 if __name__ == '__main__':
 	initialize()
 
@@ -324,9 +330,10 @@ if __name__ == '__main__':
 			if moves != None: moves.append(((x1,y1),(x2,y2)))
 			player = 1 - player
 		else:
-			assert False
+			assert not "Invalid move given as argument!"
 		if phase == MOVEMENT and all_moves(board) == []: phase = COMPLETE
 		if phase == COMPLETE: player = NONE
 
 	#print format_transcript(metadata, len(moves) - resigned, complete)
 	print encode(board, phase, player)
+	print_plain(board)
