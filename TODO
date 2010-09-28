@@ -1,10 +1,10 @@
-Maybe:
- - implement placement as regular moves? (major overhaul!)
+ - holistic approach to move selection (regardless of game phase) 
+ - improve set-up phase: symmetric placement makes little sense in practice
+ - improve evaluation function:
+    - remove bonus for possession of stacks early in the game.
 
 Later:
  - extend transposition table to store intermediate positions
- - improve evaluation function
- - improve set-up phase
  - implement iterative deepening/time-limited solving
  - try move-reordering to make alpha-beta pruning more efficient
  - consider auto-learning for evaluation parameters?

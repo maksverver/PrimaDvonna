@@ -28,36 +28,45 @@ typedef struct Board
 	Field fields[H][W];   /* fields of the board */
 } Board;
 
-/* Describes the placing of a piece on the given field: */
-typedef struct Place { unsigned char r, c; } Place;
+/* This macro determines which color plays next: */
+#define next_player(b) ((b)->moves < N ? ((b)->moves&1) : ((b)->moves - N)&1)
 
-/* Describes the moving of a stack unto another stack: */
-typedef struct Move { unsigned char r1, c1, r2, c2; } Move;
+/* The structure below describes a single move.
+   There are three types of moves: placing, stacking and passing.
 
-extern Move move_pass;
-#define move_is_pass(m) ((m)->r1 == (unsigned char)-1)
+   (r1,c1) is the source field when stacking, or the destination field when
+   placing, or (-1, -1) when passing. Similarly, (r2,c2) is the destination
+   field when stacking, or (-1, -1) when placing or passing. */
+typedef struct Move {
+	signed char r1, c1, r2, c2;
+} Move;
 
+extern Move move_pass;  /* pass move: all fields set to -1 */
+#define move_places(m) ((m)->r1 >= 0 && (m)->r2 < 0)
+#define move_stacks(m) ((m)->r2 >= 0)
+#define move_passes(m) ((m)->r1 < 0)
+
+/* The six cardinal directions on the board. These are ordered anti-clockwise
+   starting to right. (Order matters for functions like may_be_bridge()!) */
 extern const int DR[6], DC[6];
 
 /* Returns the distance between two pairs of field coordinates: */
 EXTERN int distance(int r1, int c1, int r2, int c2);
 
-/* Board creation/modification functions: */
+/* (Re)initialize a board structure to an empty board: */
 EXTERN void board_clear(Board *board);
-EXTERN void board_place(Board *board, const Place *p);
-EXTERN void board_unplace(Board *board, const Place *p);
-EXTERN void board_move(Board *board, const Move *m, Color *old_player);
-EXTERN void board_unmove(Board *board, const Move *m, Color old_player);
-EXTERN void board_validate(const Board *board);
 
-/* Generates a list of possible placements and returns its length: */
-EXTERN int generate_places(const Board *board, Place places[N]);
+/* Do/undo moves (which must be valid, e.g. returned by generate_moves()) */
+EXTERN void board_do(Board *board, const Move *m, Color *old_color);
+EXTERN void board_undo(Board *board, const Move *m, Color old_color);
+
+/* Does an internal consistency check on the board and aborts the program if
+   any check fails. Does not catch all inconsistencies! */
+EXTERN void board_validate(const Board *board);
 
 /* Generates a list of all moves for both players and returns it length.
    This list does not include passes for either player. */
 EXTERN int generate_all_moves(const Board *board, Move moves[2*M]);
-
-#define next_player(b) ((b)->moves < N ? ((b)->moves&1) : ((b)->moves - N)&1)
 
 /* Generates a list of moves for the current player and returns its length.
    If and only if the player has no stacking moves, the result includes a pass

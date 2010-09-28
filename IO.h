@@ -3,11 +3,9 @@
 
 #include "Game.h"
 
-EXTERN bool parse_place(const char *text, Place *place);
 EXTERN bool parse_move(const char *text, Move *move);
 EXTERN bool parse_state(const char *descr, Board *board, Color *next_player);
 
-EXTERN const char *format_place(const Place *place);
 EXTERN const char *format_move(const Move *move);
 EXTERN const char *format_state(const Board *board);
 

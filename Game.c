@@ -4,9 +4,6 @@
 
 Move move_pass = { -1, -1, -1, -1 };
 
-/* Directions. These are ordered in CCW order starting to the right. Order is
-   important because these values are used to compute neighbour masks (see
-   may_be_bridge() for details). */
 const int DR[6] = {  0, -1, -1,  0, +1, +1 };
 const int DC[6] = { +1,  0, -1, -1,  0, +1 };
 
@@ -35,25 +32,23 @@ EXTERN void board_clear(Board *board)
 	}
 }
 
-EXTERN void board_place(Board *board, const Place *p)
+static void place(Board *board, const Move *m)
 {
-	Field *f = &board->fields[p->r][p->c];
+	Field *f = &board->fields[m->r1][m->c1];
 	f->pieces = 1;
 	if (board->moves < D) {
 		f->dvonns = 1;
 	} else {
 		f->player = board->moves & 1;
 	}
-	++board->moves;
 }
 
-EXTERN void board_unplace(Board *board, const Place *p)
+static void unplace(Board *board, const Move *m)
 {
-	Field *f = &board->fields[p->r][p->c];
+	Field *f = &board->fields[m->r1][m->c1];
 	f->player = NONE;
 	f->pieces = 0;
 	f->dvonns = 0;
-	--board->moves;
 }
 
 /* Temporary space shared by mark_reachable() and remove_reachable(): */
@@ -117,23 +112,20 @@ static bool may_be_bridge(Board *board, int r, int c)
 	return bridge_index[mask];
 }
 
-EXTERN void board_move(Board *board, const Move *m, Color *old_player)
+static void stack(Board *board, const Move *m, Color *old_player)
 {
-	if (!move_is_pass(m)) {
-		Field *f = &board->fields[m->r1][m->c1];
-		Field *g = &board->fields[m->r2][m->c2];
-		if (old_player) *old_player = g->player;
-		g->player = f->player;
-		g->pieces += f->pieces;
-		g->dvonns += f->dvonns;
-		f->removed = board->moves;
-		/* We must remove disconnected fields, but since remove_unreachable()
-		   is expensive, we try to elide it if permissible: */
-		if (f->dvonns || may_be_bridge(board, m->r1, m->c1)) {
-			remove_unreachable(board);
-		}
+	Field *f = &board->fields[m->r1][m->c1];
+	Field *g = &board->fields[m->r2][m->c2];
+	if (old_player) *old_player = g->player;
+	g->player = f->player;
+	g->pieces += f->pieces;
+	g->dvonns += f->dvonns;
+	f->removed = board->moves;
+	/* We must remove disconnected fields, but since remove_unreachable()
+		is expensive, we try to elide it if permissible: */
+	if (f->dvonns || may_be_bridge(board, m->r1, m->c1)) {
+		remove_unreachable(board);
 	}
-	++board->moves;
 }
 
 static void restore_unreachable(Board *board, int r1, int c1)
@@ -151,17 +143,34 @@ static void restore_unreachable(Board *board, int r1, int c1)
 	}
 }
 
-EXTERN void board_unmove(Board *board, const Move *m, Color old_player)
+static void unstack(Board *board, const Move *m, Color old_player)
+{
+	Field *f = &board->fields[m->r1][m->c1];
+	Field *g = &board->fields[m->r2][m->c2];
+	g->player = old_player;
+	g->pieces -= f->pieces;
+	g->dvonns -= f->dvonns;
+	assert(f->removed == board->moves);
+	restore_unreachable(board, m->r1, m->c1);
+}
+
+EXTERN void board_do(Board *board, const Move *m, Color *old_color)
+{
+	if (m->r2 >= 0) {
+		stack(board, m, old_color);
+	} else if (m->r1 >= 0) {
+		place(board, m);
+	}
+	++board->moves;
+}
+
+EXTERN void board_undo(Board *board, const Move *m, Color old_color)
 {
 	--board->moves;
-	if (!move_is_pass(m)) {
-		Field *f = &board->fields[m->r1][m->c1];
-		Field *g = &board->fields[m->r2][m->c2];
-		g->player = old_player;
-		g->pieces -= f->pieces;
-		g->dvonns -= f->dvonns;
-		assert(f->removed == board->moves);
-		restore_unreachable(board, m->r1, m->c1);
+	if (m->r2 >= 0) {  /* stack */
+		unstack(board, m, old_color);
+	} else if (m->r1 >= 0) {  /* place */
+		unplace(board, m);
 	}
 }
 
@@ -188,14 +197,16 @@ EXTERN void board_validate(const Board *board)
 	}
 }
 
-EXTERN int generate_places(const Board *board, Place places[N])
+static int gen_places(const Board *board, Move moves[N])
 {
 	int r, c, n = 0;
 	for (r = 0; r < H; ++r) {
 		for (c = 0; c < W; ++c) {
 			if (!board->fields[r][c].pieces && !board->fields[r][c].removed) {
-				places[n].r = r;
-				places[n].c = c;
+				moves[n].r1 = r;
+				moves[n].c1 = c;
+				moves[n].r2 = -1;
+				moves[n].c2 = -1;
 				++n;
 			}
 		}
@@ -214,7 +225,7 @@ static bool mobile(const Board *board, int r, int c)
 	return false;
 }
 
-static int gen_moves(const Board *board, Move *moves, Color player)
+static int gen_stacks(const Board *board, Move *moves, Color player)
 {
 	const Field *f, *g;
 	int r1, c1, d, r2, c2, nmove = 0;
@@ -250,12 +261,16 @@ static int gen_moves(const Board *board, Move *moves, Color player)
 
 EXTERN int generate_all_moves(const Board *board, Move moves[2*M])
 {
-	return gen_moves(board, moves, NONE);
+	return board->moves < N
+		? gen_places(board, moves)
+		: gen_stacks(board, moves, NONE);
 }
 
 EXTERN int generate_moves(const Board *board, Move moves[M])
 {
-	return gen_moves(board, moves, next_player(board));
+	return board->moves < N
+		? gen_places(board, moves)
+		: gen_stacks(board, moves, next_player(board));
 }
 
 EXTERN void board_scores(const Board *board, int scores[2])

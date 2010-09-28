@@ -2,57 +2,51 @@
 #include <assert.h>
 #include <string.h>
 
-EXTERN bool parse_place(const char *text, Place *place)
-{
-	if (text[0] >= 'A' && text[0] <= 'K' &&
-		text[1] >= '1' && text[1] <= '5' && text[2] == '\0') {
-		place->r = text[1] - '1';
-		place->c = text[0] - 'A';
-		return true;
-	}
-	return false;
-}
-
 EXTERN bool parse_move(const char *text, Move *move)
 {
 	if (strcmp(text, "PASS") == 0) {
 		*move = move_pass;
 		return true;
 	}
-	if (text[0] >= 'A' && text[0] <= 'K' && text[1] >= '1' && text[1] <= '5' &&
-		text[2] >= 'A' && text[2] <= 'K' && text[3] >= '1' && text[3] <= '5' &&
-		text[4] == '\0') {
-		move->c1 = text[0] - 'A';
-		move->r1 = text[1] - '1';
-		move->c2 = text[2] - 'A';
-		move->r2 = text[3] - '1';
-		return true;
+	if ( text[0] >= 'A' && text[0] <= 'K' &&
+	     text[1] >= '1' && text[1] <= '5' )
+	{
+		if (text[2] == '\0') {
+			move->r1 = text[1] - '1';
+			move->c1 = text[0] - 'A';
+			move->r2 = -1;
+			move->c2 = -1;
+			return true;
+		}
+		if ( text[2] >= 'A' && text[2] <= 'K' &&
+		     text[3] >= '1' && text[3] <= '5' && text[4] == '\0' ) {
+			move->c1 = text[0] - 'A';
+			move->r1 = text[1] - '1';
+			move->c2 = text[2] - 'A';
+			move->r2 = text[3] - '1';
+			return true;
+		}
 	}
 	return false;
 }
 
-EXTERN const char *format_place(const Place *place)
-{
-	static char buf[3];
-	buf[0] = (char)('A' + place->c);
-	buf[1] = (char)('1' + place->r);
-	buf[2] = '\0';
-	return buf;
-}
-
 EXTERN const char *format_move(const Move *move)
 {
-	static char buf[5];
-	if (move_is_pass(move)) {
-		strcpy(buf, "PASS");
-	} else {
-		buf[0] = 'A' + move->c1;
-		buf[1] = '1' + move->r1;
-		buf[2] = 'A' + move->c2;
-		buf[3] = '1' + move->r2;
-		buf[4] = '\0';
+	if (move_passes(move)) {  /* pass */
+		return "PASS";
+	} else {  /* place or stack */
+		static char buf[5];
+		char *p = buf;
+
+		*p++ = 'A' + move->c1;
+		*p++ = '1' + move->r1;
+		if (move_stacks(move)) {
+			*p++ = 'A' + move->c2;
+			*p++ = '1' + move->r2;
+		}
+		*p++ = '\0';
+		return buf;
 	}
-	return buf;
 }
 
 static const char *digits =
@@ -62,6 +56,7 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 {
 	int vals[N + 1], n, r, c;
 
+	/* Decode base-62 encoded values: */
 	if (strlen(descr) != N + 1) return false;
 	for (n = 0; n < N + 1; ++n) {
 		const char *p = strchr(digits, descr[n]);
@@ -69,7 +64,10 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 		vals[n] = (int)(p - digits);
 	}
 
+	/* Start with an empty board. */
 	board_clear(board);
+
+	/* First value determines the game phase and next player. */
 	*next_player = vals[0]%2;
 	switch (vals[0]/2%3)
 	{
@@ -82,6 +80,10 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 		board->moves = N;
 		break;
 	}
+
+	/* The next N values rae used to initialize the fields of the board;
+	   board->moves is initialized to something sensible based on the number
+	   of occupied (when placing) or empty (when stacking) fields. */
 	n = 1;
 	for (r = 0; r < H; ++r) {
 		for (c = 0; c < W; ++c) {
@@ -110,8 +112,15 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 		}
 	}
 	assert(n == N + 1);
-	while (*next_player != NONE && next_player(board) != *next_player) {
-		++board->moves;
+
+	/* Because of the disconnection rule, fewer moves may have been played in
+	   the stacking phase than the number of empty fields suggest. If an odd
+	   number of stacks have been removed this way, we must adjust the move
+	   counter by one to create a consistent game state. */
+	if (*next_player != NONE && next_player(board) != *next_player) {
+		--board->moves;
+		assert(next_player(board) == *next_player);
+		assert(board->moves > N);
 	}
 	return true;
 }

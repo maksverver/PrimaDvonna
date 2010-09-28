@@ -51,12 +51,14 @@ EXTERN bool count_neighbours(const Board *board, int r1, int c1, Color player)
 	return res;
 }
 
-EXTERN bool ai_select_place(Board *board, Place *place)
+EXTERN bool select_place(Board *board, Move *move)
 {
+	move->r2 = move->c2 = -1;
+
 	if (board->moves%2 == 0) {  /* I play white. Fill board symmetrically: */
 		if (board->moves == 0) {
-			place->r = H/2;
-			place->c = W/2;
+			move->r1 = H/2;
+			move->c1 = W/2;
 			return true;
 		} else {
 			int r1, c1, r2, c2;
@@ -67,31 +69,31 @@ EXTERN bool ai_select_place(Board *board, Place *place)
 					c2 = W - 1 - c1;
 					if (board->fields[r1][c1].pieces &&
 						!board->fields[r2][c2].pieces) {
-						place->r = r2;
-						place->c = c2;
+						move->r1 = r2;
+						move->c1 = c2;
 						return true;
 					}
 				}
 			}
 		}
 	} else {  /* I play black. */
-		Place places[N];
-		int nplace = generate_places(board, places);
+		Move moves[N];
+		int nmove = generate_moves(board, moves);
 
-		assert(nplace > 0);
+		assert(nmove > 0);
 		if (board->moves < 3) {
 
 			/* Place Dvonn stone randomly. */
-			*place = places[rand()%nplace];
+			*move = moves[rand()%nmove];
 			return true;
 
 		} else {
 			int r, c, n, val, best_val = 0, best_cnt = 0;
 
 			/* Place random stone close to Dvonn stones and board's edge: */
-			for (n = 0; n < nplace; ++n) {
-				r = places[n].r;
-				c = places[n].c;
+			for (n = 0; n < nmove; ++n) {
+				r = moves[n].r1;
+				c = moves[n].c1;
 				val = 3*is_edge_field(board, r, c)
 					- distance_to_dvonns(board, r, c)
 					- count_neighbours(board, r, c, next_player(board));
@@ -100,7 +102,7 @@ EXTERN bool ai_select_place(Board *board, Place *place)
 					best_val = val;
 				}
 				if (val == best_val && rand()%++best_cnt == 0) {
-					*place = places[n];
+					*move = moves[n];
 				}
 			}
 			assert(best_cnt > 0);
@@ -194,12 +196,12 @@ static int dfs(
 		int val;
 		Color old_player;
 
-		board_move(board, &moves[n], &old_player);
+		board_do(board, &moves[n], &old_player);
 
 		val = -dfs( board, nmove > 1 ? depth - 1 : depth,
-			move_is_pass(&moves[n]) ? pass + 1 : 0, -hi, -lo, NULL );
+			move_passes(&moves[n]) ? pass + 1 : 0, -hi, -lo, NULL );
 
-		board_unmove(board, &moves[n], old_player);
+		board_undo(board, &moves[n], old_player);
 
 		if (val > lo) {
 			lo = val;
@@ -213,6 +215,9 @@ static int dfs(
 EXTERN bool ai_select_move(Board *board, Move *move)
 {
 	int val, depth, num_moves;
+
+	/* Placement phase is handled separately: */
+	if (board->moves < N) return select_place(board, move);
 
 	num_moves = generate_all_moves(board, NULL);
 	if (num_moves < 10) depth = 6;

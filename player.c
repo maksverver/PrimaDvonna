@@ -51,42 +51,22 @@ static const char *read_line(void)
    guarantees that no invalid moves will be passed to the players. */
 static void parse_and_execute_move(Board *board, const char *line)
 {
-	if (board->moves < N) {
-		Place place, places[N];
-		int i, nplace = generate_places(board, places);
+	Move move, moves[M];
+	int i, nmove = generate_moves(board, moves);
 
-		if (!parse_place(line, &place)) {
-			fprintf(stderr, "Could not parse placement: %s!\n", line);
-			exit(EXIT_FAILURE);
-		} else {
-			for (i = 0; i < nplace; ++i) {
-				if (place.r == places[i].r && place.c == places[i].c) break;
-			}
-			if (i == nplace) {
-				fprintf(stderr, "Invalid placement: %s!\n", line);
-				exit(EXIT_FAILURE);
-			} else {
-				board_place(board, &place);
-			}
-		}
+	if (!parse_move(line, &move)) {
+		fprintf(stderr, "Could not parse move: %s!\n", line);
+		exit(EXIT_FAILURE);
 	} else {
-		Move move, moves[M];
-		int i, nmove = generate_moves(board, moves);
-
-		if (!parse_move(line, &move)) {
-			fprintf(stderr, "Could not parse move: %s!\n", line);
+		for (i = 0; i < nmove; ++i) {
+			if (move.r1 == moves[i].r1 && move.c1 == moves[i].c1 &&
+				move.r2 == moves[i].r2 && move.c2 == moves[i].c2) break;
+		}
+		if (i == nmove) {
+			fprintf(stderr, "Invalid move: %s!\n", line);
 			exit(EXIT_FAILURE);
 		} else {
-			for (i = 0; i < nmove; ++i) {
-				if (move.r1 == moves[i].r1 && move.c1 == moves[i].c1 &&
-					move.r2 == moves[i].r2 && move.c2 == moves[i].c2) break;
-			}
-			if (i == nmove) {
-				fprintf(stderr, "Invalid move: %s!\n", line);
-				exit(EXIT_FAILURE);
-			} else {
-				board_move(board, &move, NULL);
-			}
+			board_do(board, &move, NULL);
 		}
 	}
 	board_validate(board);
@@ -110,29 +90,18 @@ static void run_game()
 	for (;;) {
 		fprintf(stderr, "%s\n", format_state(&board));
 		move_str = NULL;
-		if (board.moves < N) {
-			if ((board.moves & 1) == my_color) {
-				Place place;
-				if (!ai_select_place(&board, &place)) {
-					fprintf(stderr, "Internal error: no placement selected!\n");
-					exit(EXIT_FAILURE);
-				}
-				move_str = format_place(&place);
+		if (next_player(&board) == my_color) {  /* it's my turn */
+			Move move;
+			if (!ai_select_move(&board, &move)) {
+				fprintf(stderr, "Internal error: no move selected!\n");
+				exit(EXIT_FAILURE);
 			}
-		} else {
-			if (((board.moves - N) & 1) == my_color) {
-				Move move;
-				if (!ai_select_move(&board, &move)) {
-					fprintf(stderr, "Internal error: no move selected!\n");
-					exit(EXIT_FAILURE);
-				}
-				move_str = format_move(&move);
-			}
+			move_str = format_move(&move);
 		}
-		if (move_str) {
+		if (move_str) {  /* send my move */
 			fprintf(stderr, " --%s-->\n", move_str);
 			printf("%s\n", move_str);
-		} else {
+		} else {  /* receive opponent's move */
 			move_str = read_line();
 			fprintf(stderr, "<--%s--\n", move_str);
 		}
@@ -144,6 +113,7 @@ static void solve_state(const char *descr)
 {
 	Color next_player;
 	Board board;
+	Move move;
 	const char *move_str = NULL;
 
 	if (!parse_state(descr, &board, &next_player)) {
@@ -153,15 +123,7 @@ static void solve_state(const char *descr)
 	board_validate(&board);
 	if (next_player == NONE) {
 		fprintf(stderr, "Game already finished!\n");
-	} else if (board.moves < N) {
-		Place place;
-		if (!ai_select_place(&board, &place)) {
-			fprintf(stderr, "Internal error: no placement selected!\n");
-			exit(EXIT_FAILURE);
-		}
-		move_str = format_place(&place);
 	} else {
-		Move move;
 		if (!ai_select_move(&board, &move)) {
 			fprintf(stderr, "Internal error: no move selected!\n");
 			exit(EXIT_FAILURE);
