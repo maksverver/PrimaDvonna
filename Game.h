@@ -57,8 +57,8 @@ EXTERN int distance(int r1, int c1, int r2, int c2);
 EXTERN void board_clear(Board *board);
 
 /* Do/undo moves (which must be valid, e.g. returned by generate_moves()) */
-EXTERN void board_do(Board *board, const Move *m, Color *old_color);
-EXTERN void board_undo(Board *board, const Move *m, Color old_color);
+EXTERN void board_do(Board *board, const Move *m);
+EXTERN void board_undo(Board *board, const Move *m);
 
 /* Does an internal consistency check on the board and aborts the program if
    any check fails. Does not catch all inconsistencies! */

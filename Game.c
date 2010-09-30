@@ -112,12 +112,15 @@ static bool may_be_bridge(Board *board, int r, int c)
 	return bridge_index[mask];
 }
 
-static void stack(Board *board, const Move *m, Color *old_player)
+static void stack(Board *board, const Move *m)
 {
+	Color tmp_player;
 	Field *f = &board->fields[m->r1][m->c1];
 	Field *g = &board->fields[m->r2][m->c2];
-	if (old_player) *old_player = g->player;
-	g->player = f->player;
+
+	tmp_player = f->player;
+	f->player = g->player;
+	g->player = tmp_player;
 	g->pieces += f->pieces;
 	g->dvonns += f->dvonns;
 	f->removed = board->moves;
@@ -143,32 +146,36 @@ static void restore_unreachable(Board *board, int r1, int c1)
 	}
 }
 
-static void unstack(Board *board, const Move *m, Color old_player)
+static void unstack(Board *board, const Move *m)
 {
+	Color tmp_player;
 	Field *f = &board->fields[m->r1][m->c1];
 	Field *g = &board->fields[m->r2][m->c2];
-	g->player = old_player;
+
+	tmp_player = f->player;
+	f->player = g->player;
+	g->player = tmp_player;
 	g->pieces -= f->pieces;
 	g->dvonns -= f->dvonns;
 	assert(f->removed == board->moves);
 	restore_unreachable(board, m->r1, m->c1);
 }
 
-EXTERN void board_do(Board *board, const Move *m, Color *old_color)
+EXTERN void board_do(Board *board, const Move *m)
 {
 	if (m->r2 >= 0) {
-		stack(board, m, old_color);
+		stack(board, m);
 	} else if (m->r1 >= 0) {
 		place(board, m);
 	}
 	++board->moves;
 }
 
-EXTERN void board_undo(Board *board, const Move *m, Color old_color)
+EXTERN void board_undo(Board *board, const Move *m)
 {
 	--board->moves;
 	if (m->r2 >= 0) {  /* stack */
-		unstack(board, m, old_color);
+		unstack(board, m);
 	} else if (m->r1 >= 0) {  /* place */
 		unplace(board, m);
 	}
@@ -183,8 +190,9 @@ EXTERN void board_validate(const Board *board)
 			assert(f->pieces <= N);
 			assert(f->dvonns <= D);
 			assert(f->dvonns <= f->pieces);
-			assert(f->dvonns == f->pieces || f->pieces == 0 ?
-				f->player == NONE : f->player == WHITE || f->player == BLACK);
+			if (f->dvonns == f->pieces || f->pieces == 0) {
+				assert(f->player == NONE);
+			}
 			if (f->removed == (unsigned char)-1) continue;
 			if (board->moves < N) {
 				assert(f->pieces == 0 || f->pieces == 1);

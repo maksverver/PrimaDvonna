@@ -66,7 +66,7 @@ static void parse_and_execute_move(Board *board, const char *line)
 			fprintf(stderr, "Invalid move: %s!\n", line);
 			exit(EXIT_FAILURE);
 		} else {
-			board_do(board, &move, NULL);
+			board_do(board, &move);
 		}
 	}
 	board_validate(board);

@@ -174,14 +174,13 @@ static int dfs(
 		assert(nmove > 0);
 		for (n = 0; n < nmove; ++n) {
 			int val;
-			Color old_player;
 
-			board_do(board, &moves[n], &old_player);
+			board_do(board, &moves[n]);
 
 			val = -dfs( board, nmove > 1 ? depth - 1 : depth,
 				move_passes(&moves[n]) ? pass + 1 : 0, -hi, -lo, NULL );
 
-			board_undo(board, &moves[n], old_player);
+			board_undo(board, &moves[n]);
 
 			if (best != NULL && val >= res) {  /* update best move */
 				if (val > res) nbest = 0;
