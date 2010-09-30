@@ -1,12 +1,11 @@
- - holistic approach to move selection (regardless of game phase) 
- - improve set-up phase: symmetric placement makes little sense in practice
- - improve evaluation function:
-    - remove bonus for possession of stacks early in the game.
+ - improve setup function (recent changes aren't very good!)
+ - improve evaluation function (how?!)
+ - fix transposition table to store intermediate positions
+ - try move-reordering to make alpha-beta pruning more efficient
+ - implement iterative deepening/time-limited solving
 
 Later:
- - extend transposition table to store intermediate positions
- - implement iterative deepening/time-limited solving
- - try move-reordering to make alpha-beta pruning more efficient
+ - make TT and move ordering (runtime/compiletime?) optional
  - consider auto-learning for evaluation parameters?
    See:
    http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19

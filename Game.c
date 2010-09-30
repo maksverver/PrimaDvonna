@@ -199,19 +199,19 @@ EXTERN void board_validate(const Board *board)
 
 static int gen_places(const Board *board, Move moves[N])
 {
-	int r, c, n = 0;
+	int r, c, nmove = 0;
 	for (r = 0; r < H; ++r) {
 		for (c = 0; c < W; ++c) {
 			if (!board->fields[r][c].pieces && !board->fields[r][c].removed) {
-				moves[n].r1 = r;
-				moves[n].c1 = c;
-				moves[n].r2 = -1;
-				moves[n].c2 = -1;
-				++n;
+				if (moves) {
+					Move new_move = { r, c, -1, -1 };
+					moves[nmove] = new_move;
+				}
+				++nmove;
 			}
 		}
 	}
-	return n;
+	return nmove;
 }
 
 static bool mobile(const Board *board, int r, int c)
