@@ -1,6 +1,7 @@
+ - allow use of tt/move reordering to be controled on the command line
+ - make tt hashing more efficient
  - improve setup function (recent changes aren't very good!)
  - improve evaluation function (how?!)
- - fix transposition table to store intermediate positions
  - try move-reordering to make alpha-beta pruning more efficient
  - implement iterative deepening/time-limited solving
 

@@ -93,9 +93,10 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 				assert(n < N + 1);
 				if (vals[n] == 0) {
 					if (board->moves >= N) {
-						f->removed = board->moves++;
+						f->removed = N;
 						f->pieces = 1;
 						f->player = 0;
+						++board->moves;
 					}
 				} else if (vals[n] == 1) {
 					f->dvonns = 1;

@@ -43,3 +43,25 @@ EXTERN hash_t hash_board(const Board *board)
 	serialize_board(board, data);
 	return fnv1(data, 50);
 }
+
+EXTERN void tt_store(const Board *board, short depth, val_t lo, val_t hi)
+{
+	hash_t hash = hash_board(board);
+	TTEntry *entry = &tt[hash%TT_SIZE];
+
+	entry->hash  = hash;
+	entry->lo    = lo;
+	entry->hi    = hi;
+	entry->depth = depth;
+}
+
+EXTERN bool tt_fetch(const Board *board, short min_depth, val_t *lo, val_t *hi)
+{
+	hash_t hash = hash_board(board);
+	TTEntry *entry = &tt[hash%TT_SIZE];
+
+	if (entry->hash != hash || entry->depth < min_depth) return false;
+	*lo = entry->lo;
+	*hi = entry->hi;
+	return true;
+}

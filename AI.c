@@ -4,9 +4,17 @@
 #include <stdio.h>
 #include <string.h>
 
-static const val_t inf_val = 9999;
+/* Minimum/maximum game values: */
+const val_t min_val = -9999;
+const val_t max_val = +9999;
 
-static int num_evaluated;
+/* Maximum search depth: */
+static const int max_depth = 2*N;
+
+/* Indicates whether to use the transposition-table: */
+static bool g_use_tt = true;
+
+static int num_evaluated;  /* DEBUG */
 
 /* Returns whether the given field lies on the edge of the board: */
 static bool is_edge_field(const Board *board, int r, int c)
@@ -60,7 +68,7 @@ static val_t eval_placing(const Board *board)
 	for (r = 0; r < H; ++r) {
 		for (c = 0; c < W; ++c) {
 			const Field *f = &board->fields[r][c];
-			int distance_to_dvonn = inf_val;
+			int distance_to_dvonn = max_val;
 
 			for (d = 0; d < D; ++d) {
 				int dist = distance(r, c, dvonn_r[d], dvonn_c[d]);
@@ -107,13 +115,13 @@ static val_t eval_stacking(const Board *board)
 		else                        score[f->player] += 5;  /* to opponent */
 	}
 
-	++num_evaluated;
 	p = next_player(board);
 	return score[p] - score[1 - p];
 }
 
 static val_t eval_intermediate(const Board *board)
 {
+	++num_evaluated;
 	if (board->moves > N) {
 		return eval_stacking(board);
 	} else if (board->moves > D) {
@@ -123,44 +131,53 @@ static val_t eval_intermediate(const Board *board)
 	}
 }
 
-static val_t dfs(
-	Board *board, int depth, int pass, int lo, int hi, Move *best )
+static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 {
-	val_t val, res = -inf_val;
+	val_t res = min_val;
 
-	/* TODO: lookup in TT;
-	   if we have a valid entry evaluated to the same depth (or greater?),
-	   if stored_lo >= hi, return stored_lo
-	   if stored_hi <= lo, return stored_hi
-	   otherwise: res = stored_lo */
+	if (g_use_tt) { /* look up in transposition table: */
+		val_t tt_lo, tt_hi;
+
+		if (tt_fetch(board, depth, &tt_lo, &tt_hi)) {
+			if (tt_lo == tt_hi) return tt_lo;
+			assert((tt_lo == min_val) ^ (tt_hi == max_val));
+			if (tt_lo >= hi) return tt_lo;
+			if (tt_hi <= lo) return tt_hi;
+			res = tt_lo;
+		}
+	}
 
 	if (pass == 2 || depth == 0) {  /* evaluate leaf node */
-		val = (pass == 2) ? eval_end(board) : eval_intermediate(board);
-		/* tt_store(board, val, val); */
-		return val;
+		res = (pass == 2) ? eval_end(board) : eval_intermediate(board);
+		if (g_use_tt) tt_store(board, max_depth, res, res);
+		return res;
 	} else {  /* evaluate interior node */
 		Move moves[M];
 		int n, nmove = generate_moves(board, moves), nbest = 0;
+		val_t val;
 
 		/* TODO: optional move ordering? */
 
 		assert(nmove > 0);
 		for (n = 0; n < nmove; ++n) {
+			/* Evaluate position after n'th move: */
 			board_do(board, &moves[n]);
-
 			val = -dfs( board, nmove > 1 ? depth - 1 : depth,
-				move_passes(&moves[n]) ? pass + 1 : 0, -hi, -lo, NULL );
-
+				move_passes(&moves[n]) ? pass + 1 : 0, -hi, -res, NULL );
 			board_undo(board, &moves[n]);
 
+			/* Update value bounds: */
 			if (best != NULL && val >= res) {  /* update best move */
+				assert(lo == min_val);
 				if (val > res) nbest = 0;
 				if (rand()%++nbest == 0) *best = moves[n];
 			}
 			if (val > res) res = val;
 			if (res >= hi) break;
 		}
-		/* tt_store(board, res > lo ? res : -inf, res < hi ? res : +inf); */
+		if (g_use_tt) {
+			tt_store(board, depth, res>lo?res:min_val, res<hi?res:max_val);
+		}
 		return res;
 	}
 	return lo;
@@ -186,7 +203,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 
 	tmove = generate_all_moves(board, NULL);
 	if (board->moves < N) {
-		depth = 2;
+		depth = 4;
 	} else {
 		/* Select search depth based on total moves available: */
 		if (tmove < 10) depth = 6;
@@ -196,8 +213,8 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 	}
 
 	num_evaluated = 0;
-	val = dfs(board, depth, 0, -inf_val, +inf_val, move);
-	fprintf(stderr, "nmove=%d tmove=%d depth=%d val=%d num_evaluated=%d\n",
+	val = dfs(board, depth, 0, -max_val, +max_val, move);
+	fprintf(stderr, "nmove=%d tmove=%d depth=%d val=%d num_evaluated=%'d\n",
 		nmove, tmove, depth, val, num_evaluated);
 	return true;
 }
