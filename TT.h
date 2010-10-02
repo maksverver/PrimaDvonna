@@ -19,13 +19,6 @@ typedef struct TTEntry {
 /* Transposition table: */
 extern TTEntry tt[TT_SIZE];
 
-/* Update the bounds for the given position in the transposition table. */
-EXTERN void tt_store(const Board *board, short depth, val_t lo, val_t hi);
-
-/* Retrieve the bounds for the given position from the transposition table.
-   Returns false if the position was not found (with the required depth). */
-EXTERN bool tt_fetch(const Board *board, short min_depth, val_t *lo, val_t *hi);
-
 /* Serializes the board into a unique 50-character representation: */
 EXTERN void serialize_board(const Board *board, unsigned char data[50]);
 

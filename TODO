@@ -1,9 +1,14 @@
- - allow use of tt/move reordering to be controled on the command line
- - make tt hashing more efficient
- - improve setup function (recent changes aren't very good!)
+ - allow transposition table/move reordering be enabled/disabled on the command line
+ - make board hashing for TT more efficient
+ - improve setup function (recent changes aren't very good!
+   (reintroduce summed distance to Dvonns)
  - improve evaluation function (how?!)
  - try move-reordering to make alpha-beta pruning more efficient
  - implement iterative deepening/time-limited solving
+
+Test suite:
+ - transposition table tests: check values for various positions with and without
+   tt, and ensure their values are equal.
 
 Later:
  - make TT and move ordering (runtime/compiletime?) optional

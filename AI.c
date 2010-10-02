@@ -97,7 +97,7 @@ static val_t eval_end(const Board *board)
 static val_t eval_stacking(const Board *board)
 {
 	Move moves[2*M];
-	int nmove, n, p;
+	int nmove, n, p, r, c;
 	val_t score[2] = { 0, 0 };
 
 	assert(board->moves >= N);
@@ -114,7 +114,16 @@ static val_t eval_stacking(const Board *board)
 		else if (g->player == NONE) score[f->player] += 4;  /* to Dvonn */
 		else                        score[f->player] += 5;  /* to opponent */
 	}
+#if 0
+	/* Value material: */
+	for (r = 0; r < H; ++r) {
+		for (c = 0; c < W; ++c) {
+			const Field *f = &board->fields[r][c];
 
+			if (f->player >= 0) score[f->player] += 1;
+		}
+	}
+#endif
 	p = next_player(board);
 	return score[p] - score[1 - p];
 }
@@ -133,37 +142,64 @@ static val_t eval_intermediate(const Board *board)
 
 static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 {
+	hash_t hash;
+	TTEntry *entry = NULL;
 	val_t res = min_val;
 
 	if (g_use_tt) { /* look up in transposition table: */
-		val_t tt_lo, tt_hi;
-
-		if (tt_fetch(board, depth, &tt_lo, &tt_hi)) {
-			if (tt_lo == tt_hi) return tt_lo;
-			assert((tt_lo == min_val) ^ (tt_hi == max_val));
-			if (tt_lo >= hi) return tt_lo;
-			if (tt_hi <= lo) return tt_hi;
-			res = tt_lo;
+		hash = hash_board(board);
+		entry = &tt[hash%TT_SIZE];
+		if (entry->hash == hash && entry->depth >= depth) {
+			if (best == NULL) {
+				if (entry->lo == entry->hi) return entry->lo;
+				if (entry->lo >= hi) return entry->lo;
+				if (entry->hi <= lo) return entry->hi;
+				res = entry->lo;
+			} else {  /* best != NULL */
+				if (entry->depth == depth) res = entry->lo;
+			}
+			
 		}
 	}
 
-	if (pass == 2 || depth == 0) {  /* evaluate leaf node */
-		res = (pass == 2) ? eval_end(board) : eval_intermediate(board);
-		if (g_use_tt) tt_store(board, max_depth, res, res);
+	if (pass == 2) {  /* evaluate end position */
+		assert(best == NULL);
+		res = eval_end(board);
+		if (g_use_tt) {
+			entry->hash  = hash;
+			entry->lo    = res;
+			entry->hi    = res;
+			entry->depth = max_depth;
+		}
+		return res;
+	}
+	else if (depth == 0) {  /* evaluate intermediate position */
+		assert(best == NULL);
+		res = eval_intermediate(board);
+		/* FIXME: eval_intermediate() could end up calling eval_end() if the
+		   current position is actually an end position. In that case, we should
+		   really store depth = max_depth here! */
+		if (g_use_tt) {
+			entry->hash  = hash;
+			entry->lo    = res;
+			entry->hi    = res;
+			entry->depth = 0;
+		}
 		return res;
 	} else {  /* evaluate interior node */
 		Move moves[M];
 		int n, nmove = generate_moves(board, moves), nbest = 0;
-		val_t val;
 
 		/* TODO: optional move ordering? */
 
 		assert(nmove > 0);
 		for (n = 0; n < nmove; ++n) {
+			val_t val;
+
 			/* Evaluate position after n'th move: */
 			board_do(board, &moves[n]);
-			val = -dfs( board, nmove > 1 ? depth - 1 : depth,
-				move_passes(&moves[n]) ? pass + 1 : 0, -hi, -res, NULL );
+			val = -dfs(board, (nmove > 1 ? depth - 1 : depth),
+				(move_passes(&moves[n]) ? pass + 1 : 0), -hi, -res, NULL);
 			board_undo(board, &moves[n]);
 
 			/* Update value bounds: */
@@ -176,8 +212,12 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			if (res >= hi) break;
 		}
 		if (g_use_tt) {
-			tt_store(board, depth, res>lo?res:min_val, res<hi?res:max_val);
+			entry->hash  = hash;
+			entry->lo    = res > lo ? res : min_val;
+			entry->hi    = res < hi ? res : max_val;
+			entry->depth = depth;
 		}
+		assert(best == NULL || nbest > 0);
 		return res;
 	}
 	return lo;
@@ -203,18 +243,18 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 
 	tmove = generate_all_moves(board, NULL);
 	if (board->moves < N) {
-		depth = 4;
+		depth = 3;
 	} else {
 		/* Select search depth based on total moves available: */
-		if (tmove < 10) depth = 6;
-		else if (tmove < 20) depth = 5;
-		else if (tmove < 40) depth = 4;
-		else depth = 3;
+		if (tmove < 10) depth = 7;
+		else if (tmove < 20) depth = 6;
+		else if (tmove < 40) depth = 5;
+		else depth = 4;
 	}
-
 	num_evaluated = 0;
 	val = dfs(board, depth, 0, -max_val, +max_val, move);
-	fprintf(stderr, "nmove=%d tmove=%d depth=%d val=%d num_evaluated=%'d\n",
-		nmove, tmove, depth, val, num_evaluated);
+	fprintf(stderr,
+		"nmove=%d tmove=%d depth=%d val=%d num_evaluated=%'d score=%d\n",
+		nmove, tmove, depth, val, num_evaluated, board_score(board));
 	return true;
 }
