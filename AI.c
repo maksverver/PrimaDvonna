@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static const int inf = 999999999;
+static const val_t inf_val = 9999;
 
 static int num_evaluated;
 
@@ -38,10 +38,10 @@ static bool count_neighbours(const Board *board, int r1, int c1, Color player)
 }
 
 /* Evaluate the board during the placing phase. */
-static int eval_placing(const Board *board)
+static val_t eval_placing(const Board *board)
 {
 	int r, c, p;
-	int score[2] = { 0, 0 };
+	val_t score[2] = { 0, 0 };
 	int dvonn_r[D], dvonn_c[D], d = 0;
 
 	/* Find location of Dvonn stones. */
@@ -60,7 +60,7 @@ static int eval_placing(const Board *board)
 	for (r = 0; r < H; ++r) {
 		for (c = 0; c < W; ++c) {
 			const Field *f = &board->fields[r][c];
-			int distance_to_dvonn = inf;
+			int distance_to_dvonn = inf_val;
 
 			for (d = 0; d < D; ++d) {
 				int dist = distance(r, c, dvonn_r[d], dvonn_c[d]);
@@ -80,17 +80,17 @@ static int eval_placing(const Board *board)
 }
 
 /* Evaluate an end position. */
-static int eval_end(const Board *board)
+static val_t eval_end(const Board *board)
 {
 	return 100*board_score(board);
 }
 
 /* Evaluate a board during the stacking phase. */
-static int eval_stacking(const Board *board)
+static val_t eval_stacking(const Board *board)
 {
 	Move moves[2*M];
 	int nmove, n, p;
-	int score[2] = { 0, 0 };
+	val_t score[2] = { 0, 0 };
 
 	assert(board->moves >= N);
 
@@ -112,7 +112,7 @@ static int eval_stacking(const Board *board)
 	return score[p] - score[1 - p];
 }
 
-static int eval_intermediate(const Board *board)
+static val_t eval_intermediate(const Board *board)
 {
 	if (board->moves > N) {
 		return eval_stacking(board);
@@ -123,37 +123,10 @@ static int eval_intermediate(const Board *board)
 	}
 }
 
-static int eval_end_tt(const Board *board)
-{
-	hash_t hash = hash_board(board);
-	TTEntry *entry = &tt[hash%TT_SIZE];
-	if (entry->hash != hash) {
-		entry->hash  = hash;
-		entry->value = eval_end(board);
-	}
-	return entry->value;
-}
-
-static int eval_intermediate_tt(const Board *board)
-{
-	unsigned char data[50];
-	hash_t hash;
-	TTEntry *entry;
-
-	serialize_board(board, data);
-	hash = fnv1(data, 50);
-	entry = &tt[hash%TT_SIZE];
-	if (entry->hash != hash) {
-		entry->hash  = hash;
-		entry->value = eval_intermediate(board);
-	}
-	return entry->value;
-}
-
-static int dfs(
+static val_t dfs(
 	Board *board, int depth, int pass, int lo, int hi, Move *best )
 {
-	int res = -inf;
+	val_t val, res = -inf_val;
 
 	/* TODO: lookup in TT;
 	   if we have a valid entry evaluated to the same depth (or greater?),
@@ -162,9 +135,9 @@ static int dfs(
 	   otherwise: res = stored_lo */
 
 	if (pass == 2 || depth == 0) {  /* evaluate leaf node */
-		res = (pass == 2) ? eval_end(board) : eval_intermediate(board);
+		val = (pass == 2) ? eval_end(board) : eval_intermediate(board);
 		/* tt_store(board, val, val); */
-		return res;
+		return val;
 	} else {  /* evaluate interior node */
 		Move moves[M];
 		int n, nmove = generate_moves(board, moves), nbest = 0;
@@ -173,8 +146,6 @@ static int dfs(
 
 		assert(nmove > 0);
 		for (n = 0; n < nmove; ++n) {
-			int val;
-
 			board_do(board, &moves[n]);
 
 			val = -dfs( board, nmove > 1 ? depth - 1 : depth,
@@ -197,7 +168,8 @@ static int dfs(
 
 EXTERN bool ai_select_move(Board *board, Move *move)
 {
-	int val, depth, nmove, tmove;
+	int depth, nmove, tmove;
+	val_t val;
 	Move moves[M];
 
 	/* Check if we have any moves to make: */
@@ -224,7 +196,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 	}
 
 	num_evaluated = 0;
-	val = dfs(board, depth, 0, -inf, +inf, move);
+	val = dfs(board, depth, 0, -inf_val, +inf_val, move);
 	fprintf(stderr, "nmove=%d tmove=%d depth=%d val=%d num_evaluated=%d\n",
 		nmove, tmove, depth, val, num_evaluated);
 	return true;
