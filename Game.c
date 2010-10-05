@@ -7,14 +7,17 @@ Move move_pass = { -1, -1, -1, -1 };
 const int DR[6] = {  0, -1, -1,  0, +1, +1 };
 const int DC[6] = { +1,  0, -1, -1,  0, +1 };
 
-static int max(int i, int j) { return i > j ? i : j; }
+static int min(int i, int j) { return i < j ? i : j; }
 
 EXTERN int distance(int r1, int c1, int r2, int c2)
 {
 	int dx = c2 - c1;
 	int dy = r2 - r1;
 	int dz = dx - dy;
-	return max(max(abs(dx), abs(dy)), abs(dz));
+	if (dx < 0) dx = -dx;
+	if (dy < 0) dy = -dy;
+	if (dz < 0) dz = -dz;
+	return min(min(dx + dy, dx + dz), dy + dz);
 }
 
 EXTERN void board_clear(Board *board)
