@@ -7,7 +7,13 @@
 typedef signed short val_t;
 EXTERN const val_t min_val, max_val;
 
+/* Toggles whether to use the transposition table: */
+extern bool ai_use_tt;
+
 /* Selects the next move to make during the movement phase. */
 EXTERN bool ai_select_move(Board *board, Move *move);
+
+/* Evaluates the current board. Mainly useful for analysis/debugging. */
+EXTERN val_t ai_evaluate(const Board *board);
 
 #endif /* ndef AI_H_INCLUDED */

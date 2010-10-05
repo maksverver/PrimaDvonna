@@ -12,7 +12,7 @@ const val_t max_val = +9999;
 static const int max_depth = 2*N;
 
 /* Indicates whether to use the transposition-table: */
-static bool g_use_tt = true;
+bool ai_use_tt = false;
 
 static int num_evaluated;  /* DEBUG */
 
@@ -68,18 +68,21 @@ static val_t eval_placing(const Board *board)
 	for (r = 0; r < H; ++r) {
 		for (c = 0; c < W; ++c) {
 			const Field *f = &board->fields[r][c];
-			int distance_to_dvonn = max_val;
-
-			for (d = 0; d < D; ++d) {
-				int dist = distance(r, c, dvonn_r[d], dvonn_c[d]);
-				if (dist < distance_to_dvonn) distance_to_dvonn = dist;
-			}
 
 			if (f->pieces > 0 && f->player >= 0) {
-				score[f->player] +=
-					+3*is_edge_field(board, r, c)
-					-2*(distance_to_dvonn > 1 ? distance_to_dvonn : -3)
-					-1*count_neighbours(board, r, c, f->player);
+				int min_dist_to_dvonn = max_val;
+				int tot_dist_to_dvonn = 0;
+
+				for (d = 0; d < D; ++d) {
+					int dist = distance(r, c, dvonn_r[d], dvonn_c[d]);
+					tot_dist_to_dvonn += dist;
+					if (dist < min_dist_to_dvonn) min_dist_to_dvonn = dist;
+				}
+
+				if (min_dist_to_dvonn == 1) score[f->player] += 10;
+				if (is_edge_field(board,r, c)) score[f->player] += 5;
+				score[f->player] -= tot_dist_to_dvonn;
+				score[f->player] -= count_neighbours(board, r, c, f->player);
 			}
 		}
 	}
@@ -140,13 +143,38 @@ static val_t eval_intermediate(const Board *board)
 	}
 }
 
+/* Shuffles a list of moves. */
+static void shuffle_moves(Move *moves, int n)
+{
+	while (n > 1) {
+		int m = rand()%n--;
+		Move tmp = moves[m];
+		moves[m] = moves[n];
+		moves[n] = tmp;
+	}
+}
+
+/* Implements depth-first minimax search with alpha-beta pruning.
+
+   Takes the current game state in `board' and `pass' (the number of passes
+   in succession) and the maximum search depth `depth', returns the value of
+   the game position in the range [lo+1:hi-1], or if the value is <= lo, then
+   it returns an upper bound on the game value, or if the value is >= hi, then
+   it returns a lower bound on the value.
+
+   If `best' is not NULL, then the best move is assigned to *best.
+
+   Note that we try to return as tight an upper bound as possible without
+   searching more nodes than stricly necessary. This means in particular that
+   we try to return bounds which are unequal to lo and hi if possible. This
+   is beneficial when re-using transposition table entries. */
 static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 {
-	hash_t hash;
+	hash_t hash = (hash_t)-1;
 	TTEntry *entry = NULL;
 	val_t res = min_val;
 
-	if (g_use_tt) { /* look up in transposition table: */
+	if (ai_use_tt) { /* look up in transposition table: */
 		hash = hash_board(board);
 		entry = &tt[hash%TT_SIZE];
 		if (entry->hash == hash && entry->depth >= depth) {
@@ -158,69 +186,76 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			} else {  /* best != NULL */
 				if (entry->depth == depth) res = entry->lo;
 			}
-			
 		}
 	}
-
 	if (pass == 2) {  /* evaluate end position */
 		assert(best == NULL);
 		res = eval_end(board);
-		if (g_use_tt) {
+		if (ai_use_tt) {
 			entry->hash  = hash;
 			entry->lo    = res;
 			entry->hi    = res;
 			entry->depth = max_depth;
 		}
-		return res;
-	}
-	else if (depth == 0) {  /* evaluate intermediate position */
+	} else if (depth == 0) {  /* evaluate intermediate position */
 		assert(best == NULL);
 		res = eval_intermediate(board);
-		/* FIXME: eval_intermediate() could end up calling eval_end() if the
-		   current position is actually an end position. In that case, we should
-		   really store depth = max_depth here! */
-		if (g_use_tt) {
+		if (ai_use_tt) {
+			/* FIXME: eval_intermediate() could end up calling eval_end() if 
+			   the current position is actually an end position. In that case,
+			   we should really store depth = max_depth here! */
 			entry->hash  = hash;
 			entry->lo    = res;
 			entry->hi    = res;
 			entry->depth = 0;
 		}
-		return res;
 	} else {  /* evaluate interior node */
 		Move moves[M];
-		int n, nmove = generate_moves(board, moves), nbest = 0;
+		int n, nmove = generate_moves(board, moves);
+		int next_lo = -hi;
+		int next_hi = (-res < -lo) ? -res : -lo;
 
-		/* TODO: optional move ordering? */
-
-		assert(nmove > 0);
-		for (n = 0; n < nmove; ++n) {
-			val_t val;
-
-			/* Evaluate position after n'th move: */
-			board_do(board, &moves[n]);
-			val = -dfs(board, (nmove > 1 ? depth - 1 : depth),
-				(move_passes(&moves[n]) ? pass + 1 : 0), -hi, -res, NULL);
-			board_undo(board, &moves[n]);
-
-			/* Update value bounds: */
-			if (best != NULL && val >= res) {  /* update best move */
-				assert(lo == min_val);
-				if (val > res) nbest = 0;
-				if (rand()%++nbest == 0) *best = moves[n];
+		if (nmove == 1) {
+			/* Only one move available: */
+			if (best != NULL) *best = moves[0];
+			board_do(board, &moves[0]);
+			res = -dfs(board, depth, (move_passes(&moves[0]) ? pass+1 : 0),
+					   next_lo, next_hi, NULL);
+			board_undo(board, &moves[0]);
+		} else {
+			/* Multiple moves available */
+			assert(nmove > 1);
+			if (best != NULL) {
+				*best = move_pass;
+				shuffle_moves(moves, nmove);
 			}
-			if (val > res) res = val;
-			if (res >= hi) break;
+			for (n = 0; n < nmove; ++n) {
+				val_t val;
+
+				/* Evaluate position after n'th move: */
+				board_do(board, &moves[n]);
+				val = -dfs(board, depth-1, (move_passes(&moves[n]) ? pass+1 : 0),
+				           next_lo, next_hi, NULL);
+				board_undo(board, &moves[n]);
+
+				/* Update value bounds: */
+				if (val > res) {
+					res = val;
+					if (-res < next_hi) next_hi = -res;
+					if (best != NULL) *best = moves[n];
+				}
+				if (res >= hi) break;
+			}
+			if (ai_use_tt) {
+				entry->hash  = hash;
+				entry->lo    = res > lo ? res : min_val;
+				entry->hi    = res < hi ? res : max_val;
+				entry->depth = depth;
+			}
+			assert(best == NULL || !move_passes(best));
 		}
-		if (g_use_tt) {
-			entry->hash  = hash;
-			entry->lo    = res > lo ? res : min_val;
-			entry->hi    = res < hi ? res : max_val;
-			entry->depth = depth;
-		}
-		assert(best == NULL || nbest > 0);
-		return res;
 	}
-	return lo;
+	return res;
 }
 
 EXTERN bool ai_select_move(Board *board, Move *move)
@@ -243,7 +278,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 
 	tmove = generate_all_moves(board, NULL);
 	if (board->moves < N) {
-		depth = 3;
+		depth = 2;
 	} else {
 		/* Select search depth based on total moves available: */
 		if (tmove < 10) depth = 7;
@@ -257,4 +292,9 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 		"nmove=%d tmove=%d depth=%d val=%d num_evaluated=%'d score=%d\n",
 		nmove, tmove, depth, val, num_evaluated, board_score(board));
 	return true;
+}
+
+EXTERN val_t ai_evaluate(const Board *board)
+{
+	return eval_intermediate(board);
 }
