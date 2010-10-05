@@ -3,43 +3,28 @@
 
 TTEntry tt[TT_SIZE];
 
-/* Encodes the board into a single byte for the game phase and current player,
-   followed by 49 bytes, one for each field, encoding the fields as:
-     (dvonns ? 128 : 0) + (player != NONE ? 2*pieces + player : 0) */
-EXTERN void serialize_board(const Board *board, unsigned char data[50])
-{
-	const Field *f = &board->fields[0][0];
-	unsigned char *p = data;
-	int n;
-
-	*p++ = (board->moves < N ? 0 : 2) + board->moves%2;
-	for (n = H*W; n > 0; --n) {
-		if (f->removed != (unsigned char)-1) {
-			*p = 0;
-			if (!f->removed) {
-				if (f->dvonns) *p += 128;
-				if (f->player != NONE) *p += 2*f->pieces + f->player;
-			}
-			++p;
-		}
-		++f;
-	}
-	assert(p == data + 50);
-}
-
-EXTERN hash_t fnv1(const unsigned char *buf, int len)
-{
-	hash_t res = 14695981039346656037ULL;
-	for (; len > 0; --len) {
-		res *= 1099511628211ULL;
-		res ^= *buf++;
-	}
-	return res;
-}
+#define FNV64_OFFSET_BASIS 14695981039346656037ULL
+#define FNV64_PRIME 1099511628211ULL
 
 EXTERN hash_t hash_board(const Board *board)
 {
-	unsigned char data[50];
-	serialize_board(board, data);
-	return fnv1(data, 50);
+	const Field *f, *g;
+	hash_t res = FNV64_OFFSET_BASIS;
+
+	/* Encode game phase and next player: */
+	res *= FNV64_PRIME;
+	res ^= (board->moves < N ? 0 : 2) + board->moves%2;
+
+	/* Encode fields: */
+	for (f = &board->fields[0][0], g = f + H*W; f != g; ++f) {
+		if (f->removed != (unsigned char)-1) {
+			res *= FNV64_PRIME;
+			if (!f->removed) {
+				if (f->dvonns) res ^= 128;
+				if (f->player != NONE) res ^= 2*f->pieces + f->player;
+			}
+		}
+	}
+
+	return res;
 }
