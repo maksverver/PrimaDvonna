@@ -12,8 +12,8 @@ const val_t max_val = +9999;
 /* Maximum search depth: */
 static const int max_depth = 20;
 
-/* Indicates whether to use the transposition-table: */
-bool ai_use_tt = true;
+bool ai_use_tt = true;  /* use transposition table? */
+bool ai_use_mo = true;  /* use move ordering? */
 
 static int num_evaluated;  /* DEBUG */
 
@@ -155,6 +155,26 @@ static void shuffle_moves(Move *moves, int n)
 	}
 }
 
+static void sort_moves(Move *moves, val_t *values, int nmove)
+{
+	/* Insertion sort. FIXME: faster sorting algorithm? */
+	int i, j;
+	Move m;
+	val_t v;
+
+	for (i = 1; i < nmove; ++i) {
+		m = moves[i];
+		v = values[i];
+		for (j = i; j > 0; --j) {
+			if (values[j - 1] <= v) break;
+			moves[j] = moves[j - 1];
+			values[j] = values[j - 1];
+		}
+		moves[j] = m;
+		values[j] = v;
+	}
+}
+
 /* Implements depth-first minimax search with alpha-beta pruning.
 
    Takes the current game state in `board' and `pass' (the number of passes
@@ -230,13 +250,21 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 				*best = move_pass;
 				shuffle_moves(moves, nmove);
 			}
+			if (ai_use_mo && depth > 2) {
+				val_t values[M];
+				for (n = 0; n < nmove; ++n) {
+					board_do(board, &moves[n]);
+					values[n] = -dfs(board, depth-3, 0, next_lo, next_hi, NULL);
+					board_undo(board, &moves[n]);
+				}
+				sort_moves(moves, values, nmove);
+			}
 			for (n = 0; n < nmove; ++n) {
 				val_t val;
 
 				/* Evaluate position after n'th move: */
 				board_do(board, &moves[n]);
-				val = -dfs(board, depth-1, (move_passes(&moves[n]) ? pass+1 : 0),
-				           next_lo, next_hi, NULL);
+				val = -dfs(board, depth - 1, 0, next_lo, next_hi, NULL);
 				board_undo(board, &moves[n]);
 
 				/* Update value bounds: */
@@ -285,7 +313,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 		static int depth = 2;
 		int moves_left = max_moves_left(board);
 		double start = time_used(), left = time_left();
-		double used = 0, budget = left/moves_left;
+		double used = 0, budget = left/(moves_left/2 + 1);
 
 		fprintf(stderr, "[%.3fs] %.3fs left for %d moves; budget is %.3fs.\n",
 			start, left, moves_left, budget);
@@ -297,6 +325,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 			fprintf(stderr, "[%.3fs] nmove=%d depth=%d val=%d num_evaluated=%'d"
 				" (%.3fs used)\n", time_used(), nmove, depth, val,
 				num_evaluated, used);
+			if (used > budget) fprintf(stderr, "WARNING: over budget!\n");
 			if (depth == max_depth || used > 0.25*left/moves_left) break;
 			++depth;
 			fprintf(stderr, "Increased search depth to %d.\n", depth);
@@ -309,6 +338,7 @@ EXTERN bool ai_select_move_fixed(Board *board, Move *move, int depth)
 {
 	Move moves[M];
 	int nmove = generate_moves(board, moves);
+	val_t val;
 
 	if (nmove == 0) {
 		fprintf(stderr, "no moves available!\n");
@@ -319,7 +349,10 @@ EXTERN bool ai_select_move_fixed(Board *board, Move *move, int depth)
 		*move = moves[0];
 		return true;
 	}
-	dfs(board, depth, 0, min_val, max_val, move);
+	num_evaluated = 0;
+	val = dfs(board, depth, 0, min_val, max_val, move);
+	fprintf(stderr, "depth=%d val=%d num_evaluated=%'d\n",
+		depth, val, num_evaluated);
 	return true;
 }
 
