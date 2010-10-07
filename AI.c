@@ -16,6 +16,9 @@ static const int max_depth = 20;
 bool ai_use_tt = true;
 bool ai_use_mo = false;
 
+/* Global flag to abort search: */
+volatile bool aborted = false;
+
 static int num_evaluated;  /* DEBUG */
 
 /* Returns whether the given field lies on the edge of the board: */
@@ -246,6 +249,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			res = -dfs(board, depth, (move_passes(&moves[0]) ? pass+1 : 0),
 					   next_lo, next_hi, NULL);
 			board_undo(board, &moves[0]);
+			if (aborted) return 0;
 		} else {
 			/* Multiple moves available */
 			assert(nmove > 1);
@@ -260,6 +264,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 					/* FIXME: choose "depth - 3" instead of "2" here? */
 					values[n] = -dfs(board, 2, 0, next_lo, next_hi, NULL);
 					board_undo(board, &moves[n]);
+					if (aborted) return 0;
 				}
 				sort_moves(moves, values, nmove);
 			}
@@ -278,6 +283,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 					if (best != NULL) *best = moves[n];
 				}
 				if (res >= hi) break;
+				if (aborted) return 0;
 			}
 			if (ai_use_tt) {
 				entry->hash  = hash;
@@ -291,11 +297,17 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 	return res;
 }
 
+static void set_aborted()
+{
+	aborted = true;
+}
+
 EXTERN bool ai_select_move(Board *board, Move *move)
 {
 	val_t val;
 	Move moves[M];
 	int nmove = generate_moves(board, moves);
+	bool alarm_set = false;
 
 	/* Check if we have any moves to make: */
 	if (nmove == 0) {
@@ -317,23 +329,54 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 		static int depth = 2;
 		int moves_left = max_moves_left(board);
 		double start = time_used(), left = time_left();
-		double used = 0, budget = left/(moves_left/2 + 1);
+		double used = 0, budget = left/((moves_left - 5)/2 + 1);
 
 		fprintf(stderr, "[%.3fs] %.3fs left for %d moves; budget is %.3fs.\n",
 			start, left, moves_left, budget);
 
+		aborted = false;
 		num_evaluated = 0;
 		for (;;) {
-			val = dfs(board, depth, 0, min_val, max_val, move);
+			/* DFS for best value and move: */
+			Move new_move;
+			val_t new_val = dfs(board, depth, 0, min_val, max_val, &new_move);
+
+			if (aborted) {
+				fprintf(stderr, "WARNING: search aborted!\n");
+				--depth;
+				break;
+			}
+
+			/* Update new best value and move: */
+			val = new_val;
+			*move = new_move;
+
+			/* Report time used: */
 			used = time_used() - start;
 			fprintf(stderr, "[%.3fs] nmove=%d depth=%d val=%d num_evaluated=%d"
 				" (%.3fs used)\n", time_used(), nmove, depth, val,
 				num_evaluated, used);
-			if (used > budget) fprintf(stderr, "WARNING: over budget!\n");
-			if (depth == max_depth || used > 0.25*left/moves_left) break;
+
+			if (used > budget) {
+				fprintf(stderr, "WARNING: over budget!\n");
+				--depth;
+				break;
+			}
+
+			/* Determine whether to do another pass at increased search depth: */
+			if (depth == max_depth || used > 0.1667*budget) break;
 			++depth;
 			fprintf(stderr, "Increased search depth to %d.\n", depth);
+
+			/* Schedule alarm to abort search instead of going over budget: */
+			if (!alarm_set) {
+				set_alarm(budget - used, &set_aborted);
+				alarm_set = true;
+			}
 		}
+		if (alarm_set) clear_alarm();
+
+		/* FIXME: if first search is aborted, move may not have been initialized! */
 	}
 	return true;
 }
