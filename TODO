@@ -1,18 +1,19 @@
 Soon (for testcompetition):
- - implement iterative deepening/time-limited solving
+ - improve evaluation function for placing: stones with less then 3 open/opponent
+   neighbours are bad! (leads to edge pieces which can only jump to own pieces)
+ - try move-reordering to make alpha-beta pruning more efficient
 
 Later:
- - fix distance function in Dvonn-tool and JavaScript game code!
+ - test program to validate distance functions/
+   fix distance function in Dvonn-tool and JavaScript game code!
  - allow transposition table/move reordering be enabled/disabled
    on the command line for easier testing
  - make board hashing for TT more efficient
- - try move-reordering to make alpha-beta pruning more efficient
 
 Long time:
  - improve evaluation functions for both algorithms
 
 Test suite:
- - test program to validate distance functions
  - transposition table tests: check values for various positions with and
    without tt, and ensure their values are equal.
 

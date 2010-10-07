@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "AI.h"
+#include "Time.h"
 #include "TT.h"
 #include "IO.h"
 #include <ctype.h>
@@ -27,10 +28,12 @@ static const char *read_line(void)
 {
 	static char line[1024];
 	for (;;) {
+		time_stop();
 		if (fgets(line, sizeof(line), stdin) == NULL) {
 			fprintf(stderr, "Unexpected end of input!\n");
 			exit(EXIT_FAILURE);
 		}
+		time_start();
 		if (*trim(line)) {
 			if (strcmp(line, "Quit") == 0) {
 				/* Non-standard extension: my game server send the game result
@@ -126,7 +129,7 @@ static void solve_state(const char *descr)
 	if (next_player == NONE) {
 		fprintf(stderr, "Game already finished!\n");
 	} else {
-		if (!ai_select_move(&board, &move)) {
+		if (!ai_select_move_fixed(&board, &move, 4)) {
 			fprintf(stderr, "Internal error: no move selected!\n");
 			exit(EXIT_FAILURE);
 		}
@@ -182,6 +185,7 @@ int main(int argc, char *argv[])
 	static char buf_stdout[512], buf_stderr[512];
 
 	parse_args(argc, argv);
+	time_restart(5.0);
 
 	/* Make stdout and stderr line buffered: */
 	setvbuf(stdout, buf_stdout, _IOLBF, sizeof(buf_stdout));

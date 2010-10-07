@@ -13,6 +13,9 @@ extern bool ai_use_tt;
 /* Selects the next move to make during the movement phase. */
 EXTERN bool ai_select_move(Board *board, Move *move);
 
+/* Same as above, but uses fixed search depth. */
+EXTERN bool ai_select_move_fixed(Board *board, Move *move, int depth);
+
 /* Evaluates the current board. Mainly useful for analysis/debugging. */
 EXTERN val_t ai_evaluate(const Board *board);
 

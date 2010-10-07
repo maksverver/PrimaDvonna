@@ -1,4 +1,5 @@
 #include "AI.h"
+#include "Time.h"
 #include "TT.h"
 #include <assert.h>
 #include <stdio.h>
@@ -9,10 +10,10 @@ const val_t min_val = -9999;
 const val_t max_val = +9999;
 
 /* Maximum search depth: */
-static const int max_depth = 2*N;
+static const int max_depth = 20;
 
 /* Indicates whether to use the transposition-table: */
-bool ai_use_tt = false;
+bool ai_use_tt = true;
 
 static int num_evaluated;  /* DEBUG */
 
@@ -79,8 +80,8 @@ static val_t eval_placing(const Board *board)
 					if (dist < min_dist_to_dvonn) min_dist_to_dvonn = dist;
 				}
 
-				if (min_dist_to_dvonn == 1) score[f->player] += 10;
-				if (is_edge_field(board,r, c)) score[f->player] += 5;
+				if (min_dist_to_dvonn == 1) score[f->player] += 20;
+				if (is_edge_field(board,r, c)) score[f->player] += 10;
 				score[f->player] -= tot_dist_to_dvonn;
 				score[f->player] -= count_neighbours(board, r, c, f->player);
 			}
@@ -100,7 +101,7 @@ static val_t eval_end(const Board *board)
 static val_t eval_stacking(const Board *board)
 {
 	Move moves[2*M];
-	int nmove, n, p, r, c;
+	int nmove, n, p /* , r, c */;
 	val_t score[2] = { 0, 0 };
 
 	assert(board->moves >= N);
@@ -260,12 +261,11 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 
 EXTERN bool ai_select_move(Board *board, Move *move)
 {
-	int depth, nmove, tmove;
 	val_t val;
 	Move moves[M];
+	int nmove = generate_moves(board, moves);
 
 	/* Check if we have any moves to make: */
-	nmove = generate_moves(board, moves);
 	if (nmove == 0) {
 		fprintf(stderr, "no moves available!\n");
 		return false;
@@ -276,21 +276,50 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 		return true;
 	}
 
-	tmove = generate_all_moves(board, NULL);
 	if (board->moves < N) {
-		depth = 2;
+		/* Fixed-depth search during placement phase: */
+		val = dfs(board, 2, 0, min_val, max_val, move);
+		fprintf(stderr, "val=%d\n", val);
 	} else {
-		/* Select search depth based on total moves available: */
-		if (tmove < 10) depth = 7;
-		else if (tmove < 20) depth = 6;
-		else if (tmove < 40) depth = 5;
-		else depth = 4;
+		/* Increment max depth during placement phase: */
+		static int depth = 2;
+		int moves_left = max_moves_left(board);
+		double start = time_used(), left = time_left();
+		double used = 0, budget = left/moves_left;
+
+		fprintf(stderr, "[%.3fs] %.3fs left for %d moves; budget is %.3fs.\n",
+			start, left, moves_left, budget);
+
+		num_evaluated = 0;
+		for (;;) {
+			val = dfs(board, depth, 0, min_val, max_val, move);
+			used = time_used() - start;
+			fprintf(stderr, "[%.3fs] nmove=%d depth=%d val=%d num_evaluated=%'d"
+				" (%.3fs used)\n", time_used(), nmove, depth, val,
+				num_evaluated, used);
+			if (depth == max_depth || used > 0.25*left/moves_left) break;
+			++depth;
+			fprintf(stderr, "Increased search depth to %d.\n", depth);
+		}
 	}
-	num_evaluated = 0;
-	val = dfs(board, depth, 0, -max_val, +max_val, move);
-	fprintf(stderr,
-		"nmove=%d tmove=%d depth=%d val=%d num_evaluated=%'d score=%d\n",
-		nmove, tmove, depth, val, num_evaluated, board_score(board));
+	return true;
+}
+
+EXTERN bool ai_select_move_fixed(Board *board, Move *move, int depth)
+{
+	Move moves[M];
+	int nmove = generate_moves(board, moves);
+
+	if (nmove == 0) {
+		fprintf(stderr, "no moves available!\n");
+		return false;
+	}
+	if (nmove == 1) {
+		fprintf(stderr, "one move available!\n");
+		*move = moves[0];
+		return true;
+	}
+	dfs(board, depth, 0, min_val, max_val, move);
 	return true;
 }
 
