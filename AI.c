@@ -12,8 +12,9 @@ const val_t max_val = +9999;
 /* Maximum search depth: */
 static const int max_depth = 20;
 
-bool ai_use_tt = true;  /* use transposition table? */
-bool ai_use_mo = true;  /* use move ordering? */
+/* Search algorithm paramters: */
+bool ai_use_tt = true;
+bool ai_use_mo = false;
 
 static int num_evaluated;  /* DEBUG */
 

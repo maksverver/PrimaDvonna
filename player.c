@@ -154,7 +154,11 @@ static void print_usage()
 		"\t--help            display this help message and exit\n"
 		"\t--state=<descr>   solve given state\n"
 		"\t--depth=<depth>   maximum search depth (default: 4)\n"
-		"\t--time=<time>     maximum search time (default: 5.0)\n" );
+		"\t--time=<time>     maximum search time (default: 5.0)\n"
+		"\t--enable-tt       enable transposition table\n"
+		"\t--disable-tt      disable transposition table\n"
+		"\t--enable-mo       enable move ordering\n"
+		"\t--disable-mo      disable move ordering\n" );
 }
 
 static void parse_args(int argc, char *argv[])
@@ -179,6 +183,22 @@ static void parse_args(int argc, char *argv[])
 			continue;
 		}
 		if (sscanf(argv[pos], "--time=%lf", &arg_time) == 1) {
+			continue;
+		}
+		if (strcmp(argv[pos], "--enable-tt") == 0) {
+			ai_use_tt = true;
+			continue;
+		}
+		if (strcmp(argv[pos], "--disable-tt") == 0) {
+			ai_use_tt = false;
+			continue;
+		}
+		if (strcmp(argv[pos], "--enable-mo") == 0) {
+			ai_use_mo = true;
+			continue;
+		}
+		if (strcmp(argv[pos], "--disable-mo") == 0) {
+			ai_use_mo = false;
 			continue;
 		}
 		break;
@@ -206,6 +226,8 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "RNG seed %d.\n", arg_seed);
 	fprintf(stderr, "%.3f MB transposition table is %sabled.\n",
 		1.0*sizeof(tt)/1024/1204, ai_use_tt ? "en" : "dis");
+	fprintf(stderr, "Move ordering in minimax search is %sabled.\n",
+		ai_use_mo ? "en" : "dis");
 	srand(arg_seed);
 
 	if (arg_state) {
