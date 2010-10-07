@@ -1,12 +1,9 @@
-
-Soon (for testcompetition):
+Soon (before test competition):
  - improve evaluation function for placing: stones with less then 3 open/opponent
    neighbours are bad! (leads to edge pieces which can only jump to own pieces)
 
 Later:
  - "killer heuristic" instead of move ordering?
- - test program to validate distance functions/
-   fix distance function in Dvonn-tool and JavaScript game code!
  - make board hashing for TT more efficient
  - optimize move reordering: currently I apply move reordering when depth >= 3,
    and subtract 2 from search depth compared to regular search. Maybe these
@@ -14,6 +11,8 @@ Later:
  - optimize time budget for moves
  - implement MTD(f)
  - validate all code!
+ - consider auto-learning for evaluation parameters?
+   See: http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
 
 Long time:
  - improve evaluation functions for both algorithms
@@ -22,14 +21,7 @@ Test suite:
  - transposition table tests: check values for various positions with and
    without tt, and ensure their values are equal.
 
-Later:
- - make TT and move ordering (runtime/compiletime?) optional
- - consider auto-learning for evaluation parameters?
-   See:
-   http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
-
 Existing opponents:
   http://matztias.de/spiele/dvonner/dvonner-e.htm
   http://www.othello.nl/content/Dvonn.zip
   Holtz (open-source!)
-

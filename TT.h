@@ -19,12 +19,6 @@ typedef struct TTEntry {
 /* Transposition table: */
 extern TTEntry tt[TT_SIZE];
 
-/* Serializes the board into a unique 50-character representation: */
-EXTERN void serialize_board(const Board *board, unsigned char data[50]);
-
-/* Computes the FNV1 hash code for a binary string: */
-EXTERN hash_t fnv1(const unsigned char *buf, int len);
-
 /* Computes a hash code for the given board. */
 EXTERN hash_t hash_board(const Board *board);
 

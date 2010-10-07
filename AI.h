@@ -5,7 +5,7 @@
 
 /* Type of values used to evaluate game positions: */
 typedef signed short val_t;
-EXTERN const val_t min_val, max_val;
+extern const val_t min_val, max_val;
 
 /* Search algorithm parameters: */
 extern bool ai_use_tt;  /* use transposition table? */
