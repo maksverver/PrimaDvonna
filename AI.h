@@ -7,8 +7,9 @@
 typedef signed short val_t;
 EXTERN const val_t min_val, max_val;
 
-/* Toggles whether to use the transposition table: */
-extern bool ai_use_tt;
+/* Search algorithm parameters: */
+extern bool ai_use_tt;  /* use transposition table? */
+extern bool ai_use_mo;  /* use move reordering? */
 
 /* Selects the next move to make during the movement phase. */
 EXTERN bool ai_select_move(Board *board, Move *move);

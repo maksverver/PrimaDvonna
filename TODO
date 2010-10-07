@@ -1,14 +1,19 @@
+
 Soon (for testcompetition):
  - improve evaluation function for placing: stones with less then 3 open/opponent
    neighbours are bad! (leads to edge pieces which can only jump to own pieces)
- - try move-reordering to make alpha-beta pruning more efficient
 
 Later:
+ - "killer heuristic" instead of move ordering?
  - test program to validate distance functions/
    fix distance function in Dvonn-tool and JavaScript game code!
- - allow transposition table/move reordering be enabled/disabled
-   on the command line for easier testing
  - make board hashing for TT more efficient
+ - optimize move reordering: currently I apply move reordering when depth >= 3,
+   and subtract 2 from search depth compared to regular search. Maybe these
+   values can be optimized/tweaked further. How to evaluate?!
+ - optimize time budget for moves
+ - implement MTD(f)
+ - validate all code!
 
 Long time:
  - improve evaluation functions for both algorithms
@@ -27,3 +32,4 @@ Existing opponents:
   http://matztias.de/spiele/dvonner/dvonner-e.htm
   http://www.othello.nl/content/Dvonn.zip
   Holtz (open-source!)
+

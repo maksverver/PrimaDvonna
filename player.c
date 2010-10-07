@@ -13,6 +13,8 @@
 
 static int arg_seed = 0;
 static const char *arg_state = NULL;
+static int arg_depth = 4;
+static double arg_time = 5.0;
 
 static char *trim(char *s)
 {
@@ -129,7 +131,7 @@ static void solve_state(const char *descr)
 	if (next_player == NONE) {
 		fprintf(stderr, "Game already finished!\n");
 	} else {
-		if (!ai_select_move_fixed(&board, &move, 4)) {
+		if (!ai_select_move_fixed(&board, &move, arg_depth)) {
 			fprintf(stderr, "Internal error: no move selected!\n");
 			exit(EXIT_FAILURE);
 		}
@@ -150,7 +152,13 @@ static void print_usage()
 		"Options:\n"
 		"\t--seed=<int>      initialize RNG with given seed\n"
 		"\t--help            display this help message and exit\n"
-		"\t--state=<descr>   solve given state\n");
+		"\t--state=<descr>   solve given state\n"
+		"\t--depth=<depth>   maximum search depth (default: 4)\n"
+		"\t--time=<time>     maximum search time (default: 5.0)\n"
+		"\t--enable-tt       enable transposition table\n"
+		"\t--disable-tt      disable transposition table\n"
+		"\t--enable-mo       enable move ordering\n"
+		"\t--disable-mo      disable move ordering\n" );
 }
 
 static void parse_args(int argc, char *argv[])
@@ -162,14 +170,36 @@ static void parse_args(int argc, char *argv[])
 		if (sscanf(argv[pos], "--seed=%d", &arg_seed) == 1) {
 			continue;
 		}
-		if (memcmp(argv[pos], "--state=", 8) == 0) {
-			arg_state = argv[pos] + 8;
-			continue;
-		}
 		if (strcmp(argv[pos], "--help") == 0) {
 			pos += 1;
 			print_usage();
 			exit(EXIT_SUCCESS);
+		}
+		if (memcmp(argv[pos], "--state=", 8) == 0) {
+			arg_state = argv[pos] + 8;
+			continue;
+		}
+		if (sscanf(argv[pos], "--depth=%d", &arg_depth) == 1) {
+			continue;
+		}
+		if (sscanf(argv[pos], "--time=%lf", &arg_time) == 1) {
+			continue;
+		}
+		if (strcmp(argv[pos], "--enable-tt") == 0) {
+			ai_use_tt = true;
+			continue;
+		}
+		if (strcmp(argv[pos], "--disable-tt") == 0) {
+			ai_use_tt = false;
+			continue;
+		}
+		if (strcmp(argv[pos], "--enable-mo") == 0) {
+			ai_use_mo = true;
+			continue;
+		}
+		if (strcmp(argv[pos], "--disable-mo") == 0) {
+			ai_use_mo = false;
+			continue;
 		}
 		break;
 	}
@@ -185,7 +215,7 @@ int main(int argc, char *argv[])
 	static char buf_stdout[512], buf_stderr[512];
 
 	parse_args(argc, argv);
-	time_restart(5.0);
+	time_restart(arg_time);
 
 	/* Make stdout and stderr line buffered: */
 	setvbuf(stdout, buf_stdout, _IOLBF, sizeof(buf_stdout));
@@ -196,6 +226,8 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "RNG seed %d.\n", arg_seed);
 	fprintf(stderr, "%.3f MB transposition table is %sabled.\n",
 		1.0*sizeof(tt)/1024/1204, ai_use_tt ? "en" : "dis");
+	fprintf(stderr, "Move ordering in minimax search is %sabled.\n",
+		ai_use_mo ? "en" : "dis");
 	srand(arg_seed);
 
 	if (arg_state) {
