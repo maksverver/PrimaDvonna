@@ -60,7 +60,12 @@ static void sort_moves(Move *moves, val_t *values, int nmove)
    Note that we try to return as tight an upper bound as possible without
    searching more nodes than stricly necessary. This means in particular that
    we try to return bounds which are unequal to lo and hi if possible. This
-   is beneficial when re-using transposition table entries. */
+   is beneficial when re-using transposition table entries.
+
+   Note that the search may be aborted by setting the global variable `aborted'
+   to `true'. In that case, dfs() returns 0, and the caller (which includes
+   dfs() itself) must ensure that the value is not used as a valid result!
+*/
 static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 {
 	hash_t hash = (hash_t)-1;
@@ -148,8 +153,8 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 					if (-res < next_hi) next_hi = -res;
 					if (best != NULL) *best = moves[n];
 				}
-				if (res >= hi) break;
 				if (aborted) return 0;
+				if (res >= hi) break;
 			}
 			if (ai_use_tt) {
 				entry->hash  = hash;
@@ -232,7 +237,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 			}
 
 			/* Determine whether to do another pass at increased search depth: */
-			if (depth == max_depth || used > 0.1667*budget) break;
+			if (depth == max_depth || used > 0.1*budget) break;
 			++depth;
 			fprintf(stderr, "Increased search depth to %d.\n", depth);
 
