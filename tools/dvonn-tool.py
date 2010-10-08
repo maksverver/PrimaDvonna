@@ -384,7 +384,7 @@ if __name__ == '__main__':
 	elif options.output == 'transcript':
 		print format_transcript(metadata, moves, phase == COMPLETE)
 	elif options.output == 'logfile':
-		print format_logfile({}, moves),
+		sys.stdout.write(format_logfile({}, moves))
 	elif options.output == 'json':
 		parts = []
 		for move, (board, phase, player) in zip(moves, history):
@@ -393,8 +393,7 @@ if __name__ == '__main__':
 				',' +
 				'"state":"' + encode(board, phase, player) + '"' +
 				'}')
-		print '[' + ','.join(parts) + ']'
-			
+		sys.stdout.write(('[' + ','.join(parts) + ']'))
 	else:
 		assert not "Unknown output format!"
 
