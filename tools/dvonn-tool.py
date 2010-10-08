@@ -34,10 +34,12 @@ def initialize():
 class Field():
 	'Models a single field on the board.'
 
-	def __init__(self, x, y):
+	def __init__(self, x, y, player = -1, pieces = 0, dvonn = False):
 		self.x      = x
 		self.y      = y
-		self.clear()
+		self.player = player
+		self.pieces = pieces
+		self.dvonn  = dvonn
 
 	def place(dst, turn):
 		assert dst.pieces == 0
@@ -59,8 +61,15 @@ class Field():
 		self.pieces = 0
 		self.dvonn  = False
 
+	def clone(self):
+		return Field(self.x, self.y, self.player, self.pieces, self.dvonn) 
+
 	def __repr__(self):
 		return "+- "[self.player] + ".123456789abcdefghijklmnopqrstuvwxyz"[self.pieces] + " *"[self.dvonn]
+
+
+def clone_board(board):
+	return [ [ field.clone() for field in row ] for row in board ]
 
 def distance(x1, y1, x2, y2):
 	'Returns the distance between fields at coordinates (x1,y1) and (x2,y2)'
@@ -146,14 +155,20 @@ def format_transcript(metadata, moves, complete):
 			else:
 				res += "pass"
 		elif i < N:
-			x, y = moves[i]
-			res += field_str(x, y).lower()
+			res += field_str(*moves[i]).lower()
 		else:
-			(x1, y1), (x2, y2) = moves[i]
-			res +=  field_str(x1, y1).lower() + field_str(x2, y2).lower()
+			res += field_str(*moves[i][0]).lower() + field_str(*moves[i][1]).lower()
 	return res
 
+def format_move(move):
+	if move is None: return "PASS"
+	if isinstance(move[0], tuple):
+		return field_str(*move[0]) + field_str(*move[1])
+	else:
+		return field_str(*move)
+
 def parse_logfile(data):
+	# N.B. metadata not parsed!
 	moves = []
 	lines = data.split("\n")
 	for line in lines:
@@ -161,9 +176,21 @@ def parse_logfile(data):
 		if line == "": continue
 		if line[0] == '#': continue
 		for token in line.split():
-			print token, parse_move(token)
 			moves.append(parse_move(token))
 	return {}, moves
+
+def format_logfile(metadata, moves):
+	# N.B. metadata is ignored!
+	res = ""
+	line = ""
+	for i, move in enumerate(moves):
+		if line != "": line += " "
+		line += format_move(move)
+		if i == 23 or i == 48 or (i >= N and (i - N)%16 == 15):
+			res += line + "\n"
+			line = ""
+	if line != "": res += line + "\n"
+	return res
 
 def mobile(board, x1, y1):
 	'Returns whether the stack at coordinates (x1,y1) can be moved by a player.'
@@ -270,6 +297,7 @@ if __name__ == '__main__':
 	op.add_option("--state", metavar="DESC", help="50-character state description to use")
 	op.add_option("--transcript", metavar="PATH", help="path to transcript file to read")
 	op.add_option("--logfile", metavar="PATH", help="path to log file to read")
+	op.add_option("--output", metavar="TYPE", help="type of output: state, plain, transcript, logfile, text, json")
 	(options, args) = op.parse_args()
 
 	assert sum(getattr(options, x) is not None
@@ -290,30 +318,31 @@ if __name__ == '__main__':
 		else:
 			metadata, moves = parse_logfile(file(options.logfile).read())
 
-	if moves:
-		# Update board state by executing moves:
-		for i in range(len(moves)):
-			if moves[i] is None:
-				if moves_for_player(board, next_player(moves[:i])) != []:
-					resigned = True
-					break
+	history = []
+	# Update board state by executing moves:
+	for i in range(len(moves or [])):
+		if moves[i] is None:
+			if moves_for_player(board, next_player(moves[:i])) != []:
+				resigned = True
+				break
+		else:
+			if i < N:
+				x, y = moves[i]
+				board[x][y].place(i)
 			else:
-				if i < N:
-					x, y = moves[i]
-					board[x][y].place(i)
-				else:
-					(x1, y1), (x2, y2) = moves[i]
-					assert board[x1][y1].player == (i - N)%2
-					board[x1][y1].move(board[x2][y2])
-					remove_disconnected(board)
-		phase = game_phase(moves)
-		player = next_player(moves)
+				(x1, y1), (x2, y2) = moves[i]
+				assert board[x1][y1].player == (i - N)%2
+				board[x1][y1].move(board[x2][y2])
+				remove_disconnected(board)
+		if phase == MOVEMENT and all_moves(board) == []:
+			phase = COMPLETE
+			player = NONE
+		else:
+			phase = game_phase(moves[:i+1])
+			player = next_player(moves[:i+1])
+		history.append((clone_board(board), phase, player))
 
-	if resigned:
-		phase = COMPLETE
-		player = NONE
-
-	if phase == MOVEMENT and all_moves(board) == []: phase = COMPLETE
+	if resigned: phase = COMPLETE
 	if phase == COMPLETE: player = NONE
 
 	for arg in args:
@@ -348,6 +377,24 @@ if __name__ == '__main__':
 		if phase == MOVEMENT and all_moves(board) == []: phase = COMPLETE
 		if phase == COMPLETE: player = NONE
 
-	#print format_transcript(metadata, len(moves) - resigned, complete)
-	print encode(board, phase, player)
-	print_plain(board)
+	if options.output is None or options.output == 'state':
+		print encode(board, phase, player)
+	elif options.output == 'plain':
+		print_plain(board)
+	elif options.output == 'transcript':
+		print format_transcript(metadata, moves, phase == COMPLETE)
+	elif options.output == 'logfile':
+		print format_logfile({}, moves),
+	elif options.output == 'json':
+		parts = []
+		for move, (board, phase, player) in zip(moves, history):
+			parts.append('{' +
+				'"move":"' + format_move(move) + '"' +
+				',' +
+				'"state":"' + encode(board, phase, player) + '"' +
+				'}')
+		print '[' + ','.join(parts) + ']'
+			
+	else:
+		assert not "Unknown output format!"
+
