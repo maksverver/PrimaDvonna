@@ -91,6 +91,15 @@ def next_player(moves):
 	if moves < N: return moves%2
 	else: return (moves - N)%2
 
+def parse_move(token):
+	if token == 'RESIGN' or token == 'PASS':
+		return None
+	if len(token) == 2:
+		return fields_by_id[token]
+	if len(token) == 4:
+		return fields_by_id[token[0:2]], fields_by_id[token[2:4]]
+	assert False
+
 def parse_transcript(data):
 	'''Parses a transcript in Little Golem's format and returns a dictionary
 	with the game's metadata and a list of moves.'''
@@ -107,19 +116,12 @@ def parse_transcript(data):
 			assert token == str(1 + len(moves)//2) + '.'
 			token = tokens[pos].upper()
 			pos += 1
-		if token == 'RESIGN' or token == 'PASS':
-			moves.append(None)
-		elif len(moves) < N:
-			assert(len(token) == 2)
-			moves.append(fields_by_id[token])
-			if len(moves) + 1 == N:
-				fields = set(fields_by_id.values())
-				for m in moves: fields.remove(m)
-				assert len(fields) == 1
-				moves.append(list(fields)[0])
-		else:
-			assert len(token) == 4
-			moves.append((fields_by_id[token[0:2]], fields_by_id[token[2:4]]))
+		moves.append(parse_move(token))
+		if len(moves) + 1 == N:
+			fields = set(fields_by_id.values())
+			for m in moves: fields.remove(m)
+			assert len(fields) == 1
+			moves.append(list(fields)[0])
 	return metadata, moves
 
 def format_transcript(metadata, moves, complete):
@@ -150,6 +152,18 @@ def format_transcript(metadata, moves, complete):
 			(x1, y1), (x2, y2) = moves[i]
 			res +=  field_str(x1, y1).lower() + field_str(x2, y2).lower()
 	return res
+
+def parse_logfile(data):
+	moves = []
+	lines = data.split("\n")
+	for line in lines:
+		line = line.strip()
+		if line == "": continue
+		if line[0] == '#': continue
+		for token in line.split():
+			print token, parse_move(token)
+			moves.append(parse_move(token))
+	return {}, moves
 
 def mobile(board, x1, y1):
 	'Returns whether the stack at coordinates (x1,y1) can be moved by a player.'
@@ -274,7 +288,7 @@ if __name__ == '__main__':
 		if options.transcript:
 			metadata, moves = parse_transcript(file(options.transcript).read())
 		else:
-			moves = parse_logfile(file(options.logfile).read())
+			metadata, moves = parse_logfile(file(options.logfile).read())
 
 	if moves:
 		# Update board state by executing moves:
