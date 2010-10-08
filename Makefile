@@ -1,7 +1,8 @@
 CFLAGS=-g -O2 -m32 -Wall -Wextra -DEXTERN=extern
 LDFLAGS=-m32
-SRCS=AI.c Game.c IO.c Time.c TT.c player.c
-OBJS=AI.o Game.o IO.o Time.o TT.o player.o
+LDLIBS=-lm
+SRCS=AI.c Eval.c Game.c IO.c Time.c TT.c player.c
+OBJS=AI.o Eval.o Game.o IO.o Time.o TT.o player.o
 
 # To compile with mudflap array/pointer verification:
 #CFLAGS+=-fmudflap

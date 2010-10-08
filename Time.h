@@ -6,5 +6,7 @@ EXTERN void time_start();
 EXTERN void time_stop();
 EXTERN double time_used();
 EXTERN double time_left();
+EXTERN void set_alarm(double time, void(*callback)(void *arg), void *arg);
+EXTERN void clear_alarm();
 
 #endif /* ndef TIME_H_INCLUDED */
