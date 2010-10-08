@@ -22,21 +22,6 @@ static bool is_edge_field(const Board *board, int r, int c)
 	return false;
 }
 
-/* Counts how many neighbouring fields are controlled by the given neighbour: */
-static bool count_neighbours(const Board *board, int r1, int c1, Color player)
-{
-	int d, r2, c2, res = 0;
-
-	for (d = 0; d < 6; ++d) {
-		r2 = r1 + DR[d];
-		c2 = c1 + DC[d];
-		if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
-			if (board->fields[r2][c2].player == player) ++res;
-		}
-	}
-	return res;
-}
-
 /* Evaluate the board during the placing phase. */
 EXTERN val_t eval_placing(const Board *board)
 {
@@ -66,17 +51,29 @@ EXTERN val_t eval_placing(const Board *board)
 			if (f->pieces > 0 && f->player >= 0) {
 				int min_dist_to_dvonn = max_val;
 				int tot_dist_to_dvonn = 0;
+				int neighbours = 0;
 
+				/* Count distance to dvonns: */
 				for (d = 0; d < D; ++d) {
 					int dist = distance(r, c, dvonn_r[d], dvonn_c[d]);
 					tot_dist_to_dvonn += dist;
 					if (dist < min_dist_to_dvonn) min_dist_to_dvonn = dist;
 				}
 
-				if (min_dist_to_dvonn == 1) score[f->player] += 20;
-				if (is_edge_field(board,r, c)) score[f->player] += 10;
+				/* Count how many neighboring fields exist that are not occupied
+				   by a friendly piece: */
+				for (d = 0; d < 6; ++d) {
+					int r2 = r + DR[d], c2 = c + DC[d];
+					if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
+						const Field *g = &board->fields[r2][c2];
+						if (!g->removed && g->player != f->player) ++neighbours;
+					}
+				}
+
+				if (min_dist_to_dvonn == 1) score[f->player] += 15;
+				if (is_edge_field(board,r, c)) score[f->player] += 5;
 				score[f->player] -= tot_dist_to_dvonn;
-				score[f->player] -= count_neighbours(board, r, c, f->player);
+				if (neighbours < 2) score[f->player] -= 5*(2 - neighbours);
 			}
 		}
 	}
