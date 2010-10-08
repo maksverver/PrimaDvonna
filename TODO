@@ -2,6 +2,9 @@ Soon (before test competition):
  - improve evaluation function for placing: stones with less then 3 open/opponent
    neighbours are bad! (leads to edge pieces which can only jump to own pieces)
 
+Note:
+ - timing reports don't really seem to match up with what the CodeCup server thinks :/
+
 Later:
  - "killer heuristic" instead of move ordering?
  - make board hashing for TT more efficient

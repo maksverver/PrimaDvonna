@@ -5,8 +5,12 @@
 #include <sys/time.h>
 
 static double limit, used, start;
+
+/* Alarm data: */
 static struct itimerval old_timer;
 static struct sigaction old_action;
+static void (*callback_func)(void *);
+static void *callback_arg;
 
 static double timestamp(void)
 {
@@ -49,13 +53,24 @@ EXTERN double time_left()
 	return limit - used;
 }
 
-EXTERN void set_alarm(double time, void(*callback)())
+static void alarm_handler(int signum)
+{
+	(void)signum;  /* ignored */
+
+	callback_func(callback_arg);
+}
+
+EXTERN void set_alarm(double time, void(*callback)(void*), void *arg)
 {
 	struct itimerval new_timer;
 	struct sigaction new_action;
 
+	/* Record callback handler function and argument: */
+	callback_func = callback;
+	callback_arg  = arg;
+
 	/* Install signal handler */
-	new_action.sa_handler = (void(*)(int))callback;
+	new_action.sa_handler = alarm_handler;
 	sigemptyset(&new_action.sa_mask);
 	new_action.sa_flags   = 0;
 	sigaction(SIGALRM, &new_action, &old_action);
@@ -72,4 +87,6 @@ EXTERN void clear_alarm()
 {
 	setitimer(ITIMER_REAL, &old_timer, NULL);
 	sigaction(SIGALRM, &old_action, NULL);
+	callback_func = NULL;
+	callback_arg  = NULL;
 }

@@ -34,6 +34,7 @@ sub include
 
 
 #print "#define NDEBUG\n";
+print "#undef EXTERN\n";
 print "#define EXTERN static\n";
 foreach my $fn (@ARGV) {
     include $fn;
