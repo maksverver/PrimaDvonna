@@ -1,3 +1,8 @@
+High priority:
+ - Debug failures during competition; see logs/
+   - try to reproduce these errors: set up chroot debian install?
+   - note that game-53505 is different from others!
+
 Note:
  - timing reports don't really seem to match up with what the CodeCup server thinks :/
 
