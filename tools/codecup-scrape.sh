@@ -3,7 +3,7 @@
 DIR=../codecup
 
 grep_result() {
-	grep Result: "$TMP" | egrep -o '(BLACK|WHITE) (WIN|ILLEGAL)|DRAW'
+	grep Result: "$TMP" | egrep -o '(BLACK|WHITE) (WIN|ILLEGAL|TIMEOUT|CRASH|EXIT)|DRAW'
 }
 
 grep_param() {
@@ -47,7 +47,7 @@ scrape_game() {
 	moves=`grep_param moves | tr ',A-Z' ' a-z' `
 
 	if [ -z "$result" ] || [ -z "$white" ] || [ -z "$black" ] || [ -z "$moves" ]; then
-		echo "Could not parse page for game {$GA}!"
+		echo "Could not parse page for game ${GA}!"
 		return 1
 	fi
 
@@ -58,7 +58,7 @@ scrape_round() {
 	CR=$1
 
 	if ! curl -s -o "$TMP" "http://www.codecup.nl/competitionround?cr=${CR}"; then
-		echo "Could not fetch page for round {$CR}!"
+		echo "Could not fetch page for round ${CR}!"
 		return 1
 	fi
 
@@ -105,6 +105,11 @@ if ! test -d "$DIR"; then
 	exit 1
 fi
 
+if test -z "$1"; then
+	echo "Missing argument: competition id"
+	exit 1
+fi
+
 TMP=`mktemp`
-scrape_competition 99
+scrape_competition "$1"
 rm -f "$TMP"
