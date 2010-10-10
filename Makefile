@@ -1,4 +1,4 @@
-CFLAGS=-g -O2 -m32 -Wall -Wextra -DEXTERN=extern
+CFLAGS=-g -O2 -m32 -Wall -Wextra -DEXTERN=extern -DTT_DEBUG
 LDFLAGS=-m32
 LDLIBS=-lm
 SRCS=AI.c Eval.c Game.c IO.c Time.c TT.c player.c

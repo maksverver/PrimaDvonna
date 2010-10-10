@@ -1,7 +1,8 @@
-High priority:
- - Debug failures during competition; see logs/
-   - try to reproduce these errors: set up chroot debian install?
-   - note that game-53505 is different from others!
+Next match:
+   - allocate TT dynamically.
+   - trap all signals that could abort the program; print which signal was
+     sent (and maybe print debug info too? register/stack contents etc.)
+   - print less output to stay within then 10k character limit
 
 Note:
  - timing reports don't really seem to match up with what the CodeCup server thinks :/
@@ -9,6 +10,8 @@ Note:
 Later:
  - "killer heuristic" instead of move ordering?
  - make board hashing for TT more efficient
+ - check hash table performance: how often do collisions occur?
+   how full is the table when they happen?
  - optimize move reordering: currently I apply move reordering when depth >= 3,
    and subtract 2 from search depth compared to regular search. Maybe these
    values can be optimized/tweaked further. How to evaluate?!

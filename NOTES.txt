@@ -1,0 +1,26 @@
+In test competion 2 my program crashed five times. See the following files:
+
+	logs/game-53360.txt
+	logs/game-53492.txt
+	logs/game-53505.txt
+	logs/game-53576.txt
+	logs/game-53590.txt
+	logs/game-53604.txt
+
+The crash in game 53505 has not been explained. The other crashes were caused
+by use of the value from the transposition table as a lower bound for the game
+value. When this value is accurate, then all subsequent searches will fail low,
+and at the top-level *move will never be initialized.
+
+This occured in practice when the previous search went over budget (which caused
+the search depth for the next search to be decreased) combined with the opponent
+having only a single move available (which caused the search depth for that
+search to be extended) and as a result, the tranposition table would contain an
+entry with the required minimal depth for the root case of the next search,
+which would then crash.
+
+The resolution is to not use the transposition table at the top level at all.
+If I implement the killer heuristic then the transposition table might be used
+in those situations, but I must be very careful to avoid hash collisions (which,
+to be fair, I have not observed in practice) which might cause an invalid move
+to be selected, messing up the internal game state or worse!

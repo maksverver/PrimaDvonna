@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # Run the player as a client connecting to a TCP socket.
 # Accepts optional hostname and port arguments. 

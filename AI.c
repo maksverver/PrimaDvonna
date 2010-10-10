@@ -64,25 +64,36 @@ static void sort_moves(Move *moves, val_t *values, int nmove)
 
    Note that the search may be aborted by setting the global variable `aborted'
    to `true'. In that case, dfs() returns 0, and the caller (which includes
-   dfs() itself) must ensure that the value is not used as a valid result!
+   dfs() itself) must ensure that the value is not used as a valid result! This
+   means that all calls to dfs() should be followed by checking `aborted' before
+   using the return value.
 */
 static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 {
 	hash_t hash = (hash_t)-1;
+#ifdef TT_DEBUG
+	unsigned char data[50];
+#endif
 	TTEntry *entry = NULL;
 	val_t res = min_val;
 
 	if (ai_use_tt) { /* look up in transposition table: */
+#ifdef TT_DEBUG
+		serialize_board(board, data);
+		hash = fnv1(data, 50);
+#else
 		hash = hash_board(board);
+#endif
 		entry = &tt[hash%TT_SIZE];
 		if (entry->hash == hash && entry->depth >= depth) {
+#ifdef TT_DEBUG  /* detect hash collisions */
+			assert(memcmp(entry->data, data, 50) == 0);
+#endif
 			if (best == NULL) {
 				if (entry->lo == entry->hi) return entry->lo;
 				if (entry->lo >= hi) return entry->lo;
 				if (entry->hi <= lo) return entry->hi;
 				res = entry->lo;
-			} else {  /* best != NULL */
-				if (entry->depth == depth) res = entry->lo;
 			}
 		}
 	}
@@ -94,6 +105,9 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			entry->lo    = res;
 			entry->hi    = res;
 			entry->depth = max_depth;
+#ifdef TT_DEBUG
+			memcpy(entry->data, data, 50);
+#endif
 		}
 	} else if (depth == 0) {  /* evaluate intermediate position */
 		assert(best == NULL);
@@ -106,6 +120,9 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			entry->lo    = res;
 			entry->hi    = res;
 			entry->depth = 0;
+#ifdef TT_DEBUG
+			memcpy(entry->data, data, 50);
+#endif
 		}
 	} else {  /* evaluate interior node */
 		Move moves[M];
@@ -132,7 +149,6 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 				val_t values[M];
 				for (n = 0; n < nmove; ++n) {
 					board_do(board, &moves[n]);
-					/* FIXME: choose "depth - 3" instead of "2" here? */
 					values[n] = -dfs(board, 2, 0, next_lo, next_hi, NULL);
 					board_undo(board, &moves[n]);
 					if (aborted) return 0;
@@ -146,6 +162,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 				board_do(board, &moves[n]);
 				val = -dfs(board, depth - 1, 0, next_lo, next_hi, NULL);
 				board_undo(board, &moves[n]);
+				if (aborted) return 0;
 
 				/* Update value bounds: */
 				if (val > res) {
@@ -153,16 +170,19 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 					if (-res < next_hi) next_hi = -res;
 					if (best != NULL) *best = moves[n];
 				}
-				if (aborted) return 0;
 				if (res >= hi) break;
 			}
-			if (ai_use_tt) {
-				entry->hash  = hash;
-				entry->lo    = res > lo ? res : min_val;
-				entry->hi    = res < hi ? res : max_val;
-				entry->depth = depth;
-			}
-			assert(best == NULL || !move_passes(best));
+		}
+if (best != NULL && move_passes(best)) fprintf(stderr, "*** %d ***\n", res);
+		assert(best == NULL || !move_passes(best));
+		if (ai_use_tt) {
+			entry->hash  = hash;
+			entry->lo    = res > lo ? res : min_val;
+			entry->hi    = res < hi ? res : max_val;
+			entry->depth = depth;
+#ifdef TT_DEBUG
+			memcpy(entry->data, data, 50);
+#endif
 		}
 	}
 	return res;
@@ -237,7 +257,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 			}
 
 			/* Determine whether to do another pass at increased search depth: */
-			if (depth == max_depth || used > 0.1*budget) break;
+			if (depth == max_depth || used > 0.15*budget) break;
 			++depth;
 			fprintf(stderr, "Increased search depth to %d.\n", depth);
 
