@@ -21,10 +21,10 @@ extern TTEntry *tt;
 extern size_t tt_size;
 
 /* Allocates a transposition table with `size' entries. */
-EXTERN void tt_alloc(size_t size);
+EXTERN void tt_init(size_t size);
 
 /* Frees the currently allocated transposition table. */
-EXTERN void tt_free();
+EXTERN void tt_fini();
 
 /* Serializes the board state into a unique 50-byte descriptor. */
 EXTERN void serialize_board(const Board *board, unsigned char output[50]);

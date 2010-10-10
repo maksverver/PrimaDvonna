@@ -1,3 +1,4 @@
+#include "Crash.h"
 #include "Game.h"
 #include "AI.h"
 #include "Time.h"
@@ -217,6 +218,9 @@ int main(int argc, char *argv[])
 	parse_args(argc, argv);
 	time_restart(arg_time);
 
+	/* Set-up crash handler. */
+	crash_init();
+
 	/* Make stdout and stderr line buffered: */
 	setvbuf(stdout, buf_stdout, _IOLBF, sizeof(buf_stdout));
 	setvbuf(stderr, buf_stderr, _IOLBF, sizeof(buf_stderr));
@@ -228,7 +232,7 @@ int main(int argc, char *argv[])
 
 	/* Initialize transposition table: */
 	if (ai_use_tt) {
-		tt_alloc(3000007);
+		tt_init(3000007);
 		fprintf(stderr, "%.3f MB transposition table is enabled.\n",
 			1.0*tt_size*sizeof(TTEntry)/1024/1204);
 	} else {
@@ -247,7 +251,8 @@ int main(int argc, char *argv[])
 		run_game();
 	}
 
-	tt_free();
+	if (ai_use_tt) tt_fini();
+	crash_fini();
 
 	return EXIT_SUCCESS;
 }

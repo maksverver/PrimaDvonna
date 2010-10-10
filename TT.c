@@ -7,7 +7,7 @@
 TTEntry *tt;
 size_t tt_size;
 
-EXTERN void tt_alloc(size_t size)
+EXTERN void tt_init(size_t size)
 {
 	assert(size > 0);
 	assert(tt == NULL);
@@ -16,7 +16,7 @@ EXTERN void tt_alloc(size_t size)
 	assert(tt != NULL);
 }
 
-EXTERN void tt_free()
+EXTERN void tt_fini()
 {
 	free(tt);
 	tt = NULL;
