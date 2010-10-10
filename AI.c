@@ -84,7 +84,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 #else
 		hash = hash_board(board);
 #endif
-		entry = &tt[hash%TT_SIZE];
+		entry = &tt[hash%tt_size];
 		if (entry->hash == hash && entry->depth >= depth) {
 #ifdef TT_DEBUG  /* detect hash collisions */
 			assert(memcmp(entry->data, data, 50) == 0);

@@ -3,9 +3,6 @@
 #include "Game.h"
 #include "AI.h"
 
-/* Number of entries in the transposition table: */
-#define TT_SIZE 3000007
-
 /* 64-bit hash code type: */
 typedef unsigned long long hash_t;
 
@@ -20,7 +17,14 @@ typedef struct TTEntry {
 } TTEntry;
 
 /* Transposition table: */
-extern TTEntry tt[TT_SIZE];
+extern TTEntry *tt;
+extern size_t tt_size;
+
+/* Allocates a transposition table with `size' entries. */
+EXTERN void tt_alloc(size_t size);
+
+/* Frees the currently allocated transposition table. */
+EXTERN void tt_free();
 
 /* Serializes the board state into a unique 50-byte descriptor. */
 EXTERN void serialize_board(const Board *board, unsigned char output[50]);

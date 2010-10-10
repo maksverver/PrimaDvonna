@@ -1,5 +1,4 @@
 Next match:
-   - allocate TT dynamically.
    - trap all signals that could abort the program; print which signal was
      sent (and maybe print debug info too? register/stack contents etc.)
    - print less output to stay within then 10k character limit

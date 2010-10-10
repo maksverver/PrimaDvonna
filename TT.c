@@ -1,10 +1,27 @@
 #include "TT.h"
 #include <assert.h>
 
-TTEntry tt[TT_SIZE];
-
 #define FNV64_OFFSET_BASIS 14695981039346656037ULL
 #define FNV64_PRIME 1099511628211ULL
+
+TTEntry *tt;
+size_t tt_size;
+
+EXTERN void tt_alloc(size_t size)
+{
+	assert(size > 0);
+	assert(tt == NULL);
+	tt_size = size;
+	tt = calloc(size, sizeof(TTEntry));
+	assert(tt != NULL);
+}
+
+EXTERN void tt_free()
+{
+	free(tt);
+	tt = NULL;
+	tt_size = 0;
+}
 
 EXTERN void serialize_board(const Board *board, unsigned char output[50])
 {

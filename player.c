@@ -223,18 +223,31 @@ int main(int argc, char *argv[])
 
 	/* Initialize RNG: */
 	if (!arg_seed) arg_seed = (1337*(int)getpid() + 17*(int)time(NULL))%1000000;
+	srand(arg_seed);
 	fprintf(stderr, "RNG seed %d.\n", arg_seed);
-	fprintf(stderr, "%.3f MB transposition table is %sabled.\n",
-		1.0*sizeof(tt)/1024/1204, ai_use_tt ? "en" : "dis");
+
+	/* Initialize transposition table: */
+	if (ai_use_tt) {
+		tt_alloc(3000007);
+		fprintf(stderr, "%.3f MB transposition table is enabled.\n",
+			1.0*tt_size*sizeof(TTEntry)/1024/1204);
+	} else {
+		fprintf(stderr, "Transposition table is disabled.\n");
+	}
+
+	/* Print other paramters: */
 	fprintf(stderr, "Move ordering in minimax search is %sabled.\n",
 		ai_use_mo ? "en" : "dis");
-	srand(arg_seed);
+
+	fprintf(stderr, "Initialization took %.3fs.\n", time_used());
 
 	if (arg_state) {
 		solve_state(arg_state);
 	} else {
 		run_game();
 	}
+
+	tt_free();
 
 	return EXIT_SUCCESS;
 }
