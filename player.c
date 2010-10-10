@@ -94,10 +94,10 @@ static void run_game()
 		my_color = BLACK;
 	}
 	for (;;) {
-		fprintf(stderr, "%s\n", format_state(&board));
 		move_str = NULL;
 		if (next_player(&board) == my_color) {  /* it's my turn */
 			Move move;
+			fprintf(stderr, "%s\n", format_state(&board));
 			if (!ai_select_move(&board, &move)) {
 				fprintf(stderr, "Internal error: no move selected!\n");
 				exit(EXIT_FAILURE);

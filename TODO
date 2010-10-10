@@ -1,7 +1,8 @@
 Next match:
    - trap all signals that could abort the program; print which signal was
      sent (and maybe print debug info too? register/stack contents etc.)
-   - print less output to stay within then 10k character limit
+   - test against Holtz too
+   - GOAL: beat Dvonner consistently!
 
 Note:
  - timing reports don't really seem to match up with what the CodeCup server thinks :/
@@ -19,6 +20,7 @@ Later:
  - validate all code!
  - consider auto-learning for evaluation parameters?
    See: http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
+ - test against Rororobot and Jan's Program on littlegolem.net
 
 Long time:
  - improve evaluation functions for both algorithms
