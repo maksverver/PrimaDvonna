@@ -203,6 +203,8 @@ EXTERN void board_validate(const Board *board)
 			}
 		}
 	}
+	/* This doesn't really belong here, but I want to check it somewhere: */
+	assert(sizeof(Move) == sizeof(int));
 }
 
 static int gen_places(const Board *board, Move moves[N])
@@ -295,6 +297,18 @@ EXTERN void board_scores(const Board *board, int scores[2])
 			}
 		}
 	}
+}
+
+EXTERN bool valid_move(const Board *board, const Move *move)
+{
+	Move moves[M];
+	int i, nmove;
+
+	nmove = generate_moves(board, moves);
+	for (i = 0; i < nmove; ++i) {
+		if (move_compare(&moves[i], move) == 0) return true;
+	}
+	return false;
 }
 
 EXTERN int board_score(const Board *board)

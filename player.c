@@ -58,23 +58,16 @@ static const char *read_line(void)
    guarantees that no invalid moves will be passed to the players. */
 static void parse_and_execute_move(Board *board, const char *line)
 {
-	Move move, moves[M];
-	int i, nmove = generate_moves(board, moves);
+	Move move;
 
 	if (!parse_move(line, &move)) {
 		fprintf(stderr, "Could not parse move: %s!\n", line);
 		exit(EXIT_FAILURE);
+	} else if (!valid_move(board, &move)) {
+		fprintf(stderr, "Invalid move: %s!\n", line);
+		exit(EXIT_FAILURE);
 	} else {
-		for (i = 0; i < nmove; ++i) {
-			if (move.r1 == moves[i].r1 && move.c1 == moves[i].c1 &&
-				move.r2 == moves[i].r2 && move.c2 == moves[i].c2) break;
-		}
-		if (i == nmove) {
-			fprintf(stderr, "Invalid move: %s!\n", line);
-			exit(EXIT_FAILURE);
-		} else {
-			board_do(board, &move);
-		}
+		board_do(board, &move);
 	}
 	board_validate(board);
 }
@@ -122,6 +115,7 @@ static void solve_state(const char *descr)
 	Board board;
 	Move move;
 	const char *move_str = NULL;
+	int depth = 0;
 
 	if (!parse_state(descr, &board, &next_player)) {
 		fprintf(stderr, "Couldn't parse game description: `%s'!\n", descr);
@@ -132,9 +126,12 @@ static void solve_state(const char *descr)
 	if (next_player == NONE) {
 		fprintf(stderr, "Game already finished!\n");
 	} else {
-		if (!ai_select_move_fixed(&board, &move, arg_depth)) {
-			fprintf(stderr, "Internal error: no move selected!\n");
-			exit(EXIT_FAILURE);
+		for (depth = arg_depth<2 ? arg_depth : 2; depth <= arg_depth; ++depth) {
+			if (!ai_select_move_fixed(&board, &move, depth)) {
+				fprintf(stderr, "Internal error: no move selected!\n");
+				exit(EXIT_FAILURE);
+			}
+			fprintf(stderr, "%d: %s\n", depth, format_move(&move));
 		}
 		move_str = format_move(&move);
 	}
@@ -234,12 +231,12 @@ int main(int argc, char *argv[])
 	if (ai_use_tt) {
 		tt_init(3000007);
 		fprintf(stderr, "%.3f MB transposition table is enabled.\n",
-			1.0*tt_size*sizeof(TTEntry)/1024/1204);
+			1.0*tt_size*sizeof(TTEntry)/1024/1024);
 	} else {
 		fprintf(stderr, "Transposition table is disabled.\n");
 	}
 
-	/* Print other paramters: */
+	/* Print other parameters: */
 	fprintf(stderr, "Move ordering in minimax search is %sabled.\n",
 		ai_use_mo ? "en" : "dis");
 

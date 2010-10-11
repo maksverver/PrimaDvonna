@@ -1,14 +1,27 @@
 Next match:
-   - trap all signals that could abort the program; print which signal was
-     sent (and maybe print debug info too? register/stack contents etc.)
    - test against Holtz too
    - GOAL: beat Dvonner consistently!
+
+Soon:
+ - figure out why move ordering works so poorly!  A (likely?) reason might be
+   that the depth-limited pre-searches ruin the transposition table (fix:
+   overwrite entries only if (hash != entry->hash || depth >= entry->depth)?).
+   With current results it seems wiser to abandon pre-search entirely in favor
+   of the killer heuristic and other cheaper/simpler ordering heuristics which
+   do not interact with the transposition table (document decision in NOTES).
+ - make "killer heuristic" permanent (remove #ifdefs etc.), but allow disabling
+   it on the command line (like tt and mo).
+   - TT seems most effective when incrementing search depth one step at a time.
+     Update search-code so that it always goes one step back if tt and/or mo/kh
+     are enabled.
 
 Note:
  - timing reports don't really seem to match up with what the CodeCup server thinks :/
 
 Later:
- - "killer heuristic" instead of move ordering?
+ - change library functions so single moves are passed by value.
+ - smarter move ordering: capture moves first, etc?
+ - shuffle moves when depth >= 2 or so? (shuffling seemed to improve cut-offs)
  - make board hashing for TT more efficient
  - check hash table performance: how often do collisions occur?
    how full is the table when they happen?

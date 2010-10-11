@@ -41,10 +41,17 @@ typedef struct Move {
 	signed char r1, c1, r2, c2;
 } Move;
 
+/* Union of a move and an integer. Used for quick comparisons of moves. */
+typedef union MoveInt {
+	struct Move m;
+	int         i;
+} MoveInt;
+
 extern Move move_pass;  /* pass move: all fields set to -1 */
 #define move_places(m) ((m)->r1 >= 0 && (m)->r2 < 0)
 #define move_stacks(m) ((m)->r2 >= 0)
 #define move_passes(m) ((m)->r1 < 0)
+#define move_compare(a, b) (((union MoveInt)*(a)).i - ((union MoveInt)*(b)).i)
 
 /* The six cardinal directions on the board. These are ordered anti-clockwise
    starting to right. (Order matters for functions like may_be_bridge()!) */
@@ -72,6 +79,11 @@ EXTERN int generate_all_moves(const Board *board, Move moves[2*M]);
    If and only if the player has no stacking moves, the result includes a pass
    move, so the result is at least 1. */
 EXTERN int generate_moves(const Board *board, Move moves[M]);
+
+/* Determines if the given `board' allows the current player to play `move'.
+   Note that this is a relatively costly function because it first generates
+   all possible moves! (This is necessary to check if passing is allowed.) */
+EXTERN bool valid_move(const Board *board, const Move *move);
 
 /* Calculates the score for both players: */
 EXTERN void board_scores(const Board *board, int scores[2]);

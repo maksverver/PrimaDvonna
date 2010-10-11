@@ -47,6 +47,21 @@ static void sort_moves(Move *moves, val_t *values, int nmove)
 	}
 }
 
+/* Moves the selected move `killer' to the front of the list of moves,
+   or leaves the list unmodified if the killer move is not found. */
+static void move_to_front(Move *moves, int nmove, Move killer)
+{
+	int i;
+
+	for (i = 0; i < nmove; ++i) {
+		if (move_compare(&moves[i], &killer) == 0) {
+			for ( ; i > 0; --i) moves[i] = moves[i - 1];
+			moves[0] = killer;
+			return;
+		}
+	}
+}
+
 /* Implements depth-first minimax search with alpha-beta pruning.
 
    Takes the current game state in `board' and `pass' (the number of passes
@@ -76,6 +91,9 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 #endif
 	TTEntry *entry = NULL;
 	val_t res = min_val;
+#ifdef TT_KILLER
+	Move killer = move_pass;
+#endif
 
 	if (ai_use_tt) { /* look up in transposition table: */
 #ifdef TT_DEBUG
@@ -85,15 +103,27 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 		hash = hash_board(board);
 #endif
 		entry = &tt[hash%tt_size];
-		if (entry->hash == hash && entry->depth >= depth) {
+		if (entry->hash == hash) {
 #ifdef TT_DEBUG  /* detect hash collisions */
 			assert(memcmp(entry->data, data, 50) == 0);
 #endif
-			if (best == NULL) {
-				if (entry->lo == entry->hi) return entry->lo;
-				if (entry->lo >= hi) return entry->lo;
-				if (entry->hi <= lo) return entry->hi;
-				res = entry->lo;
+#ifdef TT_KILLER
+			killer = entry->killer;
+#endif
+			if (entry->depth >= depth) {
+#ifndef TT_KILLER
+				if (best == NULL) {
+#else
+				/* Check if move is valid to catch the rare possibility that
+				   we have a hash collision on the top level of the search: */
+				if (best == NULL || valid_move(board, &entry->killer)) {
+					if (best) *best = entry->killer;
+#endif
+					if (entry->lo == entry->hi) return entry->lo;
+					if (entry->lo >= hi) return entry->lo;
+					if (entry->hi <= lo) return entry->hi;
+					res = entry->lo;
+				}
 			}
 		}
 	}
@@ -130,6 +160,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 		int next_lo = -hi;
 		int next_hi = (-res < -lo) ? -res : -lo;
 
+		if (best) *best = move_pass;
 		if (nmove == 1) {
 			/* Only one move available: */
 			if (best != NULL) *best = moves[0];
@@ -141,10 +172,11 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 		} else {
 			/* Multiple moves available */
 			assert(nmove > 1);
-			if (best != NULL) {
-				*best = move_pass;
-				shuffle_moves(moves, nmove);
-			}
+
+			/* FIXME: maybe shuffle whenever depth >= 2 too,
+			   to get less variation in search times? */
+			if (best != NULL) shuffle_moves(moves, nmove);
+
 			if (ai_use_mo && depth > 2) {
 				val_t values[M];
 				for (n = 0; n < nmove; ++n) {
@@ -155,6 +187,9 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 				}
 				sort_moves(moves, values, nmove);
 			}
+#ifdef TT_KILLER
+			if (!move_passes(&killer)) move_to_front(moves, nmove, killer);
+#endif
 			for (n = 0; n < nmove; ++n) {
 				val_t val;
 
@@ -168,18 +203,27 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 				if (val > res) {
 					res = val;
 					if (-res < next_hi) next_hi = -res;
-					if (best != NULL) *best = moves[n];
+#ifndef TT_KILLER
+					if (best) *best = moves[n];
+#else
+					killer = moves[n];
+#endif
 				}
 				if (res >= hi) break;
 			}
 		}
-if (best != NULL && move_passes(best)) fprintf(stderr, "*** %d ***\n", res);
+#ifdef TT_KILLER
+		if (best) *best = killer;
+#endif
 		assert(best == NULL || !move_passes(best));
 		if (ai_use_tt) {
 			entry->hash  = hash;
 			entry->lo    = res > lo ? res : min_val;
 			entry->hi    = res < hi ? res : max_val;
 			entry->depth = depth;
+#ifdef TT_KILLER
+			entry->killer = killer;
+#endif
 #ifdef TT_DEBUG
 			memcpy(entry->data, data, 50);
 #endif
