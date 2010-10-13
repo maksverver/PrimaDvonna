@@ -53,6 +53,9 @@ static void order_moves(const Board *board, Move *moves, int nmove)
 	int n;
 	val_t values[M];
 
+	/* Heuristic applies to stacking phase only, at the moment: */
+	if (board->moves < N) return;
+
 	for (n = 0; n < nmove; ++n) {
 		const Field *f = &board->fields[moves[n].r1][moves[n].c1];
 		const Field *g = &board->fields[moves[n].r2][moves[n].c2];

@@ -24,3 +24,10 @@ If I implement the killer heuristic then the transposition table might be used
 in those situations, but I must be very careful to avoid hash collisions (which,
 to be fair, I have not observed in practice) which might cause an invalid move
 to be selected, messing up the internal game state or worse!
+
+Re: move ordering:
+ - first, use heuristical move ordering:
+     try stacking on opponent first, stacking on own pieces last.
+ - second, use a killer heuristic:
+     try the best move from the transposition table first.
+

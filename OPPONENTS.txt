@@ -1,0 +1,17 @@
+Existing opponents:
+
+  Holtz, by Martin Trautmann (open source!)
+  http://holtz.sourceforge.net/
+
+  dDvonn, by David Franck (source code available)
+  http://www.nivozero.com/DVONN/
+
+  Dvonner, by Matthias Bodenstein (closed source, but Linux binary available)
+  http://matztias.de/spiele/dvonner/dvonner-e.htm
+
+  Jan C. de Graaf's program
+  Playable only on littlegolem.net
+  GUI only (no AI): http://www.othello.nl/content/Dvonn.zip
+
+  RoRoRo the Bot by Phil Carmody
+  Playable only on littlegolem.net
