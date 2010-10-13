@@ -1,4 +1,5 @@
 #include "AI.h"
+#include "IO.h"
 #include "Time.h"
 #include "TT.h"
 #include <assert.h>
@@ -45,6 +46,23 @@ static void sort_moves(Move *moves, val_t *values, int nmove)
 		moves[j] = m;
 		values[j] = v;
 	}
+}
+
+static void order_moves(const Board *board, Move *moves, int nmove)
+{
+	int n;
+	val_t values[M];
+
+	for (n = 0; n < nmove; ++n) {
+		const Field *f = &board->fields[moves[n].r1][moves[n].c1];
+		const Field *g = &board->fields[moves[n].r2][moves[n].c2];
+		values[n] = 0;
+		if (f->player == 1 - g->player) ++values[n];
+		else if (f->player == g->player) --values[n];
+	}
+
+	/* use national flag sort instead, since only three values are used? */
+	sort_moves(moves, values, nmove);
 }
 
 /* Moves the selected move `killer' to the front of the list of moves,
@@ -177,16 +195,10 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			   to get less variation in search times? */
 			if (best != NULL) shuffle_moves(moves, nmove);
 
-			if (ai_use_mo && depth > 2) {
-				val_t values[M];
-				for (n = 0; n < nmove; ++n) {
-					board_do(board, &moves[n]);
-					values[n] = -dfs(board, 2, 0, next_lo, next_hi, NULL);
-					board_undo(board, &moves[n]);
-					if (aborted) return 0;
-				}
-				sort_moves(moves, values, nmove);
-			}
+			/* Move ordering: */
+			if (ai_use_mo) order_moves(board, moves, nmove);
+
+			/* Killer heuristic: */
 #ifdef TT_KILLER
 			if (!move_passes(&killer)) move_to_front(moves, nmove, killer);
 #endif
@@ -216,7 +228,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 		if (best) *best = killer;
 #endif
 		assert(best == NULL || !move_passes(best));
-		if (ai_use_tt) {
+		if (ai_use_tt) {  /* FIXME: replacement policy? */
 			entry->hash  = hash;
 			entry->lo    = res > lo ? res : min_val;
 			entry->hi    = res < hi ? res : max_val;
@@ -271,6 +283,12 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 		fprintf(stderr, "[%.3fs] %.3fs left for %d moves; budget is %.3fs.\n",
 			start, left, moves_left, budget);
 
+#ifdef TT_KILLER
+		/* Killer heuristic is most effective when the transposition table
+		   contains the information from one ply ago, instead of two plies: */
+		--depth;
+#endif
+		
 		eval_count_reset();
 		aborted = false;
 		for (;;) {
@@ -291,8 +309,8 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 			/* Report time used: */
 			used = time_used() - start;
 			fprintf(stderr, "[%.3fs] nmove=%d depth=%d val=%d evaluated: %d"
-				" (%.3fs used)\n", time_used(), nmove, depth, val,
-				eval_count_total(), used);
+				" move: %s, (%.3fs used)\n", time_used(), nmove, depth, val,
+				eval_count_total(), format_move(move), used);
 
 			if (used > budget) {
 				fprintf(stderr, "WARNING: over budget!\n");
@@ -301,9 +319,8 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 			}
 
 			/* Determine whether to do another pass at increased search depth: */
-			if (depth == max_depth || used > 0.15*budget) break;
+			if (depth == max_depth || used > 0.25*budget) break;
 			++depth;
-			fprintf(stderr, "Increased search depth to %d.\n", depth);
 
 			/* Schedule alarm to abort search instead of going over budget: */
 			if (!alarm_set) {
