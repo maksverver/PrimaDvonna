@@ -1,17 +1,11 @@
 Next match:
    - test against Holtz too
    - GOAL: beat Dvonner/Holtz/dDvonn consistently!
+   - remove `best' as dfs() parameter
 
    - Note: dDvonn uses different search algorithms/evaluation functions
      depending on wheter it's playing white or black. Pit these against each
      other to find out which works best?
-
-Soon:
- - make "killer heuristic" permanent (remove #ifdefs etc.), but allow disabling
-   it on the command line (like tt and mo).
-   - TT seems most effective when incrementing search depth one step at a time.
-     Update search-code so that it always goes one step back if tt and/or mo/kh
-     are enabled.
 
 Note:
  - timing reports don't really seem to match up with what the CodeCup server thinks :/

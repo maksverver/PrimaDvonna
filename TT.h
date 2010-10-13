@@ -11,9 +11,7 @@ typedef struct TTEntry {
 	hash_t hash;
 	val_t  lo, hi;
 	short  depth;
-#ifdef TT_KILLER
 	Move killer;
-#endif
 #ifdef TT_DEBUG
 	unsigned char data[50];
 #endif

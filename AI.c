@@ -10,8 +10,9 @@
 static const int max_depth = 20;
 
 /* Search algorithm parameters: */
-bool ai_use_tt = true;
-bool ai_use_mo = false;
+bool ai_use_tt     = true;
+bool ai_use_mo     = true;
+bool ai_use_killer = true;
 
 /* Global flag to abort search: */
 volatile bool aborted = false;
@@ -112,9 +113,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 #endif
 	TTEntry *entry = NULL;
 	val_t res = min_val;
-#ifdef TT_KILLER
 	Move killer = move_pass;
-#endif
 
 	if (ai_use_tt) { /* look up in transposition table: */
 #ifdef TT_DEBUG
@@ -128,24 +127,15 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 #ifdef TT_DEBUG  /* detect hash collisions */
 			assert(memcmp(entry->data, data, 50) == 0);
 #endif
-#ifdef TT_KILLER
-			killer = entry->killer;
-#endif
-			if (entry->depth >= depth) {
-#ifndef TT_KILLER
-				if (best == NULL) {
-#else
-				/* Check if move is valid to catch the rare possibility that
-				   we have a hash collision on the top level of the search: */
-				if (best == NULL || valid_move(board, &entry->killer)) {
-					if (best) *best = entry->killer;
-#endif
-					if (entry->lo == entry->hi) return entry->lo;
-					if (entry->lo >= hi) return entry->lo;
-					if (entry->hi <= lo) return entry->hi;
-					res = entry->lo;
-				}
+			if (entry->depth >= depth && 
+				(best == NULL || valid_move(board, &entry->killer))) {
+				if (best) *best = entry->killer;
+				if (entry->lo == entry->hi) return entry->lo;
+				if (entry->lo >= hi) return entry->lo;
+				if (entry->hi <= lo) return entry->hi;
+				res = entry->lo;
 			}
+			if (ai_use_killer) killer = entry->killer;
 		}
 	}
 	if (pass == 2) {  /* evaluate end position */
@@ -202,9 +192,10 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			if (ai_use_mo) order_moves(board, moves, nmove);
 
 			/* Killer heuristic: */
-#ifdef TT_KILLER
-			if (!move_passes(&killer)) move_to_front(moves, nmove, killer);
-#endif
+			if (ai_use_killer && !move_passes(&killer)) {
+				move_to_front(moves, nmove, killer);
+			}
+
 			for (n = 0; n < nmove; ++n) {
 				val_t val;
 
@@ -218,27 +209,19 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 				if (val > res) {
 					res = val;
 					if (-res < next_hi) next_hi = -res;
-#ifndef TT_KILLER
-					if (best) *best = moves[n];
-#else
 					killer = moves[n];
-#endif
 				}
 				if (res >= hi) break;
 			}
 		}
-#ifdef TT_KILLER
 		if (best) *best = killer;
-#endif
 		assert(best == NULL || !move_passes(best));
 		if (ai_use_tt) {  /* FIXME: replacement policy? */
 			entry->hash  = hash;
 			entry->lo    = res > lo ? res : min_val;
 			entry->hi    = res < hi ? res : max_val;
 			entry->depth = depth;
-#ifdef TT_KILLER
 			entry->killer = killer;
-#endif
 #ifdef TT_DEBUG
 			memcpy(entry->data, data, 50);
 #endif
@@ -286,11 +269,9 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 		fprintf(stderr, "[%.3fs] %.3fs left for %d moves; budget is %.3fs.\n",
 			start, left, moves_left, budget);
 
-#ifdef TT_KILLER
 		/* Killer heuristic is most effective when the transposition table
 		   contains the information from one ply ago, instead of two plies: */
-		--depth;
-#endif
+		if (ai_use_killer) --depth;
 		
 		eval_count_reset();
 		aborted = false;

@@ -5,8 +5,9 @@
 #include "Eval.h"
 
 /* Search algorithm parameters: */
-extern bool ai_use_tt;  /* use transposition table? */
-extern bool ai_use_mo;  /* use move reordering? */
+extern bool ai_use_tt;      /* use transposition table? */
+extern bool ai_use_mo;      /* use move reordering? */
+extern bool ai_use_killer;  /* use killer heuristic? */
 
 /* Selects the next move to make during the movement phase. */
 EXTERN bool ai_select_move(Board *board, Move *move);

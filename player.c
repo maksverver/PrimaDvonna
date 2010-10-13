@@ -199,6 +199,14 @@ static void parse_args(int argc, char *argv[])
 			ai_use_mo = false;
 			continue;
 		}
+		if (strcmp(argv[pos], "--enable-killer") == 0) {
+			ai_use_killer = true;
+			continue;
+		}
+		if (strcmp(argv[pos], "--disable-killer") == 0) {
+			ai_use_killer = false;
+			continue;
+		}
 		break;
 	}
 	if (pos < argc) {
