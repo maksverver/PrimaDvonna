@@ -1,16 +1,24 @@
 Next match:
    - test against Holtz too
    - GOAL: beat Dvonner/Holtz/dDvonn consistently!
-   - remove `best' as dfs() parameter
 
    - Note: dDvonn uses different search algorithms/evaluation functions
      depending on wheter it's playing white or black. Pit these against each
      other to find out which works best?
 
+   - Possible evaluation function tweaks:
+      - change weights of moves (3/4/5 e.g. to 2/4/6 e.g. to 1/1/1)
+      - instead of returning (a - b), return 100*(a - b)/(a + b)
+        (after all, the relative difference in moves is more imporant than
+         the absolute difference)
+
 Note:
  - timing reports don't really seem to match up with what the CodeCup server thinks :/
+    => test online again, since I recently changed initializion code.
 
 Later:
+ - consider implementing NegaScout? (should work well with killer heuristic?)
+ - remove `best' as dfs() parameter? (then, how to shuffle moves?)
  - test if current move representation is inefficient (ints instead of chars?)
  - change library functions so single moves are passed by value.
  - smarter move ordering: capture moves first, etc?
@@ -18,11 +26,8 @@ Later:
  - make board hashing for TT more efficient
  - check hash table performance: how often do collisions occur?
    how full is the table when they happen?
- - optimize move reordering: currently I apply move reordering when depth >= 3,
-   and subtract 2 from search depth compared to regular search. Maybe these
-   values can be optimized/tweaked further. How to evaluate?!
  - optimize time budget for moves
- - implement MTD(f)
+ - implement MTD(f)?
  - validate all code!
  - consider auto-learning for evaluation parameters?
    See: http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
@@ -30,8 +35,13 @@ Later:
  - reconsider tt replacement policy (replace if depth >= tt->depth only?)
 
 Long time:
- - improve evaluation functions for both algorithms
+ - improve placement phase evaluation function
+ - improve stacking phase evaluation function
+ - improve move ordering heuristic
+ - benchmark code, find bottlenecks, fix them.
 
 Test suite:
  - transposition table tests: check values for various positions with and
    without tt, and ensure their values are equal.
+ - collect various positions; benchmark and validate player with different
+   techniques enabled?

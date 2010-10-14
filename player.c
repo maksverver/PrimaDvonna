@@ -245,7 +245,9 @@ int main(int argc, char *argv[])
 	}
 
 	/* Print other parameters: */
-	fprintf(stderr, "Move ordering in minimax search is %sabled.\n",
+	fprintf(stderr, "Move ordering is %sabled.\n",
+		ai_use_mo ? "en" : "dis");
+	fprintf(stderr, "Killer heuristic is %sabled.\n",
 		ai_use_mo ? "en" : "dis");
 
 	fprintf(stderr, "Initialization took %.3fs.\n", time_used());
