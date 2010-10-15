@@ -182,7 +182,7 @@ EXTERN void board_do(Board *board, const Move *m)
 		update_neighbours(board, m->r1, m->c1, -1);
 	} else if (m->r1 >= 0) {
 		place(board, m);
-		update_neighbours(board, m->r2, m->c2, +1);
+		update_neighbours(board, m->r1, m->c1, +1);
 	}
 	++board->moves;
 }
@@ -195,23 +195,25 @@ EXTERN void board_undo(Board *board, const Move *m)
 		update_neighbours(board, m->r1, m->c1, +1);
 	} else if (m->r1 >= 0) {  /* place */
 		unplace(board, m);
-		update_neighbours(board, m->r2, m->c2, -1);
+		update_neighbours(board, m->r1, m->c1, -1);
 	}
 }
 
 static void validate_neighbours(const Board *board, int r1, int c1)
 {
-	int d, n = board->fields[r1][c1].neighbours;
+	int d, r2, c2, n = board->fields[r1][c1].neighbours;
 
 	assert(n >= 0 && n <= 6);
 	for (d = 0; d < 6; ++d) {
-		int r2 = r1 + DR[d], c2 = c1 + DC[d];
-
-		if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
-			if (board->moves < N) {
-				if (board->fields[r2][c2].pieces > 0) --n;
-			} else {
-				if (!board->fields[r2][c2].removed) --n;
+		r2 = r1 + DR[d];
+		if (r2 >= 0 && r2 < H) {
+			c2 = c1 + DC[d];
+			if (c2 >= 0 && c2 < W) {
+				if (board->moves < N) {
+					if (board->fields[r2][c2].pieces > 0) --n;
+				} else {
+					if (!board->fields[r2][c2].removed) --n;
+				}
 			}
 		}
 	}
