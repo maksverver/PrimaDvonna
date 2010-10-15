@@ -126,6 +126,7 @@ static void solve_state(const char *descr)
 	if (next_player == NONE) {
 		fprintf(stderr, "Game already finished!\n");
 	} else {
+		board_validate(&board);
 		for (depth = arg_depth<2 ? arg_depth : 2; depth <= arg_depth; ++depth) {
 			if (!ai_select_move_fixed(&board, &move, depth)) {
 				fprintf(stderr, "Internal error: no move selected!\n");

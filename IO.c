@@ -52,6 +52,19 @@ EXTERN const char *format_move(const Move *move)
 static const char *digits =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
+static void bump_neighbours(Board *board, int r1, int c1)
+{
+	int d;
+
+	for (d = 0; d < 6; ++d) {
+		int r2 = r1 + DR[d], c2 = c1 + DC[d];
+
+		if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
+			++board->fields[r2][c2].neighbours;
+		}
+	}
+}
+
 EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 {
 	int vals[N + 1], n, r, c;
@@ -108,6 +121,7 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 					f->pieces = (vals[n] + 2)/4;
 					if (board->moves < N) ++board->moves;
 				}
+				if (vals[n] != 0) bump_neighbours(board, r, c);
 				++n;
 			}
 		}

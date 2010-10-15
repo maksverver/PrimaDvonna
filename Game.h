@@ -16,10 +16,11 @@ typedef enum Color { WHITE = 0, BLACK = 1, NONE = -1 } Color;
    See board_validate() for the invariants that apply to this struct's data. */
 typedef struct Field
 {
-	signed char   player;  /* controlling player's color */
-	unsigned char pieces;  /* number of pieces on this field */
-	unsigned char dvonns;  /* number of dvonn pieces on this field */
-	signed char   removed; /* move on which field was removed */
+	signed char   player;      /* controlling player's color */
+	unsigned char pieces;      /* number of pieces on this field */
+	unsigned char dvonns;      /* number of dvonn pieces on this field */
+	signed char   removed;     /* move on which field was removed */
+	unsigned char neighbours;  /* number of occupied adjacent fields */
 } Field;
 
 typedef struct Board
