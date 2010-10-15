@@ -263,6 +263,42 @@ static int gen_places(const Board *board, Move moves[N])
 	return nmove;
 }
 
+/* Generates a list of possible stacking moves for either player: */
+static int gen_all_stacks(const Board *board, Move *moves)
+{
+	const Field *f, *g;
+	int r1, c1, d, r2, c2, nmove = 0;
+
+	for (r1 = 0; r1 < H; ++r1) {
+		for (c1 = 0; c1 < W; ++c1) {
+			f = &board->fields[r1][c1];
+			if (!f->removed && f->player != NONE && f->neighbours < 6) {
+				for (d = 0; d < 6; ++d) {
+					r2 = r1 + f->pieces*DR[d];
+					if (r2 >= 0 && r2 < H) {
+						c2 = c1 + f->pieces*DC[d];
+						if (c2 >= 0 && c2 < W) {
+							g = &board->fields[r2][c2];
+							if (!g->removed) {
+								if (moves) {
+									Move new_move = { r1, c1, r2, c2};
+									moves[nmove] = new_move;
+								}
+								++nmove;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return nmove;
+}
+
+/* Generates a list of possible stacking moves for a particular player.
+   Differs from above in two key aspects (and two lines of source code):
+    - only generates moves for stacks of the given player's color
+    - if no moves are found, adds a pass move to the list instead */
 static int gen_stacks(const Board *board, Move *moves, Color player)
 {
 	const Field *f, *g;
@@ -271,29 +307,27 @@ static int gen_stacks(const Board *board, Move *moves, Color player)
 	for (r1 = 0; r1 < H; ++r1) {
 		for (c1 = 0; c1 < W; ++c1) {
 			f = &board->fields[r1][c1];
-			if (!f->removed && f->player != NONE &&
-				(player == NONE || player == f->player) &&
-				f->neighbours < 6) {
+			if (!f->removed && f->player == player && f->neighbours < 6) {
 				for (d = 0; d < 6; ++d) {
 					r2 = r1 + f->pieces*DR[d];
-					c2 = c1 + f->pieces*DC[d];
-					if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
-						g = &board->fields[r2][c2];
-						if (!g->removed) {
-							if (moves) {
-								Move new_move = { r1, c1, r2, c2};
-								moves[nmove] = new_move;
+					if (r2 >= 0 && r2 < H) {
+						c2 = c1 + f->pieces*DC[d];
+						if (c2 >= 0 && c2 < W) {
+							g = &board->fields[r2][c2];
+							if (!g->removed) {
+								if (moves) {
+									Move new_move = { r1, c1, r2, c2};
+									moves[nmove] = new_move;
+								}
+								++nmove;
 							}
-							++nmove;
 						}
 					}
 				}
 			}
 		}
 	}
-	if (player != NONE && nmove == 0) {
-		moves[nmove++] = move_pass;
-	}
+	if (nmove == 0) moves[nmove++] = move_pass;
 	return nmove;
 }
 
@@ -301,7 +335,7 @@ EXTERN int generate_all_moves(const Board *board, Move moves[2*M])
 {
 	return board->moves < N
 		? gen_places(board, moves)
-		: gen_stacks(board, moves, NONE);
+		: gen_all_stacks(board, moves);
 }
 
 EXTERN int generate_moves(const Board *board, Move moves[M])
