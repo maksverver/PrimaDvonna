@@ -19,7 +19,7 @@ typedef struct Field
 	signed char   player;  /* controlling player's color */
 	unsigned char pieces;  /* number of pieces on this field */
 	unsigned char dvonns;  /* number of dvonn pieces on this field */
-	unsigned char removed; /* move on which field was removed */
+	signed char   removed; /* move on which field was removed */
 } Field;
 
 typedef struct Board

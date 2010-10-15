@@ -29,7 +29,7 @@ EXTERN void serialize_board(const Board *board, unsigned char output[50])
 
 	*output++ = (board->moves < N ? 0 : 2) + board->moves%2;
 	for (f = &board->fields[0][0], g = f + H*W; f != g; ++f) {
-		if (f->removed != (unsigned char)-1) {
+		if (f->removed >= 0) {
 			int val = 0;
 			if (!f->removed) {
 				if (f->dvonns) val = 128;

@@ -15,7 +15,7 @@ static bool is_edge_field(const Board *board, int r, int c)
 
 	if (r == 0 || r == H - 1 || c == 0 || c == W - 1) return true;
 	for (d = 0; d < 6; ++d) {
-		if (board->fields[r + DR[d]][c + DC[d]].removed == (unsigned char)-1) {
+		if (board->fields[r + DR[d]][c + DC[d]].removed < 0) {
 			return true;
 		}
 	}

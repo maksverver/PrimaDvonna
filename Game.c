@@ -193,7 +193,7 @@ EXTERN void board_validate(const Board *board)
 			if (f->dvonns == f->pieces || f->pieces == 0) {
 				assert(f->player == NONE);
 			}
-			if (f->removed == (unsigned char)-1) continue;
+			if (f->removed == -1) continue;
 			if (board->moves < N) {
 				assert(f->pieces == 0 || f->pieces == 1);
 				assert(f->removed == 0);
