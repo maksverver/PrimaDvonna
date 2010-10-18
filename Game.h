@@ -20,7 +20,7 @@ typedef struct Field
 	unsigned char pieces;      /* number of pieces on this field */
 	unsigned char dvonns;      /* number of dvonn pieces on this field */
 	signed char   removed;     /* move on which field was removed */
-	unsigned char neighbours;  /* number of occupied adjacent fields */
+	signed char   mobile;      /* number of open neighbouring directions */
 } Field;
 
 typedef struct Board

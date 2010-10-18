@@ -28,7 +28,7 @@ EXTERN void board_clear(Board *board)
 			board->fields[r][c].dvonns = 0;
 			board->fields[r][c].removed =
 				distance(r, c, H/2, W/2) <= W/2 ? 0 : -1;
-			board->fields[r][c].neighbours = 0;
+			board->fields[r][c].mobile = 6;
 		}
 	}
 }
@@ -162,15 +162,18 @@ static void unstack(Board *board, const Move *m)
 	restore_unreachable(board, m->r1, m->c1);
 }
 
-static void update_neighbours(Board *board, int r1, int c1, int diff)
+/* Used also by IO.c: */
+EXTERN void update_neighbour_mobility(Board *board, int r1, int c1, int diff)
 {
-	int d;
+	int d, r2, c2;
 
 	for (d = 0; d < 6; ++d) {
-		int r2 = r1 + DR[d], c2 = c1 + DC[d];
-
-		if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
-			board->fields[r2][c2].neighbours += diff;
+		r2 = r1 + DR[d];
+		if (r2 >= 0 && r2 < H) {
+			c2 = c1 + DC[d];
+			if (c2 >= 0 && c2 < W) {
+				board->fields[r2][c2].mobile += diff;
+			}
 		}
 	}
 }
@@ -179,10 +182,10 @@ EXTERN void board_do(Board *board, const Move *m)
 {
 	if (m->r2 >= 0) {
 		stack(board, m);
-		update_neighbours(board, m->r1, m->c1, -1);
+		update_neighbour_mobility(board, m->r1, m->c1, +1);
 	} else if (m->r1 >= 0) {
 		place(board, m);
-		update_neighbours(board, m->r1, m->c1, +1);
+		update_neighbour_mobility(board, m->r1, m->c1, -1);
 	}
 	++board->moves;
 }
@@ -192,16 +195,16 @@ EXTERN void board_undo(Board *board, const Move *m)
 	--board->moves;
 	if (m->r2 >= 0) {  /* stack */
 		unstack(board, m);
-		update_neighbours(board, m->r1, m->c1, +1);
+		update_neighbour_mobility(board, m->r1, m->c1, -1);
 	} else if (m->r1 >= 0) {  /* place */
 		unplace(board, m);
-		update_neighbours(board, m->r1, m->c1, -1);
+		update_neighbour_mobility(board, m->r1, m->c1, +1);
 	}
 }
 
-static void validate_neighbours(const Board *board, int r1, int c1)
+static void validate_mobility(const Board *board, int r1, int c1)
 {
-	int d, r2, c2, n = board->fields[r1][c1].neighbours;
+	int d, r2, c2, n = board->fields[r1][c1].mobile;
 
 	assert(n >= 0 && n <= 6);
 	for (d = 0; d < 6; ++d) {
@@ -210,14 +213,14 @@ static void validate_neighbours(const Board *board, int r1, int c1)
 			c2 = c1 + DC[d];
 			if (c2 >= 0 && c2 < W) {
 				if (board->moves < N) {
-					if (board->fields[r2][c2].pieces > 0) --n;
+					if (board->fields[r2][c2].pieces > 0) ++n;
 				} else {
-					if (!board->fields[r2][c2].removed) --n;
+					if (!board->fields[r2][c2].removed) ++n;
 				}
 			}
 		}
 	}
-	assert(n == 0);
+	assert(n == 6);
 }
 
 EXTERN void board_validate(const Board *board)
@@ -241,7 +244,7 @@ EXTERN void board_validate(const Board *board)
 				assert(f->pieces > 0);
 				assert(f->removed < board->moves);
 			}
-			if (!f->removed) validate_neighbours(board, r, c);
+			if (!f->removed) validate_mobility(board, r, c);
 		}
 	}
 	/* This doesn't really belong here, but I want to check it somewhere: */
@@ -274,7 +277,7 @@ static int gen_all_stacks(const Board *board, Move *moves)
 	for (r1 = 0; r1 < H; ++r1) {
 		for (c1 = 0; c1 < W; ++c1) {
 			f = &board->fields[r1][c1];
-			if (!f->removed && f->player != NONE && f->neighbours < 6) {
+			if (!f->removed && f->player != NONE && f->mobile) {
 				for (d = 0; d < 6; ++d) {
 					r2 = r1 + f->pieces*DR[d];
 					if (r2 >= 0 && r2 < H) {
@@ -309,7 +312,7 @@ static int gen_stacks(const Board *board, Move *moves, Color player)
 	for (r1 = 0; r1 < H; ++r1) {
 		for (c1 = 0; c1 < W; ++c1) {
 			f = &board->fields[r1][c1];
-			if (!f->removed && f->player == player && f->neighbours < 6) {
+			if (!f->removed && f->player == player && f->mobile) {
 				for (d = 0; d < 6; ++d) {
 					r2 = r1 + f->pieces*DR[d];
 					if (r2 >= 0 && r2 < H) {
