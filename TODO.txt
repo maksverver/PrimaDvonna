@@ -19,6 +19,7 @@ Note:
 Later:
  - consider implementing NegaScout? (should work well with killer heuristic?)
  - remove `best' as dfs() parameter? (then, how to shuffle moves?)
+ - remove `pass' as dfs() parameter? (are there positions where we benefit from it?)
  - test if current move representation is inefficient (ints instead of chars?)
  - change library functions so single moves are passed by value.
  - smarter move ordering: capture moves first, etc?
@@ -37,7 +38,9 @@ Later:
 Long time:
  - improve placement phase evaluation function
  - improve stacking phase evaluation function
- - improve move ordering heuristic
+ - improve move ordering heuristic:
+    - to evaluate: take a random sample of positions, rank possible moves by
+      value, and see which ones tend to be good?
  - benchmark code, find bottlenecks, fix them.
 
 Test suite:
