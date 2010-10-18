@@ -2,6 +2,7 @@
 #include "IO.h"
 #include "Time.h"
 #include "TT.h"
+#include "MO.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
