@@ -28,6 +28,7 @@ static void shuffle_moves(Move *moves, int n)
 	}
 }
 
+#if 0
 static void sort_moves(Move *moves, val_t *values, int nmove)
 {
 	/* Insertion sort, ordering by decreasing values.
@@ -67,6 +68,51 @@ static void order_moves(const Board *board, Move *moves, int nmove)
 
 	/* use national flag sort instead, since only three values are used? */
 	sort_moves(moves, values, nmove);
+}
+#endif
+
+#if 0
+static void order_moves(const Board *board, Move *moves, int nmove)
+{
+	Move as[M], bs[M], cs[M];
+	int n, na = 0, nb = 0, nc = 0;
+
+	for (n = 0; n < nmove; ++n) {
+		const Field *f = &board->fields[moves[n].r1][moves[n].c1];
+		const Field *g = &board->fields[moves[n].r2][moves[n].c2];
+		if (f->player == 1 - g->player) as[na++] = moves[n];
+		else if (f->player == g->player) cs[nc++] = moves[n];
+		else bs[nb++] = moves[n];
+	}
+	for (n = 0; n < na; ++n) moves[n] = as[n];
+	for (n = 0; n < nb; ++n) moves[n + na] = bs[n];
+	for (n = 0; n < nc; ++n) moves[n + na + nb] = cs[n];
+}
+#endif
+
+/* Note: unlike the previous two versions, this performs an unstable sort! */
+static void order_moves(const Board *board, Move *moves, int nmove)
+{
+	Move *i = moves, *j = moves + nmove, *k, tmp;
+
+	for (k = i; k < j; ) {
+		const Field *f = &board->fields[k->r1][k->c1];
+		const Field *g = &board->fields[k->r2][k->c2];
+
+		if (f->player == 1 - g->player) {  /* good move -- move to front */
+			tmp = *i;
+			*i = *k;
+			*k = tmp;
+			++k;
+		} else if (f->player == g->player) {  /* bad move -- move to back */
+			--j;
+			tmp = *j;
+			*j = *k;
+			*k = tmp;
+		} else {  /* average move -- leave in middle */
+			++k;
+		}
+	}
 }
 
 /* Moves the selected move `killer' to the front of the list of moves,
