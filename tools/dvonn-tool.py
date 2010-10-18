@@ -297,6 +297,7 @@ if __name__ == '__main__':
 	op.add_option("--state", metavar="DESC", help="50-character state description to use")
 	op.add_option("--transcript", metavar="PATH", help="path to transcript file to read")
 	op.add_option("--logfile", metavar="PATH", help="path to log file to read")
+	op.add_option("--truncate", metavar="N", help="truncate history to first N moves")
 	op.add_option("--output", metavar="TYPE", help="type of output: state, plain, transcript, logfile, text, json")
 	(options, args) = op.parse_args()
 
@@ -317,6 +318,9 @@ if __name__ == '__main__':
 			metadata, moves = parse_transcript(file(options.transcript).read())
 		else:
 			metadata, moves = parse_logfile(file(options.logfile).read())
+
+	if moves and options.truncate > 0:
+		moves = moves[:int(options.truncate)]
 
 	history = []
 	# Update board state by executing moves:
