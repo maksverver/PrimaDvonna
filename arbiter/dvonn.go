@@ -1,6 +1,7 @@
 package dvonn
 
 import "container/list"
+import "container/vector"
 
 const (
 	PLACEMENT = iota
@@ -77,6 +78,10 @@ func ParseMove(s string) (p Coords, q Coords, ok bool) {
 		}
 	}
 	return Coords{}, Coords{}, false
+}
+
+func ParsePass(s string) bool {
+	return s == "PASS"
 }
 
 func FormatCoords(c Coords) string {
@@ -201,7 +206,7 @@ func (s *State) canPlayerMove(player int, p, q Coords) bool {
 
 // Returns whether the current player must pass.
 func (s *State) CanPass() bool {
-	return !s.canPlay(s.Player)
+	return s.Phase == MOVEMENT && !s.canPlay(s.Player)
 }
 
 // Passes the current players turn and returns true, or returns false if
@@ -286,4 +291,57 @@ func (s *State) Scores() (int, int) {
 		}
 	}
 	return a, b
+}
+
+// Parses a Place, Move or Pass and returns it.
+func Parse(s string) (interface{}, bool) {
+	if p, ok := ParsePlace(s); ok {
+		return Place{p}, true
+	}
+	if p, q, ok := ParseMove(s); ok {
+		return Move{p,q}, true
+	}
+	if ParsePass(s) {
+		return Pass{}, true
+	}
+	return nil, false
+}
+
+// Executes a move (which must be a Place, Move or Pass
+func (s *State) Execute(arg interface{}) bool {
+	switch val := arg.(type) {
+	case Place: return s.Place(val.P)
+	case Move: return s.Move(val.P, val.Q)
+	case Pass: return s.Pass()
+	}
+	return false
+}
+
+// Returns a list of possible moves for the current player:
+func (s *State) ListMoves() []interface{} {
+	moves := make(vector.Vector, 0)
+	for x := 0; x < W; x++ {
+		for y := 0; y < H; y++ {
+			p := Coords{x, y}
+			if s.CanPlace(p) {
+				moves.Push(Place{p})
+			}
+		}
+	}
+	for x1 := 0; x1 < W; x1++ {
+		for y1 := 0; y1 < H; y1++ {
+			for x2 := 0; x2 < W; x2++ {
+				for y2 := 0; y2 < H; y2++ {
+					p, q := Coords{x1, y1}, Coords{x2, y2}
+					if s.CanMove(p, q) {
+						moves.Push(Move{p, q})
+					}
+				}
+			}
+		}
+	}
+	if s.CanPass() {
+		moves.Push(Pass{})
+	}
+	return moves
 }
