@@ -192,6 +192,21 @@ def format_logfile(metadata, moves):
 	if line != "": res += line + "\n"
 	return res
 
+def format_dvonner(metadata, moves):
+	# N.B. metadata is ignored!
+	moves = map(format_move, moves)
+	moves.append("BREAK")
+	res = ""
+	line = ""
+	for i in range(len(moves)):
+		if line: line += "  "
+		line += moves[i]
+		if (i + 1 < N and i%2 == 1) or (i + 1 >= N and i%2 == 0):
+			res += line + "\n"
+			line = ""
+	if line: res += line + "\n"
+	return res
+
 def mobile(board, x1, y1):
 	'Returns whether the stack at coordinates (x1,y1) can be moved by a player.'
 	if board[x1][y1].player < 0: return False
@@ -298,7 +313,7 @@ if __name__ == '__main__':
 	op.add_option("--transcript", metavar="PATH", help="path to transcript file to read")
 	op.add_option("--logfile", metavar="PATH", help="path to log file to read")
 	op.add_option("--truncate", metavar="N", help="truncate history to first N moves")
-	op.add_option("--output", metavar="TYPE", help="type of output: state, plain, transcript, logfile, text, json")
+	op.add_option("--output", metavar="TYPE", help="type of output: state, plain, transcript, logfile, dvonner, text, json")
 	(options, args) = op.parse_args()
 
 	assert sum(getattr(options, x) is not None
@@ -389,6 +404,8 @@ if __name__ == '__main__':
 		print format_transcript(metadata, moves, phase == COMPLETE)
 	elif options.output == 'logfile':
 		sys.stdout.write(format_logfile({}, moves))
+	elif options.output == 'dvonner':
+		sys.stdout.write(format_dvonner({}, moves))
 	elif options.output == 'json':
 		parts = []
 		for move, (board, phase, player) in zip(moves, history):
