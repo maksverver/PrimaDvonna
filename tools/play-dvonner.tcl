@@ -100,6 +100,12 @@ while true {
 					# Reformat move in CodeCup format:
 					set last_move "$expect_out(1,string)$expect_out(2,string)" }
 				{Dvonner is passing} {set last_move {PASS}}
+				{The game ended} {
+					expect_user {
+						Quit {quit}
+						default {die}
+					}
+				}
 				default {die}
 			}
 		}

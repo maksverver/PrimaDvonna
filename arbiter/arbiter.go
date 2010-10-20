@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"rand"
+	"sort"
 	"strings"
 	"time"
 )
@@ -20,6 +21,28 @@ type Result struct {
 	failed  [2]bool   // whether player failed
 	points  [2]int    // CodeCup-style points
 	time    [2]float  // total time taken
+}
+
+type IntPair struct {
+	first, second int
+}
+
+type IntPairSlice []IntPair
+
+// Functions needed to satisfy sort.Interface:
+func (ips IntPairSlice) Len() int {
+	return len(ips)
+}
+func (ips IntPairSlice) Less(i, j int) bool {
+	return ips[i].first < ips[j].first ||
+		(ips[i].first == ips[j].first && ips[i].second < ips[j].second)
+}
+func (ips IntPairSlice) Swap(i, j int) {
+	ips[i], ips[j] = ips[j], ips[i]
+}
+
+func (ips IntPairSlice) Reverse() {
+	for i, j := 0, len(ips) - 1; i < j; i, j = i + 1, j - 1 { ips.Swap(i, j) }
 }
 
 func runPlayer(command string) (*exec.Cmd, os.Error) {
@@ -40,8 +63,8 @@ func runPlayer(command string) (*exec.Cmd, os.Error) {
 	return nil, nil  // should never get here
 }
 
-func runMatch(players [2]int, commands [2]string) (result Result) {
-	result.player = players
+func runMatch(players [2]int, commands [2]string) Result {
+	result := Result{player: players}
 
 	var cmds [2]*exec.Cmd
 	var reader [2]*bufio.Reader
@@ -92,7 +115,7 @@ func runMatch(players [2]int, commands [2]string) (result Result) {
 				}
 			}
 		}
-		if moveStr != "" && cmds[1-p] != nil && cmds[1-p].Stdin != nil {
+		if moveStr != "" && !result.failed[1-p] {
 			fmt.Fprintln(cmds[1-p].Stdin, moveStr)
 		}
 	}
@@ -128,7 +151,8 @@ func runMatch(players [2]int, commands [2]string) (result Result) {
 			}
 		}
 	}
-	return
+
+	return result
 }
 
 func toYesNo(v bool) string {
@@ -139,8 +163,8 @@ func toYesNo(v bool) string {
 }
 
 func runTournament(commands []string, rounds int) []Result {
-	fmt.Printf(" P1  P2  Score   Points   Failed      Time used\n")
-	fmt.Printf(" --  --  -----  -------  -------  -----------------\n")
+	fmt.Printf("       Player 1             Player 2        Score   Points  Failed       Time used\n")
+	fmt.Printf(" -------------------- --------------------  -----  -------  -------  -----------------\n")
 	results := make([]Result, rounds*len(commands)*(len(commands) - 1))
 	n := 0
 	for r := 0; r < rounds; r++ {
@@ -149,8 +173,8 @@ func runTournament(commands []string, rounds int) []Result {
 				if i != j {
 					res := runMatch([2]int{i, j}, [2]string{commands[i], commands[j]})
 					fmt.Printf(
-						" %2d  %2d  %2d %2d  %3d %3d  %-3s %-3s  %7.3fs %7.3fs\n",
-						res.player[0] + 1, res.player[1] + 1,
+						" %-20s %-20s  %2d %2d  %3d %3d  %-3s %-3s  %7.3fs %7.3fs\n",
+						shorten(commands[i], 20), shorten(commands[j], 20),
 						res.score[0], res.score[1],
 						res.points[0], res.points[1],
 						toYesNo(res.failed[0]), toYesNo(res.failed[1]),
@@ -161,8 +185,22 @@ func runTournament(commands []string, rounds int) []Result {
 			}
 		}
 	}
-	fmt.Printf(" --  --  -----  -------  -------  -----------------\n")
+	if n != len(results) {
+		panic(123)
+	}
+	fmt.Printf(" -------------------- --------------------  -----  -------  -------  -----------------\n")
 	return results
+}
+
+func shorten(in string, n int) string {
+	if len(in) <= n {
+		return in
+	}
+	if n < 5 {
+		return in[0:n]
+	}
+	a, b := (n - 2)/2, (n - 2) - (n - 2)/2
+	return in[0:a] + ".." + in[len(in) - b:]
 }
 
 func main() {
@@ -179,11 +217,52 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Invalid number of rounds passed!")
 	} else {
 		players := flag.Args()
-		runTournament(players, rounds)
-		// tournament runs here.
-		// - print ordered ranking with CodeCup total game points,
-		//   games won, games tied, games lost, number of failures,
-		//   average time used
+		results := runTournament(players, rounds)
+		numGames := rounds*(len(players) - 1)*2  // per player
+
+		// Collect some game statistics:
+		totalPoints := make([]int, len(players))
+		gamesWon := make([]int, len(players))
+		gamesTied := make([]int, len(players))
+		gamesLost := make([]int, len(players))
+		gamesFailed := make([]int, len(players))
+		timeUsed := make([]float, len(players))
+		timeMax := make([]float, len(players))
+		for _, result := range(results) {
+			for i := 0; i < 2; i++ {
+				player := result.player[i]
+				totalPoints[player] += result.points[i]
+				if result.failed[i] { gamesFailed[player]++ }
+				if result.score[i] > result.score[1-i] { gamesWon[player]++ }
+				if result.score[i] == result.score[1-i] { gamesTied[player]++ }
+				if result.score[i] < result.score[1-i] { gamesLost[player]++ }
+				timeUsed[player] += result.time[i]
+				if result.time[i] > timeMax[player] {
+					timeMax[player] = result.time[i] 
+				}
+			}
+		}
+
+		// Sort players by total points:
+		pointsPlayers := make(IntPairSlice, len(players))
+		for i := range(pointsPlayers) {
+			pointsPlayers[i] = IntPair{totalPoints[i], -i}
+		}
+		sort.Sort(pointsPlayers)
+		pointsPlayers.Reverse()
+
+		// Print ranking ordered by Codecup total game points
+		fmt.Println()
+		fmt.Println(" No Player               Points  Won Tied Lost Fail Avg Time Max Time")
+		fmt.Println(" -- -------------------- ------ ---- ---- ---- ---- -------- --------")
+		for i, ip := range(pointsPlayers) {
+			p := -ip.second
+			fmt.Printf(" %2d %-20s %6d %4d %4d %4d %4d %7.3fs %7.3fs\n",
+				i + 1, shorten(players[p], 20), totalPoints[p], gamesWon[p], gamesTied[p], gamesLost[p],
+				gamesFailed[p], timeUsed[p]/float(numGames), timeMax[p])
+		}
+		fmt.Println(" -- -------------------- ------ ---- ---- ---- ---- -------- --------")
+
 		// - print win/draw/loss matrix
 		// - print average disk difference matrix
 	}

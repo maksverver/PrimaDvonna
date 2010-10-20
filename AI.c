@@ -227,7 +227,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 			/* Report time used: */
 			used = time_used() - start;
 			fprintf(stderr, "[%.3fs] nmove=%d depth=%d val=%d evaluated: %d"
-				" move: %s, (%.3fs used)\n", time_used(), nmove, depth, val,
+				" move: %s (%.3fs used)\n", time_used(), nmove, depth, val,
 				eval_count_total(), format_move(move), used);
 
 			if (used > budget) {

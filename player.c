@@ -12,10 +12,13 @@
 #include <time.h>
 #include <unistd.h>
 
+#define default_depth 4
+#define default_time 4.75
+
 static int arg_seed = 0;
 static const char *arg_state = NULL;
-static int arg_depth = 4;
-static double arg_time = 5.0;
+static int arg_depth = default_depth;
+static double arg_time = default_time;
 
 static char *trim(char *s)
 {
@@ -41,9 +44,13 @@ static const char *read_line(void)
 			if (strcmp(line, "Quit") == 0) {
 				/* Non-standard extension: my game server send the game result
 				   in human-readable form on a single line after Quit: */
+				/*
 				if (fgets(line, sizeof(line), stdin) != NULL) {
 					fputs(line, stderr);
 				}
+				*/
+				fprintf(stderr, "[%.3fs] Quit received! Exiting.\n", time_used());
+				fflush(stderr);
 				exit(EXIT_SUCCESS);
 			} else {
 				return line;
@@ -149,15 +156,17 @@ static void print_usage()
 		"Usage:\n"
 		"\tplayer <options>\n"
 		"Options:\n"
-		"\t--seed=<int>      initialize RNG with given seed\n"
 		"\t--help            display this help message and exit\n"
+		"\t--seed=<int>      "
+	"initialize RNG with given seed (default: random)\n"
 		"\t--state=<descr>   solve given state\n"
-		"\t--depth=<depth>   maximum search depth (default: 4)\n"
-		"\t--time=<time>     maximum search time (default: 5.0)\n"
+		"\t--depth=<depth>   maximum search depth (default: %d)\n"
+		"\t--time=<time>     maximum time per game (default: %.2fs)\n"
 		"\t--enable-tt       enable transposition table\n"
 		"\t--disable-tt      disable transposition table\n"
 		"\t--enable-mo       enable move ordering\n"
-		"\t--disable-mo      disable move ordering\n" );
+		"\t--disable-mo      disable move ordering\n",
+		default_depth, default_time );
 }
 
 static void parse_args(int argc, char *argv[])
