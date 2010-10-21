@@ -158,11 +158,30 @@ func runMatch(players [2]int, commands [2]string, logPath string) Result {
 
 	// Write to log file, if desired:
 	if logPath != "" {
-		w, err := os.Open(logPath, os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0666)
+		w, err := os.Open(logPath, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0666)
 		if err != nil {
 			fmt.Println(err)
 		} else {
+			for i := range(players) {
+				fmt.Fprintf(w, "# Player %d: %s\n", i + 1, commands[i])
+			}
 			game.WriteLog(w)
+			for i := range(players) {
+				if result.failed[i] {
+					fmt.Fprintf(w, "# Player %d failed!\n", i + 1)
+				}
+			}
+			summary := fmt.Sprintf("# Score: %d - %d. Time: %.3fs - %.3fs. ",
+				result.score[0], result.score[1],
+				result.time[0], result.time[1])
+			if result.score[0] > result.score[1] {
+				summary += "Player 1 won!"
+			} else if result.score[1] > result.score[0] {
+				summary += "Player 2 won!"
+			} else {
+				summary += "It's a tie!"
+			}
+			fmt.Fprintln(w, summary)
 			w.Close()
 		}
 	}
@@ -197,10 +216,16 @@ outermost:
 						logFilePath = fmt.Sprintf("%s%04d.log", logPath, n + 1)
 					}
 					res := runMatch([2]int{i, j}, [2]string{commands[i], commands[j]}, logFilePath)
+					player1 := shorten(commands[i], 20)
+					player2 := shorten(commands[j], 20)
+					if res.score[0] > res.score[1] {
+						player1 = strings.ToUpper(player1)
+					} else if res.score[1] > res.score[0] {
+						player2 = strings.ToUpper(player2)
+					}
 					fmt.Printf(
 						"%4d %-20s %-20s  %2d %2d  %3d %3d  %-3s %-3s  %7.3fs %7.3fs\n",
-						n + 1,
-						shorten(commands[i], 20), shorten(commands[j], 20),
+						n + 1, player1, player2,
 						res.score[0], res.score[1],
 						res.points[0], res.points[1],
 						toYesNo(res.failed[0]), toYesNo(res.failed[1]),
