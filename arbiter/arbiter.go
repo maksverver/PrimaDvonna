@@ -14,7 +14,7 @@ import (
 )
 
 var logPath = ""
-var showPlayerMessages = false
+var msgPath = ""
 
 type Result struct {
 	player [2]int   // 0-based player indices
@@ -48,7 +48,7 @@ func (ips IntPairSlice) Reverse() {
 	}
 }
 
-func runPlayer(command string) (*exec.Cmd, os.Error) {
+func runPlayer(command string, msgPath string) (*exec.Cmd, os.Error) {
 	if argv := strings.Fields(command); len(argv) == 0 {
 		return nil, os.EINVAL
 	} else if name, err := exec.LookPath(argv[0]); err != nil {
@@ -58,24 +58,57 @@ func runPlayer(command string) (*exec.Cmd, os.Error) {
 	} else {
 		envv := os.Environ()
 		stderr := exec.DevNull
-		if showPlayerMessages {
-			stderr = exec.PassThrough
+		if msgPath != "" {
+			if msgPath == "-" {
+				stderr = exec.PassThrough
+			} else {
+				stderr = exec.Pipe
+			}
 		}
-		return exec.Run(name, argv, envv, dir, exec.Pipe, exec.Pipe, stderr)
+		if cmd, err := exec.Run(name, argv, envv, dir, exec.Pipe, exec.Pipe, stderr); err != nil {
+			return nil, err
+		} else {
+			if msgPath != "" && msgPath != "-" {
+				w, err := os.Open(msgPath, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0666)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				} else {
+					// Send data from cmd.Stderr to w:
+					go func() {
+						buf := make([]byte, 1024)
+						for {
+							n, err := cmd.Stderr.Read(buf)
+							if n == 0 && err == os.EOF {
+								break
+							}
+							if err != nil {
+								fmt.Fprintln(os.Stderr, err)
+								break
+							}
+							n, err = w.Write(buf[0:n])
+							if err != nil {
+								fmt.Fprintln(os.Stdout, err)
+								break
+							}
+						}
+					}()
+				}
+			}
+			return cmd, nil
+		}
 	}
 	return nil, nil // should never get here
 }
 
-func runMatch(players [2]int, commands [2]string, logPath string) Result {
+func runMatch(players [2]int, commands [2]string, logPath string, msgPath [2]string) Result {
 	result := Result{player: players}
 
 	var cmds [2]*exec.Cmd
 	var reader [2]*bufio.Reader
 
 	for i := range players {
-		command := commands[i]
-		if cmd, err := runPlayer(command); err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't run '%s': %s\n", command, err.String())
+		if cmd, err := runPlayer(commands[i], msgPath[i]); err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't run '%s': %s\n", commands[i], err.String())
 			result.failed[i] = true
 		} else {
 			cmds[i] = cmd
@@ -215,7 +248,17 @@ outermost:
 					if logPath != "" {
 						logFilePath = fmt.Sprintf("%s%04d.log", logPath, n + 1)
 					}
-					res := runMatch([2]int{i, j}, [2]string{commands[i], commands[j]}, logFilePath)
+					msgFilePath := [2]string{}
+					if msgPath != "" {
+						if msgPath == "-" {
+							msgFilePath[0] = "-"
+							msgFilePath[1] = "-"
+						} else {
+							msgFilePath[0] = fmt.Sprintf("%s%04d.1.log", msgPath, n + 1)
+							msgFilePath[1] = fmt.Sprintf("%s%04d.2.log", msgPath, n + 1)
+						}
+					}
+					res := runMatch([2]int{i, j}, [2]string{commands[i], commands[j]}, logFilePath, msgFilePath)
 					player1 := shorten(commands[i], 20)
 					player2 := shorten(commands[j], 20)
 					if res.score[0] > res.score[1] {
@@ -258,10 +301,10 @@ func main() {
 	rand.Seed(time.Nanoseconds())
 	rounds := 1
 	single := false
-	flag.IntVar(&rounds, "rounds", rounds, "number of rounds to play")
-	flag.BoolVar(&showPlayerMessages, "messages", showPlayerMessages, "pass player messages through")
 	flag.BoolVar(&single, "single", single, "play only a single game")
-	flag.StringVar(&logPath, "log", logPath, "path to log files")
+	flag.IntVar(&rounds, "rounds", rounds, "number of rounds to play")
+	flag.StringVar(&msgPath, "msg", msgPath, "path to player message log files")
+	flag.StringVar(&logPath, "log", logPath, "path to game log files")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		fmt.Fprintln(os.Stderr, "Too few player commands passed!")
