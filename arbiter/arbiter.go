@@ -98,11 +98,12 @@ func runMatch(players [2]int, commands [2]string) Result {
 		} else {
 			// Read move from client
 			timeStart := time.Nanoseconds()
-			if line, err := reader[p].ReadString('\n'); err != nil {
+			line, err := reader[p].ReadString('\n')
+			result.time[p] += float(time.Nanoseconds() - timeStart)/1e9
+			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to read from '%s': %s\n", commands[p], err.String())
 				result.failed[p] = true
 			} else {
-				result.time[p] += float(time.Nanoseconds() - timeStart)/1e9
 				line = line[0:len(line)-1]  // discard trailing newline
 				if move, ok := dvonn.Parse(line); !ok {
 					fmt.Fprintf(os.Stderr, "Could not parse move from '%s': %s\n", commands[p], line)
@@ -115,7 +116,7 @@ func runMatch(players [2]int, commands [2]string) Result {
 				}
 			}
 		}
-		if moveStr != "" && !result.failed[1-p] {
+		if moveStr != "" && !result.failed[1-p] && game.Phase != dvonn.COMPLETE {
 			fmt.Fprintln(cmds[1-p].Stdin, moveStr)
 		}
 	}
