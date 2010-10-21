@@ -16,11 +16,11 @@ import (
 var showPlayerMessages = false
 
 type Result struct {
-	player  [2]int    // 0-based player indices
-	score   [2]int    // final score (number of discs)
-	failed  [2]bool   // whether player failed
-	points  [2]int    // CodeCup-style points
-	time    [2]float  // total time taken
+	player [2]int   // 0-based player indices
+	score  [2]int   // final score (number of discs)
+	failed [2]bool  // whether player failed
+	points [2]int   // CodeCup-style points
+	time   [2]float // total time taken
 }
 
 type IntPair struct {
@@ -42,7 +42,9 @@ func (ips IntPairSlice) Swap(i, j int) {
 }
 
 func (ips IntPairSlice) Reverse() {
-	for i, j := 0, len(ips) - 1; i < j; i, j = i + 1, j - 1 { ips.Swap(i, j) }
+	for i, j := 0, len(ips)-1; i < j; i, j = i+1, j-1 {
+		ips.Swap(i, j)
+	}
 }
 
 func runPlayer(command string) (*exec.Cmd, os.Error) {
@@ -60,7 +62,7 @@ func runPlayer(command string) (*exec.Cmd, os.Error) {
 		}
 		return exec.Run(name, argv, envv, dir, exec.Pipe, exec.Pipe, stderr)
 	}
-	return nil, nil  // should never get here
+	return nil, nil // should never get here
 }
 
 func runMatch(players [2]int, commands [2]string) Result {
@@ -69,7 +71,7 @@ func runMatch(players [2]int, commands [2]string) Result {
 	var cmds [2]*exec.Cmd
 	var reader [2]*bufio.Reader
 
-	for i := range(players) {
+	for i := range players {
 		command := commands[i]
 		if cmd, err := runPlayer(command); err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't run '%s': %s\n", command, err.String())
@@ -77,7 +79,7 @@ func runMatch(players [2]int, commands [2]string) Result {
 		} else {
 			cmds[i] = cmd
 			reader[i] = bufio.NewReader(cmd.Stdout)
-			if i ==0 {
+			if i == 0 {
 				// Send Start to first player
 				fmt.Fprintln(cmd.Stdin, "Start")
 			}
@@ -99,12 +101,12 @@ func runMatch(players [2]int, commands [2]string) Result {
 			// Read move from client
 			timeStart := time.Nanoseconds()
 			line, err := reader[p].ReadString('\n')
-			result.time[p] += float(time.Nanoseconds() - timeStart)/1e9
+			result.time[p] += float(time.Nanoseconds()-timeStart) / 1e9
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to read from '%s': %s\n", commands[p], err.String())
 				result.failed[p] = true
 			} else {
-				line = line[0:len(line)-1]  // discard trailing newline
+				line = line[0 : len(line)-1] // discard trailing newline
 				if move, ok := dvonn.Parse(line); !ok {
 					fmt.Fprintf(os.Stderr, "Could not parse move from '%s': %s\n", commands[p], line)
 					result.failed[p] = true
@@ -122,7 +124,7 @@ func runMatch(players [2]int, commands [2]string) Result {
 	}
 
 	// Tell players to quit:
-	for _, cmd := range(cmds) {
+	for _, cmd := range cmds {
 		if cmd != nil {
 			if f := cmd.Stdin; f != nil {
 				fmt.Fprintln(f, "Quit")
@@ -132,7 +134,7 @@ func runMatch(players [2]int, commands [2]string) Result {
 	}
 
 	// Wait for processes to quit:
-	for _, cmd := range(cmds) {
+	for _, cmd := range cmds {
 		if cmd != nil {
 			cmd.Close()
 		}
@@ -142,12 +144,12 @@ func runMatch(players [2]int, commands [2]string) Result {
 	result.score[0], result.score[1] = game.Scores()
 
 	// Determine competition points:
-	for i := range(players) {
+	for i := range players {
 		if !result.failed[i] {
 			result.points[i] = result.score[i]
-			if result.score[i] > result.score[1 - i] {
+			if result.score[i] > result.score[1-i] {
 				result.points[i] += 90
-			} else if result.score[i] == result.score[1 - i] {
+			} else if result.score[i] == result.score[1-i] {
 				result.points[i] += 45
 			}
 		}
@@ -157,20 +159,26 @@ func runMatch(players [2]int, commands [2]string) Result {
 }
 
 func toYesNo(v bool) string {
-	if (v) {
+	if v {
 		return "yes"
 	}
 	return "no"
 }
 
-func runTournament(commands []string, rounds int) []Result {
+func runTournament(commands []string, rounds int, firstOnly bool) []Result {
 	fmt.Printf("       Player 1             Player 2        Score   Points  Failed       Time used\n")
 	fmt.Printf(" -------------------- --------------------  -----  -------  -------  -----------------\n")
-	results := make([]Result, rounds*len(commands)*(len(commands) - 1))
+
+	numResults := rounds * len(commands) * (len(commands) - 1)
+	if firstOnly {
+		numResults = 1
+	}
+	results := make([]Result, numResults)
 	n := 0
+outermost:
 	for r := 0; r < rounds; r++ {
-		for i := range(commands) {
-			for j := range(commands) {
+		for i := range commands {
+			for j := range commands {
 				if i != j {
 					res := runMatch([2]int{i, j}, [2]string{commands[i], commands[j]})
 					fmt.Printf(
@@ -182,12 +190,12 @@ func runTournament(commands []string, rounds int) []Result {
 						res.time[0], res.time[1])
 					results[n] = res
 					n++
+					if firstOnly {
+						break outermost
+					}
 				}
 			}
 		}
-	}
-	if n != len(results) {
-		panic(123)
 	}
 	fmt.Printf(" -------------------- --------------------  -----  -------  -------  -----------------\n")
 	return results
@@ -200,15 +208,17 @@ func shorten(in string, n int) string {
 	if n < 5 {
 		return in[0:n]
 	}
-	a, b := (n - 2)/2, (n - 2) - (n - 2)/2
-	return in[0:a] + ".." + in[len(in) - b:]
+	a, b := (n-2)/2, (n-2)-(n-2)/2
+	return in[0:a] + ".." + in[len(in)-b:]
 }
 
 func main() {
 	rand.Seed(time.Nanoseconds())
 	rounds := 1
+	single := false
 	flag.IntVar(&rounds, "rounds", rounds, "number of rounds to play")
 	flag.BoolVar(&showPlayerMessages, "messages", showPlayerMessages, "pass player messages through")
+	flag.BoolVar(&single, "single", single, "play only a single game")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		fmt.Fprintln(os.Stderr, "Too few player commands passed!")
@@ -216,10 +226,15 @@ func main() {
 		flag.PrintDefaults()
 	} else if rounds < 1 {
 		fmt.Fprintln(os.Stderr, "Invalid number of rounds passed!")
+	} else if single && (flag.NArg() > 2 || rounds > 1) {
+		fmt.Fprintln(os.Stderr, "Single game requires two players and one round!")
 	} else {
 		players := flag.Args()
-		results := runTournament(players, rounds)
-		numGames := rounds*(len(players) - 1)*2  // per player
+		results := runTournament(players, rounds, single)
+		numGames := rounds * (len(players) - 1) * 2 // per player
+		if single {
+			numGames = 1
+		}
 
 		// Collect some game statistics:
 		totalPoints := make([]int, len(players))
@@ -229,24 +244,32 @@ func main() {
 		gamesFailed := make([]int, len(players))
 		timeUsed := make([]float, len(players))
 		timeMax := make([]float, len(players))
-		for _, result := range(results) {
+		for _, result := range results {
 			for i := 0; i < 2; i++ {
 				player := result.player[i]
 				totalPoints[player] += result.points[i]
-				if result.failed[i] { gamesFailed[player]++ }
-				if result.score[i] > result.score[1-i] { gamesWon[player]++ }
-				if result.score[i] == result.score[1-i] { gamesTied[player]++ }
-				if result.score[i] < result.score[1-i] { gamesLost[player]++ }
+				if result.failed[i] {
+					gamesFailed[player]++
+				}
+				if result.score[i] > result.score[1-i] {
+					gamesWon[player]++
+				}
+				if result.score[i] == result.score[1-i] {
+					gamesTied[player]++
+				}
+				if result.score[i] < result.score[1-i] {
+					gamesLost[player]++
+				}
 				timeUsed[player] += result.time[i]
 				if result.time[i] > timeMax[player] {
-					timeMax[player] = result.time[i] 
+					timeMax[player] = result.time[i]
 				}
 			}
 		}
 
 		// Sort players by total points:
 		pointsPlayers := make(IntPairSlice, len(players))
-		for i := range(pointsPlayers) {
+		for i := range pointsPlayers {
 			pointsPlayers[i] = IntPair{totalPoints[i], -i}
 		}
 		sort.Sort(pointsPlayers)
@@ -256,10 +279,10 @@ func main() {
 		fmt.Println()
 		fmt.Println(" No Player               Points  Won Tied Lost Fail Avg Time Max Time")
 		fmt.Println(" -- -------------------- ------ ---- ---- ---- ---- -------- --------")
-		for i, ip := range(pointsPlayers) {
+		for i, ip := range pointsPlayers {
 			p := -ip.second
 			fmt.Printf(" %2d %-20s %6d %4d %4d %4d %4d %7.3fs %7.3fs\n",
-				i + 1, shorten(players[p], 20), totalPoints[p], gamesWon[p], gamesTied[p], gamesLost[p],
+				i+1, shorten(players[p], 20), totalPoints[p], gamesWon[p], gamesTied[p], gamesLost[p],
 				gamesFailed[p], timeUsed[p]/float(numGames), timeMax[p])
 		}
 		fmt.Println(" -- -------------------- ------ ---- ---- ---- ---- -------- --------")

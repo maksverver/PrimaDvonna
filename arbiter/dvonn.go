@@ -299,7 +299,7 @@ func Parse(s string) (interface{}, bool) {
 		return Place{p}, true
 	}
 	if p, q, ok := ParseMove(s); ok {
-		return Move{p,q}, true
+		return Move{p, q}, true
 	}
 	if ParsePass(s) {
 		return Pass{}, true
@@ -310,9 +310,12 @@ func Parse(s string) (interface{}, bool) {
 // Executes a move (which must be a Place, Move or Pass
 func (s *State) Execute(arg interface{}) bool {
 	switch val := arg.(type) {
-	case Place: return s.Place(val.P)
-	case Move: return s.Move(val.P, val.Q)
-	case Pass: return s.Pass()
+	case Place:
+		return s.Place(val.P)
+	case Move:
+		return s.Move(val.P, val.Q)
+	case Pass:
+		return s.Pass()
 	}
 	return false
 }
