@@ -67,26 +67,7 @@ func WriteGameLog(g *game) {
 	fmt.Fprintln(w, "# Game ended at:", end)
 	fmt.Fprintln(w, "# Player 1:", player1)
 	fmt.Fprintln(w, "# Player 2:", player2)
-	/*
-		for it := range(g.state.moves.Iter()) {
-			fmt.Fprintln(w, it.(fmt.Stringer))
-		}
-	*/
-	line, parts := "", 0
-	for elem := g.state.Moves.Front(); elem != nil; elem = elem.Next() {
-		if line != "" {
-			line += " "
-		}
-		line += elem.Value.(fmt.Stringer).String()
-		parts++
-		if parts == 49/2 || parts == 49 || (parts > 49 && (parts-49)%16 == 0) {
-			fmt.Fprintln(w, line)
-			line = ""
-		}
-	}
-	if line != "" {
-		fmt.Fprintln(w, line)
-	}
+	g.state.WriteLog(w)
 	fmt.Fprintln(w, "#", g.result)
 	w.Close()
 	fmt.Println("Log written to", filePath)

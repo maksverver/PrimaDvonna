@@ -1,7 +1,11 @@
 package dvonn
 
-import "container/list"
-import "container/vector"
+import (
+	"container/list"
+	"container/vector"
+	"fmt"
+	"io"
+)
 
 const (
 	PLACEMENT = iota
@@ -347,4 +351,22 @@ func (s *State) ListMoves() []interface{} {
 		moves.Push(Pass{})
 	}
 	return moves
+}
+
+func (s *State) WriteLog(w io.Writer) {
+	line, parts := "", 0
+	for elem := s.Moves.Front(); elem != nil; elem = elem.Next() {
+		if line != "" {
+			line += " "
+		}
+		line += elem.Value.(fmt.Stringer).String()
+		parts++
+		if parts == 49/2 || parts == 49 || (parts > 49 && (parts-49)%16 == 0) {
+			fmt.Fprintln(w, line)
+			line = ""
+		}
+	}
+	if line != "" {
+		fmt.Fprintln(w, line)
+	}
 }

@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+var logPath = ""
 var showPlayerMessages = false
 
 type Result struct {
@@ -65,7 +66,7 @@ func runPlayer(command string) (*exec.Cmd, os.Error) {
 	return nil, nil // should never get here
 }
 
-func runMatch(players [2]int, commands [2]string) Result {
+func runMatch(players [2]int, commands [2]string, logPath string) Result {
 	result := Result{player: players}
 
 	var cmds [2]*exec.Cmd
@@ -155,6 +156,17 @@ func runMatch(players [2]int, commands [2]string) Result {
 		}
 	}
 
+	// Write to log file, if desired:
+	if logPath != "" {
+		w, err := os.Open(logPath, os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0666)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			game.WriteLog(w)
+			w.Close()
+		}
+	}
+
 	return result
 }
 
@@ -166,8 +178,8 @@ func toYesNo(v bool) string {
 }
 
 func runTournament(commands []string, rounds int, firstOnly bool) []Result {
-	fmt.Printf("       Player 1             Player 2        Score   Points  Failed       Time used\n")
-	fmt.Printf(" -------------------- --------------------  -----  -------  -------  -----------------\n")
+	fmt.Printf(" Id        Player 1             Player 2        Score   Points  Failed       Time used\n")
+	fmt.Printf("---- -------------------- --------------------  -----  -------  -------  -----------------\n")
 
 	numResults := rounds * len(commands) * (len(commands) - 1)
 	if firstOnly {
@@ -180,9 +192,14 @@ outermost:
 		for i := range commands {
 			for j := range commands {
 				if i != j {
-					res := runMatch([2]int{i, j}, [2]string{commands[i], commands[j]})
+					logFilePath := ""
+					if logPath != "" {
+						logFilePath = fmt.Sprintf("%s%04d.log", logPath, n + 1)
+					}
+					res := runMatch([2]int{i, j}, [2]string{commands[i], commands[j]}, logFilePath)
 					fmt.Printf(
-						" %-20s %-20s  %2d %2d  %3d %3d  %-3s %-3s  %7.3fs %7.3fs\n",
+						"%4d %-20s %-20s  %2d %2d  %3d %3d  %-3s %-3s  %7.3fs %7.3fs\n",
+						n + 1,
 						shorten(commands[i], 20), shorten(commands[j], 20),
 						res.score[0], res.score[1],
 						res.points[0], res.points[1],
@@ -197,7 +214,7 @@ outermost:
 			}
 		}
 	}
-	fmt.Printf(" -------------------- --------------------  -----  -------  -------  -----------------\n")
+	fmt.Printf("---- -------------------- --------------------  -----  -------  -------  -----------------\n")
 	return results
 }
 
@@ -219,6 +236,7 @@ func main() {
 	flag.IntVar(&rounds, "rounds", rounds, "number of rounds to play")
 	flag.BoolVar(&showPlayerMessages, "messages", showPlayerMessages, "pass player messages through")
 	flag.BoolVar(&single, "single", single, "play only a single game")
+	flag.StringVar(&logPath, "log", logPath, "path to log files")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		fmt.Fprintln(os.Stderr, "Too few player commands passed!")
@@ -277,15 +295,15 @@ func main() {
 
 		// Print ranking ordered by Codecup total game points
 		fmt.Println()
-		fmt.Println(" No Player               Points  Won Tied Lost Fail Avg Time Max Time")
-		fmt.Println(" -- -------------------- ------ ---- ---- ---- ---- -------- --------")
+		fmt.Println("No Player               Points  Won Tied Lost Fail Avg Time Max Time")
+		fmt.Println("-- -------------------- ------ ---- ---- ---- ---- -------- --------")
 		for i, ip := range pointsPlayers {
 			p := -ip.second
-			fmt.Printf(" %2d %-20s %6d %4d %4d %4d %4d %7.3fs %7.3fs\n",
+			fmt.Printf("%2d %-20s %6d %4d %4d %4d %4d %7.3fs %7.3fs\n",
 				i+1, shorten(players[p], 20), totalPoints[p], gamesWon[p], gamesTied[p], gamesLost[p],
 				gamesFailed[p], timeUsed[p]/float(numGames), timeMax[p])
 		}
-		fmt.Println(" -- -------------------- ------ ---- ---- ---- ---- -------- --------")
+		fmt.Println("-- -------------------- ------ ---- ---- ---- ---- -------- --------")
 
 		// - print win/draw/loss matrix
 		// - print average disk difference matrix
