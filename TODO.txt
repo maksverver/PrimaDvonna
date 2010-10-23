@@ -1,6 +1,6 @@
 TODO soon:
-   - do a full competition between Holtz, Dvonner, dDvonn and my player.
-   - use the results above to compare set-up functions
+   - debug Holtz' failure in game 120 of local-tournament
+   - use local competiton results above to compare set-up functions
      (see "Interesting Experiment" below)
 
 Next match:
