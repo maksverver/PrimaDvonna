@@ -108,7 +108,7 @@ func runMatch(players [2]int, commands [2]string, logPath string, msgPath [2]str
 
 	for i := range players {
 		if cmd, err := runPlayer(commands[i], msgPath[i]); err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't run '%s': %s\n", commands[i], err.String())
+			fmt.Fprintf(os.Stderr, "Couldn't run '%s': %s\n", commands[i], err)
 			result.failed[i] = true
 		} else {
 			cmds[i] = cmd
@@ -137,7 +137,7 @@ func runMatch(players [2]int, commands [2]string, logPath string, msgPath [2]str
 			line, err := reader[p].ReadString('\n')
 			result.time[p] += float(time.Nanoseconds()-timeStart) / 1e9
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to read from '%s': %s\n", commands[p], err.String())
+				fmt.Fprintf(os.Stderr, "Failed to read from '%s': %s\n", commands[p], err)
 				result.failed[p] = true
 			} else {
 				line = line[0 : len(line)-1] // discard trailing newline
@@ -153,7 +153,10 @@ func runMatch(players [2]int, commands [2]string, logPath string, msgPath [2]str
 			}
 		}
 		if moveStr != "" && !result.failed[1-p] && game.Phase != dvonn.COMPLETE {
-			fmt.Fprintln(cmds[1-p].Stdin, moveStr)
+			if _, err := fmt.Fprintln(cmds[1-p].Stdin, moveStr); err != nil {
+				fmt.Fprintf(os.Stderr, "Could not write to '%s': %s\n", commands[1-p], err)
+				result.failed[1-p] = true
+			}
 		}
 	}
 
@@ -195,13 +198,13 @@ func runMatch(players [2]int, commands [2]string, logPath string, msgPath [2]str
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			for i := range(players) {
-				fmt.Fprintf(w, "# Player %d: %s\n", i + 1, commands[i])
+			for i := range players {
+				fmt.Fprintf(w, "# Player %d: %s\n", i+1, commands[i])
 			}
 			game.WriteLog(w)
-			for i := range(players) {
+			for i := range players {
 				if result.failed[i] {
-					fmt.Fprintf(w, "# Player %d failed!\n", i + 1)
+					fmt.Fprintf(w, "# Player %d failed!\n", i+1)
 				}
 			}
 			summary := fmt.Sprintf("# Score: %d - %d. Time: %.3fs - %.3fs. ",
@@ -246,7 +249,7 @@ outermost:
 				if i != j {
 					logFilePath := ""
 					if logPath != "" {
-						logFilePath = fmt.Sprintf("%s%04d.log", logPath, n + 1)
+						logFilePath = fmt.Sprintf("%s%04d.log", logPath, n+1)
 					}
 					msgFilePath := [2]string{}
 					if msgPath != "" {
@@ -254,8 +257,8 @@ outermost:
 							msgFilePath[0] = "-"
 							msgFilePath[1] = "-"
 						} else {
-							msgFilePath[0] = fmt.Sprintf("%s%04d.1.log", msgPath, n + 1)
-							msgFilePath[1] = fmt.Sprintf("%s%04d.2.log", msgPath, n + 1)
+							msgFilePath[0] = fmt.Sprintf("%s%04d.1.log", msgPath, n+1)
+							msgFilePath[1] = fmt.Sprintf("%s%04d.2.log", msgPath, n+1)
 						}
 					}
 					res := runMatch([2]int{i, j}, [2]string{commands[i], commands[j]}, logFilePath, msgFilePath)
@@ -268,7 +271,7 @@ outermost:
 					}
 					fmt.Printf(
 						"%4d %-20s %-20s  %2d %2d  %3d %3d  %-3s %-3s  %7.3fs %7.3fs\n",
-						n + 1, player1, player2,
+						n+1, player1, player2,
 						res.score[0], res.score[1],
 						res.points[0], res.points[1],
 						toYesNo(res.failed[0]), toYesNo(res.failed[1]),
@@ -330,15 +333,24 @@ func main() {
 		gamesFailed := make([]int, len(players))
 		timeUsed := make([]float, len(players))
 		timeMax := make([]float, len(players))
+		winLoss := make([][]int, len(players))
+		pairScore := make([][]int, len(players))
+		for i := range players {
+			winLoss[i] = make([]int, len(players))
+			pairScore[i] = make([]int, len(players))
+		}
 		for _, result := range results {
 			for i := 0; i < 2; i++ {
 				player := result.player[i]
+				opponent := result.player[1-i]
 				totalPoints[player] += result.points[i]
+				pairScore[player][opponent] += result.score[i]
 				if result.failed[i] {
 					gamesFailed[player]++
 				}
 				if result.score[i] > result.score[1-i] {
 					gamesWon[player]++
+					winLoss[player][result.player[1-i]]++
 				}
 				if result.score[i] == result.score[1-i] {
 					gamesTied[player]++
@@ -373,7 +385,64 @@ func main() {
 		}
 		fmt.Println("-- -------------------- ------ ---- ---- ---- ---- -------- --------")
 
-		// - print win/draw/loss matrix
-		// - print average disk difference matrix
+		if len(players) > 2 {
+			// Print win/loss matrix
+			fmt.Println()
+			fmt.Printf("%24s", "")
+			for i := range players {
+				fmt.Printf(" %2d ", i+1)
+			}
+			fmt.Println()
+			fmt.Printf("%24s", "")
+			for _ = range players {
+				fmt.Printf(" ---")
+			}
+			fmt.Println()
+			for i, ip := range pointsPlayers {
+				p := -ip.second
+				fmt.Printf("%2d %20s ", i+1, shorten(players[p], 20))
+				for _, jp := range pointsPlayers {
+					q := -jp.second
+					if p == q {
+						fmt.Printf("    ")
+					} else {
+						fmt.Printf(" %3d", winLoss[p][q])
+					}
+				}
+				fmt.Println()
+			}
+			fmt.Println("Win count of player 1 (row) against player 2 (column)")
+		}
+
+		// Print average difference in disks for player against each opponent:
+		if !single {
+			fmt.Println()
+			fmt.Printf("%24s", "")
+			for i := range players {
+				fmt.Printf(" %4d   ", i+1)
+			}
+			fmt.Println()
+			fmt.Printf("%24s", "")
+			for _ = range players {
+				fmt.Printf(" ------")
+			}
+			fmt.Println()
+			for i, ip := range pointsPlayers {
+				p := -ip.second
+				fmt.Printf("%2d %20s ", i+1, shorten(players[p], 20))
+				for _, jp := range pointsPlayers {
+					q := -jp.second
+					if p == q {
+						fmt.Printf("       ")
+					} else {
+						diff := float64(pairScore[p][q] - pairScore[q][p])
+						games := float64(2 * rounds)
+						fmt.Printf(" %6.2f", diff/games)
+					}
+				}
+				fmt.Println()
+			}
+			fmt.Println("Average score difference between players.")
+		}
 	}
 }

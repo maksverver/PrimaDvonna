@@ -1,5 +1,9 @@
+TODO soon:
+   - do a full competition between Holtz, Dvonner, dDvonn and my player.
+   - use the results above to compare set-up functions
+     (see "Interesting Experiment" below)
+
 Next match:
-   - test against Holtz too
    - GOAL: beat Dvonner/Holtz/dDvonn consistently!
 
    - Note: dDvonn uses different search algorithms/evaluation functions
@@ -12,9 +16,22 @@ Next match:
         (after all, the relative difference in moves is more imporant than
          the absolute difference)
 
-Note:
- - timing reports don't really seem to match up with what the CodeCup server thinks :/
-    => test online again, since I recently changed initializion code.
+Interesting experiment:
+ - Play against Dvonner. If I lose, truncate the game to 49 moves, and have
+   Dvonner player against itself. If Dvonner loses in my position too, then
+   apparently Dvonner's phase 1 algorithm is better than mine. If Dvonner loses
+   with less discs difference, then its phase 2 algorithm is better too.
+   
+   Manual experiments seem to confirm both of these, but I need to perform a
+   lot more experiments to get statistically reliable results! (Automate the
+   process and then run for a 1000 games or so, alternating between white and
+   black?)
+
+Note on timing:
+ - Codecup server seems to think I take more time than I thought I did!
+   Difference seems to be <= 0.250s so I'll aim at using max. 4.75s for now.
+   IMPORTANT: check results for next match too, to see what the maximum
+   difference there is, and adjust the margin accordingly!
 
 Later:
  - consider implementing NegaScout? (should work well with killer heuristic?)
