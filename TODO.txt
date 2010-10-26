@@ -1,14 +1,8 @@
-TODO soon:
+Maybe TODO:
    - debug Holtz' failure in game 120 of local-tournament
-   - use local competiton results above to compare set-up functions
-     (see "Interesting Experiment" below)
 
 Next match:
-   - GOAL: beat Dvonner/Holtz/dDvonn consistently!
-
-   - Note: dDvonn uses different search algorithms/evaluation functions
-     depending on wheter it's playing white or black. Pit these against each
-     other to find out which works best?
+   - GOAL: beat Dvonner and Holtz consistently!
 
    - Possible evaluation function tweaks:
       - change weights of moves (3/4/5 e.g. to 2/4/6 e.g. to 1/1/1)
@@ -16,16 +10,7 @@ Next match:
         (after all, the relative difference in moves is more imporant than
          the absolute difference)
 
-Interesting experiment:
- - Play against Dvonner. If I lose, truncate the game to 49 moves, and have
-   Dvonner player against itself. If Dvonner loses in my position too, then
-   apparently Dvonner's phase 1 algorithm is better than mine. If Dvonner loses
-   with less discs difference, then its phase 2 algorithm is better too.
-   
-   Manual experiments seem to confirm both of these, but I need to perform a
-   lot more experiments to get statistically reliable results! (Automate the
-   process and then run for a 1000 games or so, alternating between white and
-   black?)
+    - Make more effective use of available time (improve move estimation?)
 
 Note on timing:
  - Codecup server seems to think I take more time than I thought I did!

@@ -31,3 +31,55 @@ Re: move ordering:
  - second, use a killer heuristic:
      try the best move from the transposition table first.
 
+================================================================================
+
+Local test competition (4 players, 12 rounds) has the following results:
+
+    No Player               Points  Won Tied Lost Fail Avg Time Max Time
+    -- -------------------- ------ ---- ---- ---- ---- -------- --------
+    1 players/dvonner        6930   59    0   13    0   2.651s   4.823s
+    2 players/holtz          5101   47    0   25    1 174.467s 188.804s
+    3 ./player               4227   33    0   39    0   2.081s   2.847s
+    4 players/dDvonn         1004    5    0   67    0 243.754s 418.068s
+    -- -------------------- ------ ---- ---- ---- ---- -------- --------
+
+                            1   2   3   4
+                            --- --- --- ---
+    1      players/dvonner       20  15  24
+    2        players/holtz    4      19  24
+    3             ./player    9   5      19
+    4       players/dDvonn    0   0   5
+    Win count of player 1 (row) against player 2 (column)
+
+                                1       2       3       4
+                            ------ ------ ------ ------
+    1      players/dvonner          18.88   1.08  18.50
+    2        players/holtz  -18.88          2.42   7.25
+    3             ./player   -1.08  -2.42         13.83
+    4       players/dDvonn  -18.50  -7.25 -13.83
+    Average score difference between players.
+
+Interesting conclusions:
+ - dDvonn player very poorly all around. I'll probably exclude it from now on.
+ - My player defeats dvonner (number 1) more easily than Holtz (number 2)!
+ - Except for being terribly slow, Holtz does something right. Should look at
+   its evaluation function, since it's open-source.
+
+Additionally, I evaluated the placement phase strategies of the programs, by
+truncating all games to 49 moves, and have Dvonner finish them by playing
+against itself, and seeing which side wins to determine who started the
+placement phase from a better position. I ran 10 games per position to reduce
+the influence of chance, and the results are as follows:
+
+ # won  player
+ ------ ----------
+    422 players/dvonner
+    419 ./player
+    418 players/holtz
+    417 players/dDvonn
+     52 none (tied)
+
+The differences are negligible, which suggests that after applying some
+sensible heuristics, the setup phase is not terribly important, or all players
+happen to be of comparable strength. I tend to think the former, so it probably
+makes sense to concentrate on improving my player in the stacking phase.
