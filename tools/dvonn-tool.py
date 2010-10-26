@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import re, sys, optparse
+import re, sys, optparse, urllib2
 
 # Base-62 digits used to encode board states
 digits = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -312,12 +312,13 @@ if __name__ == '__main__':
 	op.add_option("--state", metavar="DESC", help="50-character state description to use")
 	op.add_option("--transcript", metavar="PATH", help="path to transcript file to read")
 	op.add_option("--logfile", metavar="PATH", help="path to log file to read")
+	op.add_option("--littlegolem", metavar="GID", help="fetch game from LittleGolem.net")
 	op.add_option("--truncate", metavar="N", help="truncate history to first N moves")
 	op.add_option("--output", metavar="TYPE", help="type of output: state, plain, transcript, logfile, dvonner, text, json")
 	(options, args) = op.parse_args()
 
 	assert sum(getattr(options, x) is not None
-		for x in ['state', 'transcript', 'logfile']) <= 1
+		for x in ['state', 'transcript', 'logfile', 'littlegolem']) <= 1
 
 	# Initialize game data. These fields should be kept consistent:
 	board = [ [ Field(x, y) for y in range(H) ] for x in range(W) ]
@@ -328,11 +329,16 @@ if __name__ == '__main__':
 	if options.state:
 		board, phase, player = decode(options.state)
 		moves = resigned = None
-	if options.transcript or options.logfile:
+	elif options.transcript or options.logfile:
 		if options.transcript:
 			metadata, moves = parse_transcript(file(options.transcript).read())
 		else:
 			metadata, moves = parse_logfile(file(options.logfile).read())
+	elif options.littlegolem:
+		gid = int(options.littlegolem)
+		url = 'http://www.littlegolem.net/servlet/sgf/' + str(gid) + '/game.txt'
+		request = urllib2.urlopen(url)
+		metadata, moves  = parse_transcript(request.read())
 
 	if moves and options.truncate > 0:
 		moves = moves[:int(options.truncate)]
