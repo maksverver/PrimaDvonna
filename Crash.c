@@ -1,7 +1,7 @@
 #include "Crash.h"
 #include <sys/signal.h>
 #include <stdio.h>
-#include <string.h>
+extern char *strsignal(int sig);
 
 static int signals[] = {
 	/* Signals which cause the process to exit: */

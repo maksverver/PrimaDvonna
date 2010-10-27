@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 #define default_depth 4
-#define default_time 4.75
+#define default_time 5.00
 
 static int arg_seed = 0;
 static const char *arg_state = NULL;
@@ -49,7 +49,7 @@ static const char *read_line(void)
 					fputs(line, stderr);
 				}
 				*/
-				fprintf(stderr, "[%.3fs] Quit received! Exiting.\n", time_used());
+				fprintf(stderr, "%.3fs\nQuit received! Exiting.\n", time_used());
 				fflush(stderr);
 				exit(EXIT_SUCCESS);
 			} else {

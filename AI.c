@@ -192,16 +192,20 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 	if (board->moves < N) {
 		/* Fixed-depth search during placement phase: */
 		val = dfs(board, 2, 0, min_val, max_val, move);
-		fprintf(stderr, "val=%d\n", val);
+		fprintf(stderr, "v:%d\n", val);
 	} else {
 		/* Increment max depth during placement phase: */
 		static int depth = 2;
-		int moves_left = max_moves_left(board);
+		int moves_left;
 		double start = time_used(), left = time_left();
-		double used = 0, budget = left/((moves_left - 5)/2 + 1);
+		double used = 0, budget = 0;
 
-		fprintf(stderr, "[%.3fs] %.3fs left for %d moves; budget is %.3fs.\n",
-			start, left, moves_left, budget);
+		fprintf(stderr, "%.3fs\n", start);
+
+		/* Estimate number of moves left: */
+		moves_left = (max_moves_left(board) - 5)/2;
+		if (moves_left < 2) moves_left = 2;
+		budget = left/moves_left;
 
 		/* Killer heuristic is most effective when the transposition table
 		   contains the information from one ply ago, instead of two plies: */
@@ -213,9 +217,10 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 			/* DFS for best value and move: */
 			Move new_move;
 			val_t new_val = dfs(board, depth, 0, min_val, max_val, &new_move);
+			used = time_used() - start;
 
 			if (aborted) {
-				fprintf(stderr, "WARNING: search aborted!\n");
+				fprintf(stderr, "WARNING: aborted after %.3fs!\n", used);
 				--depth;
 				break;
 			}
@@ -225,10 +230,8 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 			*move = new_move;
 
 			/* Report time used: */
-			used = time_used() - start;
-			fprintf(stderr, "[%.3fs] nmove=%d depth=%d val=%d evaluated: %d"
-				" move: %s (%.3fs used)\n", time_used(), nmove, depth, val,
-				eval_count_total(), format_move(move), used);
+			fprintf(stderr, "d:%d v:%d e:%d m:%s u:%.3fs\n",
+				depth, val, eval_count_total(), format_move(move), used);
 
 			if (used > budget) {
 				fprintf(stderr, "WARNING: over budget!\n");
@@ -237,7 +240,8 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 			}
 
 			/* Determine whether to do another pass at increased search depth: */
-			if (depth == max_depth || used > 0.25*budget) break;
+			if (depth == max_depth) break;
+			if (used > ((depth%2 == 0) ? 0.1 : 0.3)*budget) break;
 			++depth;
 
 			/* Schedule alarm to abort search instead of going over budget: */
