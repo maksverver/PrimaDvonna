@@ -2,6 +2,7 @@
 #include <string.h>
 #include "Game.h"
 
+Move move_null = {  0,  0,  0,  0 };
 Move move_pass = { -1, -1, -1, -1 };
 
 const int DR[6] = {  0, -1, -1,  0, +1, +1 };

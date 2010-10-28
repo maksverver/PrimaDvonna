@@ -4,6 +4,7 @@
 #include "Time.h"
 #include "TT.h"
 #include "IO.h"
+#include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -12,7 +13,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define default_depth 4
+#define default_depth 12
 #define default_time 5.00
 
 static int arg_seed = 0;
@@ -120,9 +121,9 @@ static void solve_state(const char *descr)
 {
 	Color next_player;
 	Board board;
-	Move move;
+	Move move, pv[40];
 	const char *move_str = NULL;
-	int depth = 0;
+	int depth = 0, n, npv;
 
 	if (!parse_state(descr, &board, &next_player)) {
 		fprintf(stderr, "Couldn't parse game description: `%s'!\n", descr);
@@ -139,7 +140,11 @@ static void solve_state(const char *descr)
 				fprintf(stderr, "Internal error: no move selected!\n");
 				exit(EXIT_FAILURE);
 			}
-			fprintf(stderr, "%d: %s\n", depth, format_move(&move));
+			fprintf(stderr, "%d:", depth);
+			npv = ai_extract_pv(&board, pv, sizeof(pv)/sizeof(*pv));
+			assert(npv > 0 && move_compare(&move, &pv[0]) == 0);
+			for (n = 0; n < npv; ++n) printf(" %s", format_move(&pv[n]));
+			printf("\n");
 		}
 		move_str = format_move(&move);
 	}

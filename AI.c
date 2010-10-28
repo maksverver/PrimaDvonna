@@ -16,7 +16,14 @@ bool ai_use_mo     = true;
 bool ai_use_killer = true;
 
 /* Global flag to abort search: */
-volatile bool aborted = false;
+static volatile bool aborted = false;
+static unsigned int rng_seed = 0;
+
+static void reset_rng()
+{
+	while (rng_seed == 0) rng_seed = rand();
+	srand(rng_seed);
+}
 
 /* Implements depth-first minimax search with alpha-beta pruning.
 
@@ -47,7 +54,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 #endif
 	TTEntry *entry = NULL;
 	val_t res = min_val;
-	Move killer = move_pass;
+	Move killer = move_null;
 
 	if (ai_use_tt) { /* look up in transposition table: */
 #ifdef TT_DEBUG
@@ -76,10 +83,11 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 		assert(best == NULL);
 		res = eval_end(board);
 		if (ai_use_tt) {
-			entry->hash  = hash;
-			entry->lo    = res;
-			entry->hi    = res;
-			entry->depth = max_depth;
+			entry->hash   = hash;
+			entry->lo     = res;
+			entry->hi     = res;
+			entry->depth  = max_depth;
+			entry->killer = move_null;
 #ifdef TT_DEBUG
 			memcpy(entry->data, data, 50);
 #endif
@@ -95,6 +103,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			entry->lo    = res;
 			entry->hi    = res;
 			entry->depth = 0;
+			entry->killer = move_null;
 #ifdef TT_DEBUG
 			memcpy(entry->data, data, 50);
 #endif
@@ -105,7 +114,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 		int next_lo = -hi;
 		int next_hi = (-res < -lo) ? -res : -lo;
 
-		if (best) *best = move_pass;
+		if (best) *best = move_null;  /* for integrity checking */
 		if (nmove == 1) {
 			/* Only one move available: */
 			if (best != NULL) *best = moves[0];
@@ -120,15 +129,16 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 
 			/* FIXME: maybe shuffle whenever depth >= 2 too,
 			   to get less variation in search times? */
-			if (best != NULL) shuffle_moves(moves, nmove);
+			if (best != NULL) {
+				reset_rng();
+				shuffle_moves(moves, nmove);
+			}
 
 			/* Move ordering: */
 			if (ai_use_mo) order_moves(board, moves, nmove);
 
 			/* Killer heuristic: */
-			if (ai_use_killer && !move_passes(&killer)) {
-				move_to_front(moves, nmove, killer);
-			}
+			if (!move_is_null(&killer)) move_to_front(moves, nmove, killer);
 
 			for (n = 0; n < nmove; ++n) {
 				val_t val;
@@ -149,7 +159,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			}
 		}
 		if (best) *best = killer;
-		assert(best == NULL || !move_passes(best));
+		assert(best == NULL || !move_is_null(best));
 		if (ai_use_tt) {  /* FIXME: replacement policy? */
 			entry->hash  = hash;
 			entry->lo    = res > lo ? res : min_val;
@@ -210,7 +220,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 		/* Killer heuristic is most effective when the transposition table
 		   contains the information from one ply ago, instead of two plies: */
 		if (ai_use_killer) --depth;
-		
+
 		eval_count_reset();
 		aborted = false;
 		for (;;) {
@@ -283,4 +293,24 @@ EXTERN bool ai_select_move_fixed(Board *board, Move *move, int depth)
 EXTERN val_t ai_evaluate(const Board *board)
 {
 	return eval_intermediate(board);
+}
+
+EXTERN int ai_extract_pv(Board *board, Move *moves, int nmove)
+{
+	int n;
+	hash_t hash;
+	TTEntry *entry;
+
+	for (n = 0; n < nmove; ++n)
+	{
+		hash = hash_board(board);
+		entry = &tt[hash%tt_size];
+		if (entry->hash != hash || move_is_null(&entry->killer)) break;
+		assert(valid_move(board, &entry->killer));
+		moves[n] = entry->killer;
+		board_do(board, &moves[n]);
+	}
+	nmove = n;
+	while (n > 0) board_undo(board, &moves[--n]);
+	return nmove;
 }

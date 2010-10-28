@@ -48,10 +48,12 @@ typedef union MoveInt {
 	int         i;
 } MoveInt;
 
+extern Move move_null;  /* null move: all fields set to 0 */
 extern Move move_pass;  /* pass move: all fields set to -1 */
 #define move_places(m) ((m)->r1 >= 0 && (m)->r2 < 0)
 #define move_stacks(m) ((m)->r2 >= 0)
 #define move_passes(m) ((m)->r1 < 0)
+#define move_is_null(m) (((union MoveInt)*(m)).i == 0)
 #define move_compare(a, b) (((union MoveInt)*(a)).i - ((union MoveInt)*(b)).i)
 
 /* The six cardinal directions on the board. These are ordered anti-clockwise

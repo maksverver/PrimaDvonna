@@ -3,14 +3,14 @@ Maybe TODO:
 
 Next match:
    - GOAL: beat Dvonner and Holtz consistently!
+   - Make more effective use of available time (improve move estimation?)
+     (Benchmark to make sure this really works better than current version!)
 
    - Possible evaluation function tweaks:
       - change weights of moves (3/4/5 e.g. to 2/4/6 e.g. to 1/1/1)
       - instead of returning (a - b), return 100*(a - b)/(a + b)
         (after all, the relative difference in moves is more imporant than
          the absolute difference)
-
-    - Make more effective use of available time (improve move estimation?)
 
 Note on timing:
  - Codecup server seems to think I take more time than I thought I did!
