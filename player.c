@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 #define default_depth 12
-#define default_time 5.00
+#define default_time 4.80
 
 static int arg_seed = 0;
 static const char *arg_state = NULL;

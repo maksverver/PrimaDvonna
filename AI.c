@@ -214,7 +214,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 
 		/* Estimate number of moves left: */
 		moves_left = (max_moves_left(board) - 16)/2;
-		if (moves_left < 2) moves_left = 2;
+		if (moves_left < 3) moves_left = 3;
 		budget = left/moves_left;
 
 		/* Killer heuristic is most effective when the transposition table
