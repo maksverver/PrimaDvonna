@@ -108,6 +108,15 @@ while true {
 				}
 				default {die}
 			}
+			expect {
+				-re {((Exact)?Value:) ([-0-9.]*) +\(Depth:? ([0-9]+), Positions:? ([0-9]+)\)} {
+					msg [concat $expect_out(1,string) \
+						[expr -$expect_out(3,string)] \
+						"(depth: $expect_out(4,string)," \
+						"positions: $expect_out(5,string))" ]
+				}
+				default {die}
+			}
 		}
 		# Send move to user:
 		msg "Sending Dvonner's move ($last_move) to user."
