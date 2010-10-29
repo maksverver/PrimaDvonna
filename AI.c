@@ -213,7 +213,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 		fprintf(stderr, "%.3fs\n", start);
 
 		/* Estimate number of moves left: */
-		moves_left = (max_moves_left(board) - 5)/2;
+		moves_left = (max_moves_left(board) - 16)/2;
 		if (moves_left < 2) moves_left = 2;
 		budget = left/moves_left;
 
@@ -251,7 +251,7 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 
 			/* Determine whether to do another pass at increased search depth: */
 			if (depth == max_depth) break;
-			if (used > ((depth%2 == 0) ? 0.1 : 0.3)*budget) break;
+			if (used > ((depth%2 == 0) ? 0.1 : 0.4)*budget) break;
 			++depth;
 
 			/* Schedule alarm to abort search instead of going over budget: */
