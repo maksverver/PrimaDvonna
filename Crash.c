@@ -26,6 +26,7 @@ static void crash_handler(int signal)
 
 	if (!name) name = "Unknown";
 	fprintf(stderr, "Crash handler caught signal %d: %s!\n", signal, name);
+	fflush(stderr);
 	crash_fini();
 	raise(signal);
 }
