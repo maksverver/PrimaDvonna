@@ -1,40 +1,58 @@
 Maybe TODO:
    - debug Holtz' failure in game 120 of local-tournament
 
-Later:
-   - more sophisticated evaluation function (take inspiration from Holtz, or
-     possibly Dvonner?)
-   - GOAL: beat Dvonner and Holtz consistently!
+Next version:
+  - improve set-up phase so losses like those in Round 3 don't occur anymore!
+  - more sophisticated evaluation function:
+     - borrow from Holtz (rates stacks primarily, but in a complex way)
+     - borrow from Dvonner (rates stacks, stones and moves)
+     - possible ways to account for connectivity:
+        - minimum distance to closest life stone?
+        - number of reachable life stones? (over distinct paths?)
+        - "minimum cut" required to disconnect stones? (take into account which
+        - player controls them? take into account some stacks are immobile?)
+        - prepare for players moving life stone away?
 
-   - Make more effective use of available time (improve move estimation?)
-     (Benchmark to make sure this really works better than current version!)
+     => change evaluation function to use float values, and
+  - GOAL: beat Dvonner and Holtz consistently!
 
-Note on timing:
- - Codecup server seems to think I take more time than I thought I did!
-   Difference seems to be <= 0.250s so I'll aim at using max. 4.75s for now.
-   IMPORTANT: check results for next match too, to see what the maximum
-   difference there is, and adjust the margin accordingly!
+For final version:
+  - remove conditional code for small performance boost?
+  - manually unroll small loops (such as over 6 directions)?
+  - replace range checks like (r >= 0 && r < H) with ((unsigned)r <= H)
+    and nonsense likethis.
 
 Later:
  - consider implementing NegaScout? (should work well with killer heuristic?)
+ - consider implementing  MTD(f)? (tricky with float values)
  - remove `best' as dfs() parameter? (then, how to shuffle moves?)
  - remove `pass' as dfs() parameter? (are there positions where we benefit from it?)
  - test if current move representation is inefficient (ints instead of chars?)
- - change library functions so single moves are passed by value.
- - smarter move ordering: capture moves first, etc?
- - shuffle moves when depth >= 2 or so? (shuffling seemed to improve cut-offs)
- - make board hashing for TT more efficient
- - check hash table performance: how often do collisions occur?
-   how full is the table when they happen?
- - optimize time budget for moves
- - implement MTD(f)?
+ - change library functions so single moves are passed by value?
+ - smarter move ordering for higher depths:
+    - call eval directly?
+    - should we query the transposition table or not?
+    - should we update the transposition table or not?
+ - make board hashing for TT more efficient, if possible.
+ - check hash table performance:
+     - how often do collisions occur?
+     - how full is the table when they happen?
+     - reconsider replacement policy (replace if depth >= tt->depth only?)
+     - game logs suggest that a lot of positions are not cached (e.g. near the
+       end of the game, when the entire game has been solved, we still need to
+       evaluate hundreds of positions after every move, while the whole game
+       tree should be stored in the cache!)
+ - optimize time budget for moves:
+     - we now divide time approximately evenly over stacking moves, but maybe
+       that is not optimal.
  - validate all code!
+     - print it out, verify, add comments...
  - consider auto-learning for evaluation parameters?
    See: http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
+   Note: this is what Dvonner did!
  - test against Rororobot and Jan's Program on littlegolem.net
- - reconsider tt replacement policy (replace if depth >= tt->depth only?)
 
-Long time:
+Overall:
  - improve placement phase evaluation function
  - improve stacking phase evaluation function
  - improve move ordering heuristic:

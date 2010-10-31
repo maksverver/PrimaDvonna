@@ -8,23 +8,22 @@
 
 static bool started;
 static struct timeval used, start;
-static double limit;
+double time_limit;
 
 /* Alarm data: */
 static struct sigaction old_action;
 static void (*callback_func)(void *);
 static void *callback_arg;
 
-EXTERN void time_restart(double new_limit)
+EXTERN void time_restart(void)
 {
 	used.tv_sec  = 0;
 	used.tv_usec = 0;
 	gettimeofday(&start, NULL);
-	limit = new_limit;
 	started = false;
 }
 
-EXTERN void time_start()
+EXTERN void time_start(void)
 {
 	if (!started) {
 		gettimeofday(&start, NULL);
@@ -32,7 +31,7 @@ EXTERN void time_start()
 	}
 }
 
-EXTERN void time_stop()
+EXTERN void time_stop(void)
 {
 	if (started) {
 		struct timeval now;
@@ -50,7 +49,7 @@ EXTERN void time_stop()
 	}
 }
 
-EXTERN double time_used()
+EXTERN double time_used(void)
 {
 	struct timeval res = used;
 	if (started) {
@@ -63,9 +62,9 @@ EXTERN double time_used()
 	return res.tv_sec + 1e-6*res.tv_usec;
 }
 
-EXTERN double time_left()
+EXTERN double time_left(void)
 {
-	return limit - time_used();
+	return time_limit - time_used();
 }
 
 static void alarm_handler(int signum)
@@ -99,7 +98,7 @@ EXTERN void set_alarm(double time, void(*callback)(void*), void *arg)
 	assert(old_timer.it_value.tv_sec == 0 && old_timer.it_value.tv_usec == 0);
 }
 
-EXTERN void clear_alarm()
+EXTERN void clear_alarm(void)
 {
 	struct itimerval stop_timer = { { 0, 0 }, { 0, 0 } };
 	setitimer(ITIMER_REAL, &stop_timer, NULL);

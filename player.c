@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 #define default_depth 12
-#define default_time 4.80
+#define default_time 4.88
 
 static int arg_seed = 0;
 static const char *arg_state = NULL;
@@ -233,17 +233,24 @@ static void parse_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	static char buf_stdout[512], buf_stderr[512];
-
-	parse_args(argc, argv);
-	time_restart(arg_time);
+	/* Initialize timer, as early as possible! */
+	time_restart();
 
 	/* Set-up crash handler. */
 	crash_init();
 
+	/* Parse command line arguments. */
+	parse_args(argc, argv);
+
+	/* Set time limit: */
+	time_limit = arg_time;
+
 	/* Make stdout and stderr line buffered: */
-	setvbuf(stdout, buf_stdout, _IOLBF, sizeof(buf_stdout));
-	setvbuf(stderr, buf_stderr, _IOLBF, sizeof(buf_stderr));
+	{
+		static char buf_stdout[512], buf_stderr[512];
+		setvbuf(stdout, buf_stdout, _IOLBF, sizeof(buf_stdout));
+		setvbuf(stderr, buf_stderr, _IOLBF, sizeof(buf_stderr));
+	}
 
 	/* Initialize RNG: */
 	if (!arg_seed) arg_seed = (1337*(int)getpid() + 17*(int)time(NULL))%1000000;

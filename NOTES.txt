@@ -83,3 +83,14 @@ The differences are negligible, which suggests that after applying some
 sensible heuristics, the setup phase is not terribly important, or all players
 happen to be of comparable strength. I tend to think the former, so it probably
 makes sense to concentrate on improving my player in the stacking phase.
+
+================================================================================
+
+No more crashes in test competition 3, but more losses/draws. Some losses occur
+against weaker opponents. In those games, the Dvonn stones are close together
+on one side of the board, and my stones are too far away from them after them
+placement phase, resulting in emberassing cut-offs. That needs to be fixed!
+
+Comparing my logged times and the judge's output, the judge seems to think I use
+about 70~90 ms more time than I think I do. To make sure I stay within the time
+limit, I will fixed my timelimit to 5s - 120 ms = 4.88 s.
