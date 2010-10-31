@@ -385,28 +385,3 @@ EXTERN int board_score(const Board *board)
 	board_scores(board, sc);
 	return sc[player] - sc[1 - player];
 }
-
-/* A theoretical upper bound on the total number of moves is N + (N - 1),
-   since it takes N moves to set up the board, and N - 1 moves to reduce all
-   pieces to a single stack. This is the estimate used during the placement
-   phase.
-
-   However, in practice the number of moves is significantly lower. Therefore,
-   during the stacking phase, we count how many stacks remain in the game, and
-   use that to determine the maximum number of moves. This is still a gross
-   over-estimation. */
-EXTERN int max_moves_left(const Board *board)
-{
-	int r, c, stacks = 0;
-
-	if (board->moves < N) {
-		return N + (N - 1) - board->moves;
-	}
-
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			if (!board->fields[r][c].removed) ++stacks;
-		}
-	}
-	return stacks - 1;
-}

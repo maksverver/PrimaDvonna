@@ -181,6 +181,33 @@ static void set_aborted(void *arg)
 	aborted = true;
 }
 
+static int est_moves_left(const Board *board, Color player)
+{
+	int r1, c1, r2, c2, d, res = 0;
+	const Field *f;
+
+	for (r1 = 0; r1 < H; ++r1) {
+		for (c1 = 0; c1 < W; ++c1) {
+			f = &board->fields[r1][c1];
+			if (!f->removed && f->player == player) {
+				for (d = 0; d < 6; ++d) {
+					r2 = r1 + DR[d]*f->pieces;
+					if (r2 >= 0 && r2 < H) {
+						c2 = c1 + DC[d]*f->pieces;
+						if (c2 >= 0 && c2 < W) {
+							if (!board->fields[r2][c2].removed) {
+								++res;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return res;
+}
+
 EXTERN bool ai_select_move(Board *board, Move *move)
 {
 	val_t val;
@@ -213,9 +240,11 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 		fprintf(stderr, "%.3fs\n", start);
 
 		/* Estimate number of moves left: */
-		moves_left = (max_moves_left(board) - 16)/2;
-		if (moves_left < 3) moves_left = 3;
+		moves_left = est_moves_left(board, next_player(board));
+		if (moves_left > 12) moves_left = 12;
+		if (moves_left <  3) moves_left =  3;
 		budget = left/moves_left;
+		fprintf(stderr, "budget: %.3fs for %d moves\n", budget, est_moves_left(board, next_player(board)));
 
 		/* Killer heuristic is most effective when the transposition table
 		   contains the information from one ply ago, instead of two plies: */

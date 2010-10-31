@@ -94,7 +94,4 @@ EXTERN void board_scores(const Board *board, int scores[2]);
 /* Calculates the score for the current player: */
 EXTERN int board_score(const Board *board);
 
-/* Returns an upper bound on the number of moves left in the game: */
-EXTERN int max_moves_left(const Board *board);
-
 #endif /* ndef GAME_H_INCLUDED */
