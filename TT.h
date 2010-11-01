@@ -25,7 +25,7 @@ extern size_t tt_size;
 EXTERN void tt_init(size_t size);
 
 /* Frees the currently allocated transposition table. */
-EXTERN void tt_fini();
+EXTERN void tt_fini(void);
 
 /* Serializes the board state into a unique 50-byte descriptor. */
 EXTERN void serialize_board(const Board *board, unsigned char output[50]);

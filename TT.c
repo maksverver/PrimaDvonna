@@ -16,7 +16,7 @@ EXTERN void tt_init(size_t size)
 	assert(tt != NULL);
 }
 
-EXTERN void tt_fini()
+EXTERN void tt_fini(void)
 {
 	free(tt);
 	tt = NULL;

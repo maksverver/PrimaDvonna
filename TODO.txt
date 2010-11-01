@@ -21,6 +21,7 @@ For final version:
   - manually unroll small loops (such as over 6 directions)?
   - replace range checks like (r >= 0 && r < H) with ((unsigned)r <= H)
     and nonsense likethis.
+  - change compile.pl to #define NDEBUG so assertions are not tested anymore
 
 Later:
  - consider implementing NegaScout? (should work well with killer heuristic?)
@@ -38,10 +39,6 @@ Later:
      - how often do collisions occur?
      - how full is the table when they happen?
      - reconsider replacement policy (replace if depth >= tt->depth only?)
-     - game logs suggest that a lot of positions are not cached (e.g. near the
-       end of the game, when the entire game has been solved, we still need to
-       evaluate hundreds of positions after every move, while the whole game
-       tree should be stored in the cache!)
  - optimize time budget for moves:
      - we now divide time approximately evenly over stacking moves, but maybe
        that is not optimal.

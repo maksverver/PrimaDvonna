@@ -33,7 +33,7 @@ static void reset_rng()
    it returns an upper bound on the game value, or if the value is >= hi, then
    it returns a lower bound on the value.
 
-   If `best' is not NULL, then the best move is assigned to *best.
+   If `return_best' is not NULL, then the best move is assigned to *return_best.
 
    Note that we try to return as tight an upper bound as possible without
    searching more nodes than stricly necessary. This means in particular that
@@ -46,7 +46,8 @@ static void reset_rng()
    means that all calls to dfs() should be followed by checking `aborted' before
    using the return value.
 */
-static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
+static val_t dfs(Board *board, int depth, int pass, int lo, int hi,
+                 Move *return_best)
 {
 	hash_t hash = (hash_t)-1;
 #ifdef TT_DEBUG
@@ -68,9 +69,9 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 #ifdef TT_DEBUG  /* detect hash collisions */
 			assert(memcmp(entry->data, data, 50) == 0);
 #endif
-			if (entry->depth >= depth && 
-				(best == NULL || valid_move(board, &entry->killer))) {
-				if (best) *best = entry->killer;
+			if (entry->depth >= depth &&
+				(!return_best || valid_move(board, &entry->killer))) {
+				if (return_best) *return_best = entry->killer;
 				if (entry->lo == entry->hi) return entry->lo;
 				if (entry->lo >= hi) return entry->lo;
 				if (entry->hi <= lo) return entry->hi;
@@ -80,7 +81,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 		}
 	}
 	if (pass == 2) {  /* evaluate end position */
-		assert(best == NULL);
+		assert(!return_best);
 		res = eval_end(board);
 		if (ai_use_tt) {
 			entry->hash   = hash;
@@ -93,7 +94,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 #endif
 		}
 	} else if (depth == 0) {  /* evaluate intermediate position */
-		assert(best == NULL);
+		assert(!return_best);
 		res = eval_intermediate(board);
 		if (ai_use_tt) {
 			/* FIXME: eval_intermediate() could end up calling eval_end() if 
@@ -114,10 +115,10 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 		int next_lo = -hi;
 		int next_hi = (-res < -lo) ? -res : -lo;
 
-		if (best) *best = move_null;  /* for integrity checking */
+		if (return_best) *return_best = move_null;  /* for integrity checking */
 		if (nmove == 1) {
 			/* Only one move available: */
-			if (best != NULL) *best = moves[0];
+			killer = moves[0];
 			board_do(board, &moves[0]);
 			res = -dfs(board, depth, (move_passes(&moves[0]) ? pass+1 : 0),
 					   next_lo, next_hi, NULL);
@@ -127,9 +128,8 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			/* Multiple moves available */
 			assert(nmove > 1);
 
-			/* FIXME: maybe shuffle whenever depth >= 2 too,
-			   to get less variation in search times? */
-			if (best != NULL) {
+			if (return_best) {
+				/* Randomize moves in a semi-random fashion: */
 				reset_rng();
 				shuffle_moves(moves, nmove);
 			}
@@ -158,8 +158,6 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 				if (res >= hi) break;
 			}
 		}
-		if (best) *best = killer;
-		assert(best == NULL || !move_is_null(best));
 		if (ai_use_tt) {  /* FIXME: replacement policy? */
 			entry->hash  = hash;
 			entry->lo    = res > lo ? res : min_val;
@@ -170,14 +168,14 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi, Move *best)
 			memcpy(entry->data, data, 50);
 #endif
 		}
+		if (return_best) *return_best = killer;
+		assert(!return_best || !move_is_null(return_best));
 	}
 	return res;
 }
 
-static void set_aborted(void *arg)
+static void set_aborted()
 {
-	(void)arg;  /* UNUSED */
-
 	aborted = true;
 }
 
@@ -303,15 +301,7 @@ EXTERN bool ai_select_move_fixed(Board *board, Move *move, int depth)
 	int nmove = generate_moves(board, moves);
 	val_t val;
 
-	if (nmove == 0) {
-		fprintf(stderr, "no moves available!\n");
-		return false;
-	}
-	if (nmove == 1) {
-		fprintf(stderr, "one move available!\n");
-		*move = moves[0];
-		return true;
-	}
+	if (nmove == 0) return false;
 	eval_count_reset();
 	val = dfs(board, depth, 0, min_val, max_val, move);
 	fprintf(stderr, "depth=%d val=%d evaluated: %d\n",
@@ -330,7 +320,7 @@ EXTERN int ai_extract_pv(Board *board, Move *moves, int nmove)
 	hash_t hash;
 	TTEntry *entry;
 
-	for (n = 0; n < nmove; ++n)
+	for (n = 0; n < nmove && generate_all_moves(board, NULL) > 0 ; ++n)
 	{
 		hash = hash_board(board);
 		entry = &tt[hash%tt_size];
