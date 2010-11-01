@@ -13,7 +13,11 @@ Next version:
         - player controls them? take into account some stacks are immobile?)
         - prepare for players moving life stone away?
 
-     => change evaluation function to use float values, and
+     => change evaluation function to use float values
+     => allow running for a fixed number of evaluations (a la Dvonner) instead
+        of a limited amount of time (for fairer comparisons)
+     => implement various indicators as mentioned above
+
   - GOAL: beat Dvonner and Holtz consistently!
 
 For final version:
