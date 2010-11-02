@@ -4,10 +4,6 @@
 const val_t min_val = -9999;
 const val_t max_val = +9999;
 
-int eval_count_placing  = 0;
-int eval_count_stacking = 0;
-int eval_count_end      = 0;
-
 /* Returns whether the given field lies on the edge of the board: */
 static bool is_edge_field(const Board *board, int r, int c)
 {
@@ -28,8 +24,6 @@ EXTERN val_t eval_placing(const Board *board)
 	int r, c, p;
 	val_t score[2] = { 0, 0 };
 	int dvonn_r[D], dvonn_c[D], d = 0;
-
-	++eval_count_placing;
 
 	/* Find location of Dvonn stones. */
 	for (r = 0; r < H; ++r) {
@@ -84,7 +78,6 @@ EXTERN val_t eval_placing(const Board *board)
 /* Evaluate an end position. */
 EXTERN val_t eval_end(const Board *board)
 {
-	++eval_count_end;
 	return 100*board_score(board);
 }
 
@@ -100,7 +93,6 @@ EXTERN val_t eval_stacking(const Board *board)
 	/* Check if this is an end position instead: */
 	nmove = generate_all_moves(board, moves);
 	if (nmove == 0) return eval_end(board);
-	++eval_count_stacking;
 
 	/* Value moves: */
 	for (n = 0; n < nmove; ++n) {
@@ -123,15 +115,4 @@ EXTERN val_t eval_stacking(const Board *board)
 #endif
 	p = next_player(board);
 	return score[p] - score[1 - p];
-}
-
-EXTERN val_t eval_intermediate(const Board *board)
-{
-	if (board->moves > N) {
-		return eval_stacking(board);
-	} else if (board->moves > D) {
-		return eval_placing(board);
-	} else {  /* board->moves <= D */
-		return 0;
-	}
 }

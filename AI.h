@@ -9,9 +9,7 @@ extern bool ai_use_tt;      /* use transposition table? */
 extern bool ai_use_mo;      /* use move reordering? */
 extern bool ai_use_killer;  /* use killer heuristic? */
 
-/* Selects the next move to make during the movement phase.
-
-   Uses iterative deepening negamax search with various optimizations.
+/* Limits on the search performed by the AI when selecting moves.
 
    If max_time > 0, then searching is limited by time, to the point that any
    iteration beyond the first may be aborted halfway through if necessary to
@@ -25,18 +23,44 @@ extern bool ai_use_killer;  /* use killer heuristic? */
    search depth equals at least min_depth (or the maximum search depth has been
    reached).
 
-   Note that this function always does at least one pass at some internally
-   determined reasonable starting depth. This means in particular that the first
-   iteration may be at a higher level than max_depth and use more time than
-   max_time!
+   Note that these limits are cumulative, in the sense that the first bound
+   that is reached terminates the search, so setting more fields to positive
+   values causes the search to be aborted sooner.
+*/
+typedef struct AI_Limit {
+	int    depth;  /* stop after reaching or exceeding given depth */
+	int    eval;   /* stop after evaluating given number of positions */
+	double time;   /* maximum time to search */
+} AI_Limit;
 
-   Returns `true' when a move is available. In that case, if `best_move',
-   `best_val' and `best_depth' are not NULL, they are used to store the best
-   move, its value and the maximum search depth used. */
+/* Results of searching for the best move.
+
+   A search may be aborted by the time limit or by a keyboard interrupt; in that
+   case, the time used and number of positions evaluated will be larger than
+   would be necessary to search to the returned depth, because search was
+   aborted inside the next depth.
+*/
+typedef struct AI_Result {
+	Move   move;     /* selected move */
+	val_t  value;    /* value of the move at the last completed search */
+	int    depth;    /* maximum search depth completed */
+    int    eval;     /* total number of positions evaluated */
+	double time;     /* total time used */
+	bool   aborted;  /* whether search was aborted */
+} AI_Result;
+
+/* Selects the next best move to make.
+
+   Uses iterative deepening negamax search with various optimizations. If
+   `limit' is non-NULL, it specifies the time/depth/eval limits on the search,
+   as described as above.
+
+   If `result' is not NULL, it is used to store the results of the search (most
+   importantly the selected move).
+
+   This function returns false only if there are no moves to make. */
 EXTERN bool ai_select_move( Board *board,
-	double max_time, int min_eval, int min_depth,
-	Move *best_move, val_t *best_value, int *best_depth );
-
+	const AI_Limit *limit, AI_Result *result );
 
 /* Evaluates the current board. Mainly useful for analysis/debugging. */
 EXTERN val_t ai_evaluate(const Board *board);

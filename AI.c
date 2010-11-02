@@ -18,7 +18,8 @@ bool ai_use_killer = true;
 
 /* Global flag to abort search: */
 static volatile bool aborted = false;
-static unsigned int rng_seed = 0;
+static int eval_count = 0;
+static int rng_seed = 0;
 
 static void reset_rng()
 {
@@ -83,6 +84,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi,
 	}
 	if (pass == 2) {  /* evaluate end position */
 		assert(!return_best);
+		++eval_count;
 		res = eval_end(board);
 		if (ai_use_tt) {
 			entry->hash   = hash;
@@ -96,7 +98,7 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi,
 		}
 	} else if (depth == 0) {  /* evaluate intermediate position */
 		assert(!return_best);
-		res = eval_intermediate(board);
+		res = ai_evaluate(board);
 		if (ai_use_tt) {
 			/* FIXME: eval_intermediate() could end up calling eval_end() if 
 			   the current position is actually an end position. In that case,
@@ -181,8 +183,7 @@ static void set_aborted()
 }
 
 EXTERN bool ai_select_move( Board *board,
-	double max_time, int min_eval, int min_depth,
-	Move *best_move, val_t *best_value, int *best_depth )
+	const AI_Limit *limit, AI_Result *result )
 {
 	static int depth = 2;  /* iterative deepening start depth */
 
@@ -197,16 +198,13 @@ EXTERN bool ai_select_move( Board *board,
 		fprintf(stderr, "no moves available!\n");
 		return false;
 	}
-	if (nmove == 1) {
-		fprintf(stderr, "one move available!\n");
-		min_depth = 1;
-	}
+	if (nmove == 1) fprintf(stderr, "one move available!\n");
 
 	/* Killer heuristic is most effective when the transposition table
 	   contains the information from one ply ago, instead of two plies: */
 	if (ai_use_killer && depth > 2) --depth;
 
-	eval_count_reset();
+	eval_count = 0;
 	aborted = false;
 	for (;;) {
 		/* DFS for best value and move: */
@@ -215,23 +213,32 @@ EXTERN bool ai_select_move( Board *board,
 		double used = time_used() - start;
 
 		if (aborted) {
+			if (result) {
+				result->aborted = true;
+				result->time = used;
+			}
 			fprintf(stderr, "WARNING: aborted after %.3fs!\n", used);
 			--depth;
 			break;
 		}
 
-		/* Update best value, move and depth: */
-		if (best_move)  *best_move  = move;
-		if (best_value) *best_value = value;
-		if (best_depth) *best_depth = depth;
+		/* Update results so far: */
+		if (result) {
+			result->move    = move;
+			result->depth   = depth;
+			result->value   = value;
+			result->eval    = eval_count;
+			result->time    = used;
+			result->aborted = false;
+		}
 
 		/* Report intermediate result: */
 		if (board->moves >= N) {
-			fprintf(stderr, "d:%d v:"VAL_FMT" m:%s e:%d u:%.3fs\n",
-				depth, value, format_move(&move), eval_count_total(), used);
+			fprintf(stderr, "m:%s d:%d v:"VAL_FMT" e:%d u:%.3fs\n",
+				format_move(&move), depth, value, eval_count, used);
 		}
 
-		if (max_time > 0 && used > max_time) {
+		if (limit && limit->time > 0 && used > limit->time) {
 			/* N.B. if this happens during CodeCup games, we could time out! */
 			fprintf(stderr, "WARNING: max_time exceeded!\n");
 			--depth;
@@ -239,12 +246,16 @@ EXTERN bool ai_select_move( Board *board,
 		}
 
 		/* Determine whether to search again with increased depth: */
-		if (depth == max_depth) break;
-		if (min_eval > 0 && eval_count_total() >= min_eval) break;
-		if (min_depth > 0 && depth >= min_depth) break;
-		if (max_time > 0) {
-			if (used >= ((depth%2 == 0) ? 0.1 : 0.4)*max_time) break;
-			if (!alarm_set++) set_alarm(max_time - used, set_aborted, NULL);
+		if (depth == max_depth || nmove == 1) break;
+		if (limit) {
+			if (limit->eval > 0 && eval_count >= limit->eval) break;
+			if (limit->depth > 0 && depth >= limit->depth) break;
+			if (limit->time > 0) {
+				if (used >= ((depth%2 == 0) ? 0.1 : 0.4)*limit->time) break;
+				if (!alarm_set++) {
+					set_alarm(limit->time - used, set_aborted, NULL);
+				}
+			}
 		}
 		if (!signal_handler_set++) {
 			signal_handler_init(&new_handler, set_aborted);
@@ -260,7 +271,14 @@ EXTERN bool ai_select_move( Board *board,
 
 EXTERN val_t ai_evaluate(const Board *board)
 {
-	return eval_intermediate(board);
+	++eval_count;
+	if (board->moves > N) {
+		return eval_stacking(board);
+	} else if (board->moves > D) {
+		return eval_placing(board);
+	} else {  /* board->moves <= D */
+		return 0;
+	}
 }
 
 EXTERN int ai_extract_pv(Board *board, Move *moves, int nmove)

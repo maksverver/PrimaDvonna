@@ -8,9 +8,6 @@ Soon:
 
 Maybe TODO:
    - debug Holtz' failure in game 120 of local-tournament
-   - it's ugly that eval count is a global variable. Make it local to AI.c and
-     return results from ai_select_move() like with depth. Maybe in a struct
-     that contains the principal variation as well?
 
 Next version:
   - improve set-up phase so losses like those in Round 3 don't occur anymore!
@@ -39,10 +36,13 @@ For final version:
   - change compile.pl to #define NDEBUG so assertions are not tested anymore
 
 Later:
+ - include principal variation in AI result.
  - consider implementing NegaScout? (should work well with killer heuristic?)
  - consider implementing  MTD(f)? (tricky with float values)
  - remove `best' as dfs() parameter? (then, how to shuffle moves?)
  - remove `pass' as dfs() parameter? (are there positions where we benefit from it?)
+ - better handling of 'exact' values; if these are stored in the tt, their depth
+   should be considered infinite.
  - test if current move representation is inefficient (ints instead of chars?)
  - change library functions so single moves are passed by value?
  - smarter move ordering for higher depths:
