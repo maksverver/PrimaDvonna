@@ -5,7 +5,6 @@ Note for test competition 4:
 Soon:
    - review changes in AI/player
    - add option for setting evallimit
-   - abort search on sigint too (so we can do ^C when solving states)
 
 Maybe TODO:
    - debug Holtz' failure in game 120 of local-tournament

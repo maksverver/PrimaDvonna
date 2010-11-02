@@ -316,15 +316,13 @@ int main(int argc, char *argv[])
 		ai_use_mo ? "en" : "dis");
 	fprintf(stderr, "Killer heuristic is %sabled.\n",
 		ai_use_mo ? "en" : "dis");
-
 	fprintf(stderr, "Initialization took %.3fs.\n", time_used());
 
-	if (arg_state) {
-		solve_state(arg_state);
-	} else {
-		run_game();
-	}
+	/* Run main program: */
+	if (arg_state) solve_state(arg_state);
+	else run_game();
 
+	/* Clean up: */
 	if (ai_use_tt) tt_fini();
 	crash_fini();
 

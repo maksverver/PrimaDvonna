@@ -1,8 +1,9 @@
 #include "AI.h"
 #include "IO.h"
+#include "MO.h"
+#include "Signal.h"
 #include "Time.h"
 #include "TT.h"
-#include "MO.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -185,8 +186,9 @@ EXTERN bool ai_select_move( Board *board,
 {
 	static int depth = 2;  /* iterative deepening start depth */
 
+	signal_handler_t new_handler, old_handler;
 	double start = time_used();
-	bool alarm_set = false;
+	bool alarm_set = false, signal_handler_set = false;
 	Move moves[M];
 	int nmove = generate_moves(board, moves);
 
@@ -213,7 +215,6 @@ EXTERN bool ai_select_move( Board *board,
 		double used = time_used() - start;
 
 		if (aborted) {
-			printf("%f %f\n", time_used(), start);
 			fprintf(stderr, "WARNING: aborted after %.3fs!\n", used);
 			--depth;
 			break;
@@ -231,6 +232,7 @@ EXTERN bool ai_select_move( Board *board,
 		}
 
 		if (max_time > 0 && used > max_time) {
+			/* N.B. if this happens during CodeCup games, we could time out! */
 			fprintf(stderr, "WARNING: max_time exceeded!\n");
 			--depth;
 			break;
@@ -238,21 +240,21 @@ EXTERN bool ai_select_move( Board *board,
 
 		/* Determine whether to search again with increased depth: */
 		if (depth == max_depth) break;
-		if (max_time > 0) {
-			if (used >= ((depth%2 == 0) ? 0.1 : 0.4)*max_time) break;
-			if (!alarm_set) {
-				set_alarm(max_time - used, set_aborted, NULL);
-				alarm_set = true;
-			}
-		}
 		if (min_eval > 0 && eval_count_total() >= min_eval) break;
 		if (min_depth > 0 && depth >= min_depth) break;
+		if (max_time > 0) {
+			if (used >= ((depth%2 == 0) ? 0.1 : 0.4)*max_time) break;
+			if (!alarm_set++) set_alarm(max_time - used, set_aborted, NULL);
+		}
+		if (!signal_handler_set++) {
+			signal_handler_init(&new_handler, set_aborted);
+			signal_swap_handlers(SIGINT, &new_handler, &old_handler);
+		}
 		++depth;
 	}
-	if (alarm_set) {
-		clear_alarm();
-		aborted = false;
-	}
+	if (alarm_set) clear_alarm();
+	if (signal_handler_set) signal_swap_handlers(SIGINT, &old_handler, NULL);
+	aborted = false;
 	return true;
 }
 
