@@ -3,8 +3,10 @@ Note for test competition 4:
    behind my expected time. If not, up the time limit to e.g. 4.95 or so.
 
 Soon:
-   - review changes in AI/player
-   - add option for setting evallimit
+ - Review changed edge wait, by checking out player-tc3, changing ONLY the value
+   of edge fields in eval_placing, and then doing a long (100 round?)
+   competition. If this is indeed worse, try working around degenerate cases
+   like those lost in competition 4 in a different way.
 
 Maybe TODO:
    - debug Holtz' failure in game 120 of local-tournament

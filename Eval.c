@@ -75,12 +75,6 @@ EXTERN val_t eval_placing(const Board *board)
 	return score[p] - score[1 - p];
 }
 
-/* Evaluate an end position. */
-EXTERN val_t eval_end(const Board *board)
-{
-	return 100*board_score(board);
-}
-
 /* Evaluate a board during the stacking phase. */
 EXTERN val_t eval_stacking(const Board *board)
 {
@@ -115,4 +109,11 @@ EXTERN val_t eval_stacking(const Board *board)
 #endif
 	p = next_player(board);
 	return score[p] - score[1 - p];
+}
+
+
+/* Evaluate an end position. */
+EXTERN val_t eval_end(const Board *board)
+{
+	return 100*board_score(board);
 }
