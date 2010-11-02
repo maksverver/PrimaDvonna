@@ -1,9 +1,9 @@
 #include "Time.h"
+#include "Signal.h"
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <signal.h>
 #include <sys/time.h>
 
 static bool started;
@@ -11,7 +11,7 @@ static struct timeval used, start;
 double time_limit;
 
 /* Alarm data: */
-static struct sigaction old_action;
+static signal_handler_t old_handler;
 static void (*callback_func)(void *);
 static void *callback_arg;
 
@@ -20,7 +20,7 @@ EXTERN void time_restart(void)
 	used.tv_sec  = 0;
 	used.tv_usec = 0;
 	gettimeofday(&start, NULL);
-	started = false;
+	started = true;
 }
 
 EXTERN void time_start(void)
@@ -67,7 +67,7 @@ EXTERN double time_left(void)
 	return time_limit - time_used();
 }
 
-static void alarm_handler(int signum)
+static void alarm_callback(int signum)
 {
 	(void)signum;  /* ignored */
 
@@ -77,17 +77,15 @@ static void alarm_handler(int signum)
 EXTERN void set_alarm(double time, void(*callback)(void*), void *arg)
 {
 	struct itimerval new_timer, old_timer;
-	struct sigaction new_action;
+	signal_handler_t new_handler;
 
 	/* Record callback handler function and argument: */
 	callback_func = callback;
 	callback_arg  = arg;
 
 	/* Install signal handler */
-	new_action.sa_handler = alarm_handler;
-	sigemptyset(&new_action.sa_mask);
-	new_action.sa_flags   = 0;
-	sigaction(SIGALRM, &new_action, &old_action);
+	signal_handler_init(&new_handler, alarm_callback);
+	signal_swap_handlers(SIGALRM, &new_handler, &old_handler);
 
 	/* Set timer with setitimer */
 	new_timer.it_interval.tv_sec  = 0;
@@ -102,7 +100,7 @@ EXTERN void clear_alarm(void)
 {
 	struct itimerval stop_timer = { { 0, 0 }, { 0, 0 } };
 	setitimer(ITIMER_REAL, &stop_timer, NULL);
-	sigaction(SIGALRM, &old_action, NULL);
+	signal_swap_handlers(SIGALRM, &old_handler, NULL);
 	callback_func = NULL;
 	callback_arg  = NULL;
 }

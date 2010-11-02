@@ -4,6 +4,7 @@
 #include "Game.h"
 
 /* Type of values used to evaluate game positions: */
+#define VAL_FMT "%d"
 typedef signed short val_t;
 extern const val_t min_val, max_val;
 

@@ -13,13 +13,13 @@
 #include <time.h>
 #include <unistd.h>
 
-#define default_depth 12
-#define default_time 4.88
+#define default_player_time 4.88
 
-static int arg_seed = 0;
-static const char *arg_state = NULL;
-static int arg_depth = default_depth;
-static double arg_time = default_time;
+static int         arg_seed      = 0;
+static const char *arg_state     = NULL;
+static double      arg_max_time  = 0.0;
+static int         arg_min_depth = 0;
+static int         arg_min_eval   = 0;
 
 static char *trim(char *s)
 {
@@ -80,12 +80,57 @@ static void parse_and_execute_move(Board *board, const char *line)
 	board_validate(board);
 }
 
+static int est_moves_left(const Board *board, Color player)
+{
+	int r1, c1, r2, c2, d, res = 0;
+	const Field *f;
+
+	for (r1 = 0; r1 < H; ++r1) {
+		for (c1 = 0; c1 < W; ++c1) {
+			f = &board->fields[r1][c1];
+			if (!f->removed && f->player == player) {
+				for (d = 0; d < 6; ++d) {
+					r2 = r1 + DR[d]*f->pieces;
+					if (r2 >= 0 && r2 < H) {
+						c2 = c1 + DC[d]*f->pieces;
+						if (c2 >= 0 && c2 < W) {
+							if (!board->fields[r2][c2].removed) {
+								++res;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return res;
+}
+
+static bool select_move(Board *board, Move *move)
+{
+	if (board->moves < N) {
+		/* Placement phase: just greedily pick best move. */
+		return ai_select_move(board, 0, 0, 1, move, NULL, NULL);
+	} else {
+		/* Stacking phase: divide remaining time over est. moves to play: */
+		int d = est_moves_left(board, next_player(board));
+		double t;
+		if (d > 12) d = 12;
+		if (d <  3) d =  3;
+		t = time_left()/d;
+		fprintf(stderr, "%.3fs+%.3fs\n", time_used(), t);
+		return ai_select_move(board, t, 0, 0, move, NULL, NULL);
+	}
+}
+
 static void run_game()
 {
 	Color my_color;
 	Board board;
 	const char *move_str;
 
+	time_limit = (arg_max_time > 0) ? arg_max_time : default_player_time;
 	board_clear(&board);
 	board_validate(&board);
 	move_str = read_line();
@@ -100,7 +145,7 @@ static void run_game()
 		if (next_player(&board) == my_color) {  /* it's my turn */
 			Move move;
 			fprintf(stderr, "%s\n", format_state(&board));
-			if (!ai_select_move(&board, &move)) {
+			if (!select_move(&board, &move)) {
 				fprintf(stderr, "Internal error: no move selected!\n");
 				exit(EXIT_FAILURE);
 			}
@@ -122,36 +167,33 @@ static void solve_state(const char *descr)
 	Color next_player;
 	Board board;
 	Move move, pv[40];
-	const char *move_str = NULL;
-	int depth = 0, n, npv;
+	int n, npv;
 
 	if (!parse_state(descr, &board, &next_player)) {
 		fprintf(stderr, "Couldn't parse game description: `%s'!\n", descr);
 		exit(EXIT_FAILURE);
 	}
 	board_validate(&board);
-	fprintf(stderr, "Intermediate value: %d\n", ai_evaluate(&board));
+	fprintf(stderr, "Intermediate value: "VAL_FMT"\n", ai_evaluate(&board));
 	if (next_player == NONE) {
 		fprintf(stderr, "Game already finished!\n");
 	} else {
 		board_validate(&board);
-		for (depth = arg_depth<2 ? arg_depth : 2; depth <= arg_depth; ++depth) {
-			if (!ai_select_move_fixed(&board, &move, depth)) {
-				fprintf(stderr, "Internal error: no move selected!\n");
-				exit(EXIT_FAILURE);
-			}
-			fprintf(stderr, "%d:", depth);
-			npv = ai_extract_pv(&board, pv, sizeof(pv)/sizeof(*pv));
-			assert(npv > 0 && move_compare(&move, &pv[0]) == 0);
-			for (n = 0; n < npv; ++n) printf(" %s", format_move(&pv[n]));
-			printf("\n");
+		if (!ai_select_move(&board, arg_max_time, arg_min_eval, arg_min_depth,
+			&move, NULL, NULL)) {
+			fprintf(stderr, "Internal error: no move selected!\n");
+			exit(EXIT_FAILURE);
 		}
-		move_str = format_move(&move);
-	}
-	if (move_str) {
-		printf("%s\n", move_str);
-		parse_and_execute_move(&board, move_str);
+		npv = ai_extract_pv(&board, pv, sizeof(pv)/sizeof(*pv));
+		assert(npv > 0 && move_compare(&move, &pv[0]) == 0);
+		fprintf(stderr, "Principal variation:");
+		for (n = 0; n < npv; ++n) {
+			fprintf(stderr, " %s", format_move(&pv[n]));
+		}
+		fprintf(stderr, "\n");
+		board_do(&board, &move);
 		fprintf(stderr, "New state: %s\n", format_state(&board));
+		printf("%s\n", format_move(&move));
 	}
 }
 
@@ -165,13 +207,16 @@ static void print_usage()
 		"\t--seed=<int>      "
 	"initialize RNG with given seed (default: random)\n"
 		"\t--state=<descr>   solve given state\n"
-		"\t--depth=<depth>   maximum search depth (default: %d)\n"
-		"\t--time=<time>     maximum time per game (default: %.2fs)\n"
+		"\t--depth=<depth>   stop after searching on given depth \n"
+		"\t--eval=<count>    "
+	"stop after evaluating given number of positions\n"
+		"\t--time=<time>     "
+	"maximum time per game/state (default when playing: %.2fs)\n"
 		"\t--enable-tt       enable transposition table\n"
 		"\t--disable-tt      disable transposition table\n"
 		"\t--enable-mo       enable move ordering\n"
 		"\t--disable-mo      disable move ordering\n",
-		default_depth, default_time );
+		default_player_time );
 }
 
 static void parse_args(int argc, char *argv[])
@@ -192,10 +237,13 @@ static void parse_args(int argc, char *argv[])
 			arg_state = argv[pos] + 8;
 			continue;
 		}
-		if (sscanf(argv[pos], "--depth=%d", &arg_depth) == 1) {
+		if (sscanf(argv[pos], "--depth=%d", &arg_min_depth) == 1) {
 			continue;
 		}
-		if (sscanf(argv[pos], "--time=%lf", &arg_time) == 1) {
+		if (sscanf(argv[pos], "--eval=%d", &arg_min_eval) == 1) {
+			continue;
+		}
+		if (sscanf(argv[pos], "--time=%lf", &arg_max_time) == 1) {
 			continue;
 		}
 		if (strcmp(argv[pos], "--enable-tt") == 0) {
@@ -241,9 +289,6 @@ int main(int argc, char *argv[])
 
 	/* Parse command line arguments. */
 	parse_args(argc, argv);
-
-	/* Set time limit: */
-	time_limit = arg_time;
 
 	/* Make stdout and stderr line buffered: */
 	{

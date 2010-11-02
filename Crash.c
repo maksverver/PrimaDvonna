@@ -1,5 +1,5 @@
 #include "Crash.h"
-#include <sys/signal.h>
+#include "Signal.h"
 #include <stdio.h>
 extern char *strsignal(int sig);
 
@@ -33,15 +33,12 @@ static void crash_handler(int signal)
 
 EXTERN void crash_init()
 {
-	struct sigaction sa;
+	signal_handler_t handler;
 	int i;
 
-	sa.sa_handler = crash_handler;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;  /* FIXME: use alternate stack? */
-
+	signal_handler_init(&handler, crash_handler);
 	for (i = 0; signals[i]; ++i) {
-		if (sigaction(signals[i], &sa, NULL) != 0) {
+		if (signal_swap_handlers(signals[i], &handler, NULL) != 0) {
 			fprintf(stderr, "Couldn't install signal handler %d!\n", i);
 		}
 	}
@@ -49,15 +46,12 @@ EXTERN void crash_init()
 
 EXTERN void crash_fini()
 {
-	struct sigaction sa;
+	signal_handler_t handler;
 	int i;
 
-	sa.sa_handler = SIG_DFL;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
-
+	signal_handler_init(&handler, SIG_DFL);
 	for (i = 0; signals[i]; ++i) {
 		/* Don't check return code here. If this fails we're boned anyway. */
-		sigaction(signals[i], &sa, NULL);
+		signal_swap_handlers(signals[i], &handler, NULL);
 	}
 }

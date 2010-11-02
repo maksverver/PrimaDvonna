@@ -179,39 +179,16 @@ static void set_aborted()
 	aborted = true;
 }
 
-static int est_moves_left(const Board *board, Color player)
+EXTERN bool ai_select_move( Board *board,
+	double max_time, int min_eval, int min_depth,
+	Move *best_move, val_t *best_value, int *best_depth )
 {
-	int r1, c1, r2, c2, d, res = 0;
-	const Field *f;
+	static int depth = 2;  /* iterative deepening start depth */
 
-	for (r1 = 0; r1 < H; ++r1) {
-		for (c1 = 0; c1 < W; ++c1) {
-			f = &board->fields[r1][c1];
-			if (!f->removed && f->player == player) {
-				for (d = 0; d < 6; ++d) {
-					r2 = r1 + DR[d]*f->pieces;
-					if (r2 >= 0 && r2 < H) {
-						c2 = c1 + DC[d]*f->pieces;
-						if (c2 >= 0 && c2 < W) {
-							if (!board->fields[r2][c2].removed) {
-								++res;
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return res;
-}
-
-EXTERN bool ai_select_move(Board *board, Move *move)
-{
-	val_t val;
+	double start = time_used();
+	bool alarm_set = false;
 	Move moves[M];
 	int nmove = generate_moves(board, moves);
-	bool alarm_set = false;
 
 	/* Check if we have any moves to make: */
 	if (nmove == 0) {
@@ -220,92 +197,62 @@ EXTERN bool ai_select_move(Board *board, Move *move)
 	}
 	if (nmove == 1) {
 		fprintf(stderr, "one move available!\n");
-		*move = moves[0];
-		return true;
+		min_depth = 1;
 	}
 
-	if (board->moves < N) {
-		/* Fixed-depth search during placement phase: */
-		val = dfs(board, 2, 0, min_val, max_val, move);
-		fprintf(stderr, "v:%d\n", val);
-	} else {
-		/* Increment max depth during placement phase: */
-		static int depth = 2;
-		int moves_left;
-		double start = time_used(), left = time_left();
-		double used = 0, budget = 0;
+	/* Killer heuristic is most effective when the transposition table
+	   contains the information from one ply ago, instead of two plies: */
+	if (ai_use_killer && depth > 2) --depth;
 
-		fprintf(stderr, "%.3fs\n", start);
+	eval_count_reset();
+	aborted = false;
+	for (;;) {
+		/* DFS for best value and move: */
+		Move move;
+		val_t value = dfs(board, depth, 0, min_val, max_val, &move);
+		double used = time_used() - start;
 
-		/* Estimate number of moves left: */
-		moves_left = est_moves_left(board, next_player(board));
-		if (moves_left > 12) moves_left = 12;
-		if (moves_left <  3) moves_left =  3;
-		budget = left/moves_left;
-		fprintf(stderr, "budget: %.3fs for %d moves\n", budget, est_moves_left(board, next_player(board)));
+		if (aborted) {
+			printf("%f %f\n", time_used(), start);
+			fprintf(stderr, "WARNING: aborted after %.3fs!\n", used);
+			--depth;
+			break;
+		}
 
-		/* Killer heuristic is most effective when the transposition table
-		   contains the information from one ply ago, instead of two plies: */
-		if (ai_use_killer) --depth;
+		/* Update best value, move and depth: */
+		if (best_move)  *best_move  = move;
+		if (best_value) *best_value = value;
+		if (best_depth) *best_depth = depth;
 
-		eval_count_reset();
-		aborted = false;
-		for (;;) {
-			/* DFS for best value and move: */
-			Move new_move;
-			val_t new_val = dfs(board, depth, 0, min_val, max_val, &new_move);
-			used = time_used() - start;
+		/* Report intermediate result: */
+		if (board->moves >= N) {
+			fprintf(stderr, "d:%d v:"VAL_FMT" m:%s e:%d u:%.3fs\n",
+				depth, value, format_move(&move), eval_count_total(), used);
+		}
 
-			if (aborted) {
-				fprintf(stderr, "WARNING: aborted after %.3fs!\n", used);
-				--depth;
-				break;
-			}
+		if (max_time > 0 && used > max_time) {
+			fprintf(stderr, "WARNING: max_time exceeded!\n");
+			--depth;
+			break;
+		}
 
-			/* Update new best value and move: */
-			val = new_val;
-			*move = new_move;
-
-			/* Report time used: */
-			fprintf(stderr, "d:%d v:%d e:%d m:%s u:%.3fs\n",
-				depth, val, eval_count_total(), format_move(move), used);
-
-			if (used > budget) {
-				fprintf(stderr, "WARNING: over budget!\n");
-				--depth;
-				break;
-			}
-
-			/* Determine whether to do another pass at increased search depth: */
-			if (depth == max_depth) break;
-			if (used > ((depth%2 == 0) ? 0.1 : 0.4)*budget) break;
-			++depth;
-
-			/* Schedule alarm to abort search instead of going over budget: */
+		/* Determine whether to search again with increased depth: */
+		if (depth == max_depth) break;
+		if (max_time > 0) {
+			if (used >= ((depth%2 == 0) ? 0.1 : 0.4)*max_time) break;
 			if (!alarm_set) {
-				set_alarm(budget - used, set_aborted, NULL);
+				set_alarm(max_time - used, set_aborted, NULL);
 				alarm_set = true;
 			}
 		}
-		if (alarm_set) {
-			clear_alarm();
-			aborted = false;
-		}
+		if (min_eval > 0 && eval_count_total() >= min_eval) break;
+		if (min_depth > 0 && depth >= min_depth) break;
+		++depth;
 	}
-	return true;
-}
-
-EXTERN bool ai_select_move_fixed(Board *board, Move *move, int depth)
-{
-	Move moves[M];
-	int nmove = generate_moves(board, moves);
-	val_t val;
-
-	if (nmove == 0) return false;
-	eval_count_reset();
-	val = dfs(board, depth, 0, min_val, max_val, move);
-	fprintf(stderr, "depth=%d val=%d evaluated: %d\n",
-		depth, val, eval_count_total());
+	if (alarm_set) {
+		clear_alarm();
+		aborted = false;
+	}
 	return true;
 }
 
