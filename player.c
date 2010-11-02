@@ -119,7 +119,7 @@ static bool select_move(Board *board, Move *move)
 		/* Stacking phase: divide remaining time over est. moves to play: */
 		if (!limit.time && !limit.depth && !limit.eval)
 		{
-			int d = est_moves_left(board, next_player(board));
+			int d = est_moves_left(board, next_player(board)) - 6;
 			if (d > 12) d = 12;
 			if (d <  3) d =  3;
 			limit.time = time_left()/d;
@@ -138,7 +138,7 @@ static void run_game()
 	const char *move_str;
 
 	/* In player mode, use the time limit as the global time limit: */
-	time_limit = (arg_limit.time > 0) ? arg_limit.time : 0;
+	time_limit = (arg_limit.time > 0) ? arg_limit.time : default_player_time;
 	arg_limit.time = 0;
 	board_clear(&board);
 	board_validate(&board);
