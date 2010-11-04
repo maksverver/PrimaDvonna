@@ -272,7 +272,7 @@ EXTERN bool ai_select_move( Board *board,
 EXTERN val_t ai_evaluate(const Board *board)
 {
 	++eval_count;
-	if (board->moves > N) {
+	if (board->moves >= N) {
 		return eval_stacking(board);
 	} else if (board->moves > D) {
 		return eval_placing(board);
