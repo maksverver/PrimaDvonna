@@ -200,6 +200,7 @@ static void run_game()
 static void solve_state(const char *descr)
 {
 	Color next_player;
+	AI_Result result;
 	Board board;
 	Move pv[40];
 	int n, npv;
@@ -214,20 +215,19 @@ static void solve_state(const char *descr)
 		fprintf(stderr, "Game already finished!\n");
 	} else {
 		board_validate(&board);
-		if (!ai_select_move(&board, &arg_limit, NULL)) {
+		if (!ai_select_move(&board, &arg_limit, &result)) {
 			fprintf(stderr, "Internal error: no move selected!\n");
 			exit(EXIT_FAILURE);
 		}
 		npv = ai_extract_pv(&board, pv, sizeof(pv)/sizeof(*pv));
-		assert(npv > 0);
 		fprintf(stderr, "Principal variation:");
 		for (n = 0; n < npv; ++n) {
 			fprintf(stderr, " %s", format_move(&pv[n]));
 		}
 		fprintf(stderr, "\n");
-		board_do(&board, &pv[0]);
+		board_do(&board, &result.move);
 		fprintf(stderr, "New state: %s\n", format_state(&board));
-		printf("%s\n", format_move(&pv[0]));
+		printf("%s\n", format_move(&result.move));
 	}
 }
 

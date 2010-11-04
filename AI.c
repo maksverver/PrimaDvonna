@@ -287,6 +287,8 @@ EXTERN int ai_extract_pv(Board *board, Move *moves, int nmove)
 	hash_t hash;
 	TTEntry *entry;
 
+	if (!ai_use_tt) return 0;
+
 	for (n = 0; n < nmove && generate_all_moves(board, NULL) > 0 ; ++n)
 	{
 		hash = hash_board(board);
