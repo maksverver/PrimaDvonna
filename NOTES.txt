@@ -94,3 +94,37 @@ placement phase, resulting in emberassing cut-offs. That needs to be fixed!
 Comparing my logged times and the judge's output, the judge seems to think I use
 about 70~90 ms more time than I think I do. To make sure I stay within the time
 limit, I will fixed my timelimit to 5s - 120 ms = 4.88 s.
+
+================================================================================
+
+To prevent losses like in competition 3, I reduced the weight of edge fields
+from 5 to 2. At the same time, I changed the way time is allocated for moves.
+This seemed an innocuous change, but the new program seemed to lose to the
+testcomp-3 version, despite the edge fix!
+
+First, I verified the edge fix itself was for the best, by patching the test
+competition program with just this weight change and nothing else:
+
+No Player               Points  Won Tied Lost Fail Avg Time Max Time
+-- -------------------- ------ ---- ---- ---- ---- -------- --------
+ 1 ./player-tc3-edgefix  12271  105    1   94    0   2.471s   3.757s
+ 2 ./player-tc3          10946   94    1  105    0   2.239s   3.513s
+-- -------------------- ------ ---- ---- ---- ---- -------- --------
+   (Stone difference: 1.68)
+
+So, that's not the problem. Next, I patched the old time budgeting code back
+into the new program (with edge fix) and tried again:
+
+No Player               Points  Won Tied Lost Fail Avg Time Max Time
+-- -------------------- ------ ---- ---- ---- ---- -------- --------
+ 1 ./player              13714  119    5   76    0   2.384s   3.737s
+ 2 ./player-tc3           9555   76    5  119    0   2.230s   3.676s
+-- -------------------- ------ ---- ---- ---- ---- -------- --------
+   (Stone difference: 1.45)
+
+Much better! The only functional difference between the two would be the edge
+fix (and a little higher maximum time limit, 4.88 instead of 4.80). So the
+conclusion is that apperantly the old time allocation was much better! The
+bigger difference in score than in the previous set of games I cannot account
+for. It makes sense to chalk it up to chance, as the stone difference appears
+to be smaller than before, suggesting the player was not fundamentally stronger.

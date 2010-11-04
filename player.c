@@ -78,6 +78,7 @@ static void parse_and_execute_move(Board *board, const char *line)
 	board_validate(board);
 }
 
+#if 0
 static int est_moves_left(const Board *board, Color player)
 {
 	int r1, c1, r2, c2, d, res = 0;
@@ -104,6 +105,23 @@ static int est_moves_left(const Board *board, Color player)
 	}
 	return res;
 }
+#endif
+
+static int max_moves_left(const Board *board)
+{
+	int r, c, stacks = 0;
+
+	if (board->moves < N) {
+		return N + (N - 1) - board->moves;
+	}
+
+	for (r = 0; r < H; ++r) {
+		for (c = 0; c < W; ++c) {
+			if (!board->fields[r][c].removed) ++stacks;
+		}
+	}
+	return stacks - 1;
+}
 
 static bool select_move(Board *board, Move *move)
 {
@@ -119,9 +137,17 @@ static bool select_move(Board *board, Move *move)
 		/* Stacking phase: divide remaining time over est. moves to play: */
 		if (!limit.time && !limit.depth && !limit.eval)
 		{
+#if 0
+			/* "New" and "improved" budget code that actually performs worse
+			   than the old version, below! I should try to figure out why,
+			   before changing the budget code again, and even then test very
+			   carefully to ensure the change is actually an improvement. */
 			int d = est_moves_left(board, next_player(board)) - 6;
 			if (d > 12) d = 12;
 			if (d <  3) d =  3;
+#endif
+			int d = (max_moves_left(board) - 16)/2;
+			if (d < 3) d = 3;
 			limit.time = time_left()/d;
 			fprintf(stderr, "%.3fs+%.3fs\n", time_used(), limit.time);
 		}
