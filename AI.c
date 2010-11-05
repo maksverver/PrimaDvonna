@@ -48,7 +48,7 @@ static void reset_rng()
    means that all calls to dfs() should be followed by checking `aborted' before
    using the return value.
 */
-static val_t dfs(Board *board, int depth, int pass, int lo, int hi,
+static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
                  Move *return_best)
 {
 	hash_t hash = (hash_t)-1;
@@ -115,8 +115,8 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi,
 	} else {  /* evaluate interior node */
 		Move moves[M];
 		int n, nmove = generate_moves(board, moves);
-		int next_lo = -hi;
-		int next_hi = (-res < -lo) ? -res : -lo;
+		val_t next_lo = -hi;
+		val_t next_hi = (-res < -lo) ? -res : -lo;
 
 		if (return_best) *return_best = move_null;  /* for integrity checking */
 		if (nmove == 1) {
@@ -162,10 +162,10 @@ static val_t dfs(Board *board, int depth, int pass, int lo, int hi,
 			}
 		}
 		if (ai_use_tt) {  /* FIXME: replacement policy? */
-			entry->hash  = hash;
-			entry->lo    = res > lo ? res : min_val;
-			entry->hi    = res < hi ? res : max_val;
-			entry->depth = depth;
+			entry->hash   = hash;
+			entry->lo     = res > lo ? res : min_val;
+			entry->hi     = res < hi ? res : max_val;
+			entry->depth  = depth;
 			entry->killer = killer;
 #ifdef TT_DEBUG
 			memcpy(entry->data, data, 50);
