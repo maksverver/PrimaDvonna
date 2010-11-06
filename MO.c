@@ -73,8 +73,7 @@ void order_moves(Board *board, Move *moves, int nmove)
 		values[j] = v;
 	}
 }
-#endif
-
+#else
 /* New evaluation function that orders moves by executing them all, and
    directly evaluating the resulting games. */
 void order_moves(Board *board, Move *moves, int nmove)
@@ -114,3 +113,4 @@ void order_moves(Board *board, Move *moves, int nmove)
 		values[j] = v;
 	}
 }
+#endif

@@ -12,7 +12,7 @@
 static const int max_depth = 20;
 
 /* Search algorithm parameters: */
-bool ai_use_tt     = false;
+bool ai_use_tt     = true;
 bool ai_use_mo     = true;
 bool ai_use_killer = false;
 
@@ -71,7 +71,9 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 #ifdef TT_DEBUG  /* detect hash collisions */
 			assert(memcmp(entry->data, data, 50) == 0);
 #endif
-			if (entry->depth >= depth &&
+			/* We could use >= depth here too, but that leads to search
+			   instability, which might better be avoided. */
+			if (entry->depth == depth &&
 				(!return_best || valid_move(board, &entry->killer))) {
 				if (return_best) *return_best = entry->killer;
 				if (entry->lo == entry->hi) return entry->lo;
@@ -115,9 +117,7 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 	} else {  /* evaluate interior node */
 		Move moves[M];
 		int n, nmove = generate_moves(board, moves);
-		/* DEBUG: reset lo to min_val like Dvonner does ("almost" alpha-beta) */
-		val_t next_lo = min_val;
-		/* val_t next_lo = -hi; */  /* old value, for "real" alpha-beta */
+		val_t next_lo = -hi;
 		val_t next_hi = (-res < -lo) ? -res : -lo;
 
 		if (return_best) *return_best = move_null;  /* for integrity checking */
