@@ -202,7 +202,7 @@ EXTERN bool ai_select_move( Board *board,
 
 	/* Killer heuristic is most effective when the transposition table
 	   contains the information from one ply ago, instead of two plies: */
-	if (ai_use_killer && depth > 2) --depth;
+	if (ai_use_tt && ai_use_killer && depth > 2) --depth;
 
 	eval_count = 0;
 	aborted = false;

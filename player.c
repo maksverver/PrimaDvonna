@@ -343,13 +343,14 @@ int main(int argc, char *argv[])
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);
 	} else {
 		fprintf(stderr, "Transposition table is disabled.\n");
+		ai_use_killer = false;  /* implicit */
 	}
 
 	/* Print other parameters: */
 	fprintf(stderr, "Move ordering is %sabled.\n",
 		ai_use_mo ? "en" : "dis");
 	fprintf(stderr, "Killer heuristic is %sabled.\n",
-		ai_use_mo ? "en" : "dis");
+		ai_use_killer ? "en" : "dis");
 	fprintf(stderr, "Initialization took %.3fs.\n", time_used());
 
 	/* Run main program: */
