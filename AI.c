@@ -139,7 +139,11 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 			}
 
 			/* Move ordering: */
-			if (ai_use_mo) order_moves(board, moves, nmove);
+			if (ai_use_mo) {
+				/* When using evaluation-based ordering, doing this when depth
+				   == 1 only wastes time: */
+				if (depth > 1) order_moves(board, moves, nmove);
+			}
 
 			/* Killer heuristic: */
 			if (!move_is_null(&killer)) move_to_front(moves, nmove, killer);
