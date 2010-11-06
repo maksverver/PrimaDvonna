@@ -35,7 +35,8 @@ EXTERN val_t eval_placing(const Board *board)
 			}
 		}
 	}
-	assert(d == D);
+	/* Can't evaluate before all Dvonn stones are placed: */
+	if (d < D) return 0;
 
 	/* Scan board for player's stones and value them: */
 	for (r = 0; r < H; ++r) {
@@ -84,11 +85,14 @@ struct Weights {
 };
 
 static struct Weights weights = {
-	{ { 0.000, 0.045 }, { 0.068, 0.015 } },  /* Towers */
-	{ { 0.150, 0.000 }, { 0.169, 0.077 } },  /* Moves */
-	{ { 0.001, 0.068 }, { 0.006, 0.077 } },  /* Score */
-	{ 0.031, 0.209 },                        /* MovesToLife */
-	{ 0.000, 0.000 } };                      /* MovesToEnemy */
+	 /*   immobile          mobile      */
+	 /* nolife life       nolife life   */
+	{ { 0.000, 0.050 }, { 0.050, 0.050 } },  /* Towers */
+	{ { 0.150, 0.000 }, { 0.200, 0.075 } },  /* Moves */
+	{ { 0.005, 0.050 }, { 0.010, 0.075 } },  /* Score */
+
+	{ 0.030, 0.200 },                        /* MovesToLife */
+	{ 0.000, 0.050 } };                      /* MovesToEnemy */
 
 /* Evaluate a board during the stacking phase. */
 EXTERN val_t eval_stacking(const Board *board)
@@ -107,10 +111,7 @@ EXTERN val_t eval_stacking(const Board *board)
 		for (c1 = 0; c1 < W; ++c1) {
 			f = &board->fields[r1][c1];
 			if (f->removed || f->player < 0) continue;
-			assert(f->pieces > 0);
-			sign = (f->player == WHITE) ? +1 :
-			       (f->player == BLACK) ? -1 : 0;
-			assert(sign != 0);
+			sign = (f->player == WHITE) ? +1 : -1;
 			wTowers[f->mobile?1:0][f->dvonns?1:0] += sign;
 			wScore[f->mobile?1:0][f->dvonns?1:0] += f->pieces * sign;
 			for (dir = 0; dir < 6; ++dir) {
@@ -119,7 +120,6 @@ EXTERN val_t eval_stacking(const Board *board)
 				if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
 					g = &board->fields[r2][c2];
 					if (g->removed) continue;
-					assert(g->pieces > 0);
 					if (f->mobile) game_over = false;
 					if (g->dvonns) {
 						wMovesToLife[f->mobile?1:0] += sign;
@@ -146,10 +146,7 @@ EXTERN val_t eval_stacking(const Board *board)
 		value += wMovesToEnemy [i] * weights.MovesToEnemy [i];
 	}
 
-	if (next_player(board) == WHITE) return +value;
-	if (next_player(board) == BLACK) return -value;
-	assert(0);
-	return 0;
+	return (next_player(board) == WHITE) ? value : -value;
 }
 
 /* Evaluate an end position. */

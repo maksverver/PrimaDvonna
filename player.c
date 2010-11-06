@@ -192,12 +192,12 @@ static bool select_move(Board *board, Move *move)
 
 	if (board->moves < N) {
 		/* Placement phase: do a shallow search only: */
-		/*
 		limit.depth = 2;
 		ok = ai_select_move(board, &limit, &result);
-		*/
+#if 0
 		get_dvonner_setup_move(board, move);  /* DEBUG */
 		return true;  /* DEBUG */
+#endif
 	} else {
 		for (;;) {
 			limit.depth = depth;
