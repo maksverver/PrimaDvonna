@@ -130,8 +130,8 @@ static bool select_move(Board *board, Move *move)
 	AI_Limit limit = arg_limit;
 
 	if (board->moves < N) {
-		/* Placement phase: just greedily pick best move. */
-		limit.depth = 1;
+		/* Placement phase: do a shallow search only: */
+		limit.depth = 2;
 		ok = ai_select_move(board, &limit, &result);
 	} else {
 		/* Stacking phase: divide remaining time over est. moves to play: */

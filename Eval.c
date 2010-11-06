@@ -75,42 +75,82 @@ EXTERN val_t eval_placing(const Board *board)
 	return score[p] - score[1 - p];
 }
 
+struct Weights {
+	double Towers[2][2];        /* offset   0 */
+	double Moves[2][2];         /* offset  32 */
+	double Score[2][2];         /* offset  64 */
+	double MovesToLife[2];      /* offset  96 */
+	double MovesToEnemy[2];     /* offset 112 */
+};
+
+static struct Weights weights = {
+	{ { 0.000, 0.045 }, { 0.068, 0.015 } },  /* Towers */
+	{ { 0.150, 0.000 }, { 0.169, 0.077 } },  /* Moves */
+	{ { 0.001, 0.068 }, { 0.006, 0.077 } },  /* Score */
+	{ 0.031, 0.209 },                        /* MovesToLife */
+	{ 0.000, 0.000 } };                      /* MovesToEnemy */
+
 /* Evaluate a board during the stacking phase. */
 EXTERN val_t eval_stacking(const Board *board)
 {
-	Move moves[2*M];
-	int nmove, n, p /* , r, c */;
-	val_t score[2] = { 0, 0 };
+	int r1, c1, r2, c2, dir, sign, i, j;
+	const Field *f, *g;
+	val_t value;
+	bool game_over = true;
+	int wTowers [2][2] = { { 0, 0 }, { 0, 0 } };
+	int wMoves  [2][2] = { { 0, 0 }, { 0, 0 } };
+	int wScore  [2][2] = { { 0, 0 }, { 0, 0 } };
+	int wMovesToLife  [2] = { 0, 0 };
+	int wMovesToEnemy [2] = { 0, 0 };
 
-	assert(board->moves >= N);
-
-	/* Check if this is an end position instead: */
-	nmove = generate_all_moves(board, moves);
-	if (nmove == 0) return eval_end(board);
-
-	/* Value moves: */
-	for (n = 0; n < nmove; ++n) {
-		const Field *f = &board->fields[moves[n].r1][moves[n].c1];
-		const Field *g = &board->fields[moves[n].r2][moves[n].c2];
-
-		if (g->player == f->player) score[f->player] += 3;  /* to self */
-		else if (g->player == NONE) score[f->player] += 4;  /* to Dvonn */
-		else                        score[f->player] += 5;  /* to opponent */
-	}
-#if 0
-	/* Value material: */
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			const Field *f = &board->fields[r][c];
-
-			if (f->player >= 0) score[f->player] += 1;
+	for (r1 = 0; r1 < H; ++r1) {
+		for (c1 = 0; c1 < W; ++c1) {
+			f = &board->fields[r1][c1];
+			if (f->removed || f->player < 0) continue;
+			assert(f->pieces > 0);
+			sign = (f->player == WHITE) ? +1 :
+			       (f->player == BLACK) ? -1 : 0;
+			assert(sign != 0);
+			wTowers[f->mobile?1:0][f->dvonns?1:0] += sign;
+			wScore[f->mobile?1:0][f->dvonns?1:0] += f->pieces * sign;
+			for (dir = 0; dir < 6; ++dir) {
+				r2 = r1 + DR[dir] * f->pieces;
+				c2 = c1 + DC[dir] * f->pieces;
+				if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
+					g = &board->fields[r2][c2];
+					if (g->removed) continue;
+					assert(g->pieces > 0);
+					if (f->mobile) game_over = false;
+					if (g->dvonns) {
+						wMovesToLife[f->mobile?1:0] += sign;
+					}
+					if (g->player == 1 - f->player) {
+						wMovesToEnemy[f->mobile?1:0] += sign;
+					}
+					wMoves[f->mobile?1:0][f->dvonns?1:0] += sign;
+				}
+			}
 		}
 	}
-#endif
-	p = next_player(board);
-	return score[p] - score[1 - p];
-}
 
+	if (game_over) return eval_end(board);
+
+	value = 0;
+	for (i = 0; i < 2; ++i) {
+		for (j = 0; j < 2; ++j) {
+			value += wTowers [i][j] * weights.Towers [i][j];
+			value += wMoves  [i][j] * weights.Moves  [i][j];
+			value += wScore  [i][j] * weights.Score  [i][j];
+		}
+		value += wMovesToLife  [i] * weights.MovesToLife  [i];
+		value += wMovesToEnemy [i] * weights.MovesToEnemy [i];
+	}
+
+	if (next_player(board) == WHITE) return +value;
+	if (next_player(board) == BLACK) return -value;
+	assert(0);
+	return 0;
+}
 
 /* Evaluate an end position. */
 EXTERN val_t eval_end(const Board *board)
