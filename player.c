@@ -105,7 +105,6 @@ static int est_moves_left(const Board *board, Color player)
 	}
 	return res;
 }
-#endif
 
 static int max_moves_left(const Board *board)
 {
@@ -122,6 +121,66 @@ static int max_moves_left(const Board *board)
 	}
 	return stacks - 1;
 }
+#endif
+
+/* For debugging: quick hack to get a setup move from Dvonner: */
+static void get_dvonner_setup_move(const Board *board, Move *move)
+{
+	int r, c;
+	const Field *f;
+	char moves[3][N][3];
+	int nmove[3] = { 0, 0, 0 }, n;
+	char command[500], line[500];
+
+	for (r = 0; r < H; ++r) {
+		for (c = 0; c < W; ++c) {
+			f = &board->fields[r][c];
+			if (!f->removed && f->pieces) {
+				int p = f->player + 1, i = nmove[p]++;
+				moves[p][i][0] = 'A' + c;
+				moves[p][i][1] = '1' + r;
+				moves[p][i][2] = '\0';
+			}
+		}
+	}
+	assert(nmove[1] == nmove[2] || nmove[1] + 1 == nmove[2]);
+	assert(nmove[0] <= D);
+	assert(nmove[0] == D || (nmove[1] == 0 && nmove[2] == 0));
+
+	/* Write temporary Dvonner savegame file: */
+	FILE *fp = fopen("tmp.dvg", "wt");
+	assert(fp != NULL);
+	for (n = 0; n < nmove[0] + nmove[1] + nmove[2]; ++n) {
+		fprintf(fp, "%s%s",
+			(n < D) ? moves[0][n] : moves[1 + n%2][(n - D)/2],
+			(n%2 == 0) ? "  " : "\n" );
+	}
+	fprintf(fp, "BREAK\n");
+	fclose(fp);
+
+	/* Execute Dvonner to obtain move: */
+	sprintf(command,
+		"printf '/stop\n/load tmp\n/color %s\n/start\n/stop\n/quit\n'"
+		" | players/dvonner.bin "
+		" | grep 'Dvonner does setup move' | grep -o '[A-K][1-5]'",
+		(next_player(board) == WHITE) ? "black" : "white");
+	fp = popen(command, "r");
+	if (fp == NULL) {
+		fprintf(stderr, "Failed to execute Dvonner!\n");
+		exit(EXIT_FAILURE);
+	}
+	if (fgets(line, sizeof(line), fp) == NULL) {
+		fclose(fp);
+		fprintf(stderr, "Failed to read from Dvonner!\n");
+		exit(EXIT_FAILURE);
+	}
+	fclose(fp);
+	line[2] = '\0';
+	if (!parse_move(line, move)) {
+		fprintf(stderr, "Could not parse move!\n");
+		exit(EXIT_FAILURE);
+	}
+}
 
 static bool select_move(Board *board, Move *move)
 {
@@ -129,29 +188,23 @@ static bool select_move(Board *board, Move *move)
 	AI_Result result;
 	AI_Limit limit = arg_limit;
 
+	static int depth = 1;
+
 	if (board->moves < N) {
 		/* Placement phase: do a shallow search only: */
+		/*
 		limit.depth = 2;
 		ok = ai_select_move(board, &limit, &result);
+		*/
+		get_dvonner_setup_move(board, move);  /* DEBUG */
+		return true;  /* DEBUG */
 	} else {
-		/* Stacking phase: divide remaining time over est. moves to play: */
-		if (!limit.time && !limit.depth && !limit.eval)
-		{
-#if 0
-			/* "New" and "improved" budget code that actually performs worse
-			   than the old version, below! I should try to figure out why,
-			   before changing the budget code again, and even then test very
-			   carefully to ensure the change is actually an improvement. */
-			int d = est_moves_left(board, next_player(board)) - 6;
-			if (d > 12) d = 12;
-			if (d <  3) d =  3;
-#endif
-			int d = (max_moves_left(board) - 16)/2;
-			if (d < 3) d = 3;
-			limit.time = time_left()/d;
-			fprintf(stderr, "%.3fs+%.3fs\n", time_used(), limit.time);
+		for (;;) {
+			limit.depth = depth;
+			ok = ai_select_move(board, &limit, &result);
+			if (!ok || result.eval >= 4000 || depth == 20) break;
+			++depth;
 		}
-		ok = ai_select_move(board, &limit, &result);
 	}
 	if (ok) *move = result.move;
 	return ok;
@@ -343,13 +396,14 @@ int main(int argc, char *argv[])
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);
 	} else {
 		fprintf(stderr, "Transposition table is disabled.\n");
+		ai_use_killer = false;
 	}
 
 	/* Print other parameters: */
 	fprintf(stderr, "Move ordering is %sabled.\n",
 		ai_use_mo ? "en" : "dis");
 	fprintf(stderr, "Killer heuristic is %sabled.\n",
-		ai_use_mo ? "en" : "dis");
+		ai_use_killer ? "en" : "dis");
 	fprintf(stderr, "Initialization took %.3fs.\n", time_used());
 
 	/* Run main program: */

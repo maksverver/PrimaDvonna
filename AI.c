@@ -12,9 +12,9 @@
 static const int max_depth = 20;
 
 /* Search algorithm parameters: */
-bool ai_use_tt     = true;
+bool ai_use_tt     = false;
 bool ai_use_mo     = true;
-bool ai_use_killer = true;
+bool ai_use_killer = false;
 
 /* Global flag to abort search: */
 static volatile bool aborted = false;
@@ -115,7 +115,7 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 	} else {  /* evaluate interior node */
 		Move moves[M];
 		int n, nmove = generate_moves(board, moves);
-		/* DEBUG: reset lo to inf, like Dvonner does ("almost" alpha-beta) */
+		/* DEBUG: reset lo to min_val like Dvonner does ("almost" alpha-beta) */
 		val_t next_lo = min_val;
 		/* val_t next_lo = -hi; */  /* old value, for "real" alpha-beta */
 		val_t next_hi = (-res < -lo) ? -res : -lo;
@@ -209,7 +209,7 @@ EXTERN bool ai_select_move( Board *board,
 
 	/* Killer heuristic is most effective when the transposition table
 	   contains the information from one ply ago, instead of two plies: */
-	if (ai_use_killer && depth > 2) --depth;
+	if (ai_use_tt && ai_use_killer && depth > 2) --depth;
 
 	if (limit->depth > 0 && limit->depth < depth) depth = limit->depth;
 
