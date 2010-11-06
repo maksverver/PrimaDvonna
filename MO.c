@@ -87,6 +87,7 @@ void order_moves(Board *board, Move *moves, int nmove)
 	/* Evaluate successors: */
 	for (i = 0; i < nmove; ++i)
 	{
+		extern val_t ai_evaluate(const Board *board);
 		board_do(board, &moves[i]);
 		/* Don't call ai_evaluate here, to avoid updating eval counter? */
 		/*
@@ -94,7 +95,6 @@ void order_moves(Board *board, Move *moves, int nmove)
 			(board->moves < D) ? 0 :
 			(board->moves < N) ? eval_placing(board) : eval_stacking(board);
 		*/
-		extern val_t ai_evaluate(const Board *board);
 		values[i] = ai_evaluate(board);
 		board_undo(board, &moves[i]);
 	}

@@ -115,7 +115,9 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 	} else {  /* evaluate interior node */
 		Move moves[M];
 		int n, nmove = generate_moves(board, moves);
-		val_t next_lo = -hi;
+		/* DEBUG: reset lo to inf, like Dvonner does ("almost" alpha-beta) */
+		val_t next_lo = min_val;
+		/* val_t next_lo = -hi; */  /* old value, for "real" alpha-beta */
 		val_t next_hi = (-res < -lo) ? -res : -lo;
 
 		if (return_best) *return_best = move_null;  /* for integrity checking */
