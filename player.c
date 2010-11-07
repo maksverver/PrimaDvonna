@@ -105,6 +105,7 @@ static int est_moves_left(const Board *board, Color player)
 	}
 	return res;
 }
+#endif
 
 static int max_moves_left(const Board *board)
 {
@@ -121,7 +122,6 @@ static int max_moves_left(const Board *board)
 	}
 	return stacks - 1;
 }
-#endif
 
 /* For debugging: quick hack to get a setup move from Dvonner: */
 static void get_dvonner_setup_move(const Board *board, Move *move)
@@ -188,23 +188,44 @@ static bool select_move(Board *board, Move *move)
 	AI_Result result;
 	AI_Limit limit = arg_limit;
 
-	static int depth = 1;
-
 	if (board->moves < N) {
-		/* Placement phase: do a shallow search only: */
-		limit.depth = 2;
+#if 1
+		/* Placement phase: just greedily pick best move. */
+		limit.depth = 1;
 		ok = ai_select_move(board, &limit, &result);
-#if 0
-		get_dvonner_setup_move(board, move);  /* DEBUG */
-		return true;  /* DEBUG */
+#else /* DEBUG */
+		get_dvonner_setup_move(board, move);
+		return true;
 #endif
 	} else {
+#if 1
+		/* Stacking phase: divide remaining time over est. moves to play: */
+		if (!limit.time && !limit.depth && !limit.eval)
+		{
+#if 0
+			/* "New" and "improved" budget code that actually performs worse
+			   than the old version, below! I should try to figure out why,
+			   before changing the budget code again, and even then test very
+			   carefully to ensure the change is actually an improvement. */
+			int d = est_moves_left(board, next_player(board)) - 6;
+			if (d > 12) d = 12;
+			if (d <  3) d =  3;
+#endif
+			int d = (max_moves_left(board) - 16)/2;
+			if (d < 3) d = 3;
+			limit.time = time_left()/d;
+			fprintf(stderr, "%.3fs+%.3fs\n", time_used(), limit.time);
+		}
+		ok = ai_select_move(board, &limit, &result);
+#else  /* Dvonner mode: */
+		assert(limit.eval > 0 && !limit.time && !limit.depth);
 		for (;;) {
 			limit.depth = depth;
 			ok = ai_select_move(board, &limit, &result);
-			if (!ok || result.eval >= 4000 || depth == 20) break;
+			if (!ok || result.eval >= limit.eval || depth == 20) break;
 			++depth;
 		}
+#endif
 	}
 	if (ok) *move = result.move;
 	return ok;
