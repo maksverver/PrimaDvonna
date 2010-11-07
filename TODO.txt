@@ -32,6 +32,8 @@ For final version:
   - change compile.pl to #define NDEBUG so assertions are not tested anymore
 
 Later:
+ - reconsider using killer heuristic: with evaluation-based move-ordering, it
+   seems to make matters worse, rather than better!
  - include principal variation in AI result.
  - consider implementing NegaScout? (should work well with killer heuristic?)
  - consider implementing  MTD(f)? (tricky with float values)

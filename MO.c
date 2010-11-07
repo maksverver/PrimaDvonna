@@ -1,4 +1,7 @@
 #include "MO.h"
+#include "Eval.h"
+
+extern int ai_use_mo;
 
 static void swap_moves(Move *a, Move *b)
 {
@@ -34,7 +37,7 @@ EXTERN void move_to_front(Move *moves, int nmove, Move killer)
    Note that unlike earlier implementations, this version of the code is
    unstable in the sense that it does not preserve the relative order of
    equally good moves! */
-void order_moves(const Board *board, Move *moves, int nmove)
+static void order_heuristically(const Board *board, Move *moves, int nmove)
 {
 	Move *i, *j, *k;
 
@@ -57,4 +60,50 @@ void order_moves(const Board *board, Move *moves, int nmove)
 		else if (discr == 0) swap_moves(k, --j);         /* bad: move to back */
 		else ++k;                              /* medium: leave in the middle */
 	}
+}
+
+/* New ordering function that execute all moves and directly evaluates the
+   resulting positions. This is relatively expensive but gives good ordering. */
+static void order_evaluated(Board *board, Move *moves, int nmove)
+{
+	val_t values[M];
+	int i, j;
+	Move m;
+	val_t v;
+
+	/* Evaluate successors: */
+	for (i = 0; i < nmove; ++i)
+	{
+		extern val_t ai_evaluate(const Board *board);
+		board_do(board, &moves[i]);
+		/* Don't call ai_evaluate here, to avoid updating eval counter? */
+		/*
+		values[i] =
+			(board->moves < D) ? 0 :
+			(board->moves < N) ? eval_placing(board) : eval_stacking(board);
+		*/
+		values[i] = ai_evaluate(board);
+		board_undo(board, &moves[i]);
+	}
+
+	/* Insertion sort by increasing value, because the values computed above
+	   are relative to the opponent, so better moves for the current player
+	   will have lower values: */
+	for (i = 1; i < nmove; ++i)
+	{
+		v = values[i];
+		m = moves[i];
+		for (j = i; j > 0 && values[j - 1] > v; --j) {
+			values[j] = values[j - 1];
+			moves[j] = moves[j - 1];
+		}
+		moves[j] = m;
+		values[j] = v;
+	}
+}
+
+EXTERN void order_moves(const Board *board, Move *moves, int nmove)
+{
+	if (ai_use_mo == 1) return order_heuristically(board, moves, nmove);
+	if (ai_use_mo == 2) return order_evaluated((Board*)board, moves, nmove);
 }

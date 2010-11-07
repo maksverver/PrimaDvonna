@@ -12,9 +12,9 @@
 static const int max_depth = 20;
 
 /* Search algorithm parameters: */
-bool ai_use_tt     = true;
-bool ai_use_mo     = true;
-bool ai_use_killer = true;
+int ai_use_tt     = 1;
+int ai_use_mo     = 1;
+int ai_use_killer = 1;
 
 /* Global flag to abort search: */
 static volatile bool aborted = false;
@@ -71,7 +71,9 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 #ifdef TT_DEBUG  /* detect hash collisions */
 			assert(memcmp(entry->data, data, 50) == 0);
 #endif
-			if (entry->depth >= depth &&
+			/* We could use >= depth here too, but that leads to search
+			   instability, which might better be avoided. */
+			if (entry->depth == depth &&
 				(!return_best || valid_move(board, &entry->killer))) {
 				if (return_best) *return_best = entry->killer;
 				if (entry->lo == entry->hi) return entry->lo;
@@ -123,7 +125,9 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 			/* Only one move available: */
 			killer = moves[0];
 			board_do(board, &moves[0]);
-			res = -dfs(board, depth, (move_passes(&moves[0]) ? pass+1 : 0),
+			/* Note: `depth - 1' was `depth' here.
+			   Need to benchmark which works better later. */
+			res = -dfs(board, depth - 1, (move_passes(&moves[0]) ? pass+1 : 0),
 					   next_lo, next_hi, NULL);
 			board_undo(board, &moves[0]);
 			if (aborted) return 0;
@@ -138,7 +142,13 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 			}
 
 			/* Move ordering: */
-			if (ai_use_mo) order_moves(board, moves, nmove);
+			if (ai_use_mo) {
+				/* When using evaluation-based ordering, doing this when depth
+				   == 1 only wastes time: */
+				if (ai_use_mo < 2 || depth > 1) {
+					order_moves(board, moves, nmove);
+				}
+			}
 
 			/* Killer heuristic: */
 			if (!move_is_null(&killer)) move_to_front(moves, nmove, killer);
@@ -185,7 +195,7 @@ static void set_aborted()
 EXTERN bool ai_select_move( Board *board,
 	const AI_Limit *limit, AI_Result *result )
 {
-	static int depth = 2;  /* iterative deepening start depth */
+	static int depth = 1;  /* iterative deepening start depth */
 
 	signal_handler_t new_handler, old_handler;
 	double start = time_used();
@@ -203,6 +213,8 @@ EXTERN bool ai_select_move( Board *board,
 	/* Killer heuristic is most effective when the transposition table
 	   contains the information from one ply ago, instead of two plies: */
 	if (ai_use_tt && ai_use_killer && depth > 2) --depth;
+
+	if (limit->depth > 0 && limit->depth < depth) depth = limit->depth;
 
 	eval_count = 0;
 	aborted = false;

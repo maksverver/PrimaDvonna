@@ -246,10 +246,10 @@ static void print_usage()
 	"stop after evaluating given number of positions\n"
 		"\t--time=<time>     "
 	"maximum time per game/state (default when playing: %.2fs)\n"
-		"\t--enable-tt       enable transposition table\n"
-		"\t--disable-tt      disable transposition table\n"
-		"\t--enable-mo       enable move ordering\n"
-		"\t--disable-mo      disable move ordering\n",
+		"\t--tt=<val>        set use of table (0: off, 1: on)\n"
+		"\t--mo=<val>        enable move ordering "
+			"(0: off, 1: heuristic, 2: evaluated)\n"
+		"\t--killer=<val>    set killer heuristic (0: off, 1: on)\n",
 		default_player_time );
 }
 
@@ -280,28 +280,13 @@ static void parse_args(int argc, char *argv[])
 		if (sscanf(argv[pos], "--time=%lf", &arg_limit.time) == 1) {
 			continue;
 		}
-		if (strcmp(argv[pos], "--enable-tt") == 0) {
-			ai_use_tt = true;
+		if (sscanf(argv[pos], "--tt=%d", &ai_use_tt) == 1) {
 			continue;
 		}
-		if (strcmp(argv[pos], "--disable-tt") == 0) {
-			ai_use_tt = false;
+		if (sscanf(argv[pos], "--mo=%d", &ai_use_mo) == 1) {
 			continue;
 		}
-		if (strcmp(argv[pos], "--enable-mo") == 0) {
-			ai_use_mo = true;
-			continue;
-		}
-		if (strcmp(argv[pos], "--disable-mo") == 0) {
-			ai_use_mo = false;
-			continue;
-		}
-		if (strcmp(argv[pos], "--enable-killer") == 0) {
-			ai_use_killer = true;
-			continue;
-		}
-		if (strcmp(argv[pos], "--disable-killer") == 0) {
-			ai_use_killer = false;
+		if (sscanf(argv[pos], "--killer=%d", &ai_use_killer) == 1) {
 			continue;
 		}
 		break;
@@ -343,14 +328,16 @@ int main(int argc, char *argv[])
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);
 	} else {
 		fprintf(stderr, "Transposition table is disabled.\n");
-		ai_use_killer = false;  /* implicit */
+		ai_use_killer = 0;  /* implicit */
 	}
 
 	/* Print other parameters: */
-	fprintf(stderr, "Move ordering is %sabled.\n",
-		ai_use_mo ? "en" : "dis");
-	fprintf(stderr, "Killer heuristic is %sabled.\n",
-		ai_use_killer ? "en" : "dis");
+	fprintf(stderr, "Move ordering is %s.\n",
+		ai_use_mo == 0 ? "disabled" :
+		ai_use_mo == 1 ? "heuristic" :
+		ai_use_mo == 2 ? "evaluated" : "invalid");
+	fprintf(stderr, "Killer heuristic is %s.\n",
+		ai_use_killer ? "enabled" : "disabled");
 	fprintf(stderr, "Initialization took %.3fs.\n", time_used());
 
 	/* Run main program: */

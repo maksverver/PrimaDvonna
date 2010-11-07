@@ -1,4 +1,5 @@
 #include "Eval.h"
+#include <math.h>
 #include <assert.h>
 
 const val_t min_val = -9999;
@@ -78,37 +79,94 @@ EXTERN val_t eval_placing(const Board *board)
 /* Evaluate a board during the stacking phase. */
 EXTERN val_t eval_stacking(const Board *board)
 {
-	Move moves[2*M];
-	int nmove, n, p /* , r, c */;
-	val_t score[2] = { 0, 0 };
+	int dvonn_dist[H][W];
+	int dvonn_r[D], dvonn_c[D], ndvonn;
+	int r1, c1, r2, c2, n, dist, dir;
+	val_t player_vals[2] = { 0.0f, 0.0f };
+	bool game_over;
 
-	assert(board->moves >= N);
-
-	/* Check if this is an end position instead: */
-	nmove = generate_all_moves(board, moves);
-	if (nmove == 0) return eval_end(board);
-
-	/* Value moves: */
-	for (n = 0; n < nmove; ++n) {
-		const Field *f = &board->fields[moves[n].r1][moves[n].c1];
-		const Field *g = &board->fields[moves[n].r2][moves[n].c2];
-
-		if (g->player == f->player) score[f->player] += 3;  /* to self */
-		else if (g->player == NONE) score[f->player] += 4;  /* to Dvonn */
-		else                        score[f->player] += 5;  /* to opponent */
-	}
-#if 0
-	/* Value material: */
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			const Field *f = &board->fields[r][c];
-
-			if (f->player >= 0) score[f->player] += 1;
+	/* Find Dvonn stones: */
+	ndvonn = 0;
+	for (r1 = 0; r1 < H; ++r1) {
+		for (c1 = 0; c1 < W; ++c1) {
+			const Field *f = &board->fields[r1][c1];
+			if (!f->removed && f->dvonns) {
+				dvonn_r[ndvonn] = r1;
+				dvonn_c[ndvonn] = c1;
+				++ndvonn;
+			}
 		}
 	}
-#endif
-	p = next_player(board);
-	return score[p] - score[1 - p];
+
+	/* Compute distance to Dvonn stones: */
+	for (r1 = 0; r1 < H; ++r1) {
+		for (c1 = 0; c1 < W; ++c1) {
+			dvonn_dist[r1][c1] = -1;
+			if (!board->fields[r1][c1].removed) {
+				for (n = 0; n < ndvonn; ++n) {
+					dist = distance(r1, c1, dvonn_r[n], dvonn_c[n]);
+					if (dvonn_dist[r1][c1] == -1 || dist < dvonn_dist[r1][c1]) {
+						dvonn_dist[r1][c1] = dist;
+					}
+				}
+			}
+		}
+	}
+
+	/* Value fields: */
+	game_over = true;
+	for (r1 = 0; r1 < H; ++r1) {
+		for (c1 = 0; c1 < W; ++c1) {
+			const Field *f = &board->fields[r1][c1];
+			if (!f->removed && f->player >= 0) {
+				/* Value of a single stack: (TODO: weigh by distance?
+				   distinguish between mobile/immobile?) */
+				float field_val = 0.0f;
+
+				for (dir = 0; dir < 6; ++dir) {
+					r2 = r1 + DR[dir]*f->pieces;
+					c2 = c1 + DC[dir]*f->pieces;
+					if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
+						/* Value of a move: */
+						const Field *g = &board->fields[r2][c2];
+						if (!g->removed) {
+							if (f->mobile) game_over = false;
+
+							/* Move base value: */
+							float move_val = 3.0f;
+
+							/* Move to opponent: */
+							if ((g->player ^ f->player) > 0) move_val += 2.0f;
+
+							/* Move to single Dvonn stone: */
+							if ((g->player ^ f->player) < 0) move_val += 1.0f;
+
+							/* Move to stack with Dvonn stone in it:
+							   (maybe use dist_to_dvonns instead?) */
+							if (g->dvonns) move_val += 0.0;
+
+							/* Penalty for immobility: */
+							if (!g->mobile) move_val *= 1.0;
+							field_val += move_val;
+						}
+					}
+				}
+
+				/* Penalty if immobile */
+				if (!f->mobile) field_val *= 0.0;
+
+				/* Value of pieces: (independent of mobility) */
+				field_val += 0.0f*f->pieces*powf(0.5f, dvonn_dist[r1][c1]);
+
+				player_vals[f->player] += field_val;
+			}
+		}
+	}
+
+	if (game_over) return eval_end(board);
+
+	n = next_player(board);
+	return player_vals[n] - player_vals[1 - n];
 }
 
 
