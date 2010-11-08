@@ -5,6 +5,17 @@
 const val_t min_val = -9999;
 const val_t max_val = +9999;
 
+EvalWeights weights = {
+	0.10,  /* stack_base */
+	3.00,  /* move_base */
+	2.00,  /* move_opponent */
+	0.30,  /* move_near_dvonn_mult */
+	0.50,  /* move_near_dvonn_decay */
+	0.25,  /* move_immobile */
+	0.60,  /* stack_immobile */
+	0.20,  /* pieces_mult */
+	0.90   /* pieces_decay */ };
+
 /* Returns whether the given field lies on the edge of the board: */
 static bool is_edge_field(const Board *board, int r, int c)
 {
@@ -119,9 +130,7 @@ EXTERN val_t eval_stacking(const Board *board)
 		for (c1 = 0; c1 < W; ++c1) {
 			const Field *f = &board->fields[r1][c1];
 			if (!f->removed && f->player >= 0) {
-				/* Value of a single stack: (TODO: weigh by distance?
-				   distinguish between mobile/immobile?) */
-				float field_val = 0.0f;
+				float field_val = weights.stack_base;
 
 				for (dir = 0; dir < 6; ++dir) {
 					r2 = r1 + DR[dir]*f->pieces;
@@ -133,30 +142,31 @@ EXTERN val_t eval_stacking(const Board *board)
 							if (f->mobile) game_over = false;
 
 							/* Move base value: */
-							float move_val = 3.0f;
+							float move_val = weights.move_base;
 
 							/* Move to opponent: */
-							if ((g->player ^ f->player) > 0) move_val += 2.0f;
+							if ((g->player ^ f->player) > 0) {
+								move_val += weights.move_opponent;
+							}
 
-							/* Move to single Dvonn stone: */
-							if ((g->player ^ f->player) < 0) move_val += 1.0f;
-
-							/* Move to stack with Dvonn stone in it:
-							   (maybe use dist_to_dvonns instead?) */
-							if (g->dvonns) move_val += 0.0;
+							/* Proximity to Dvonns: */
+							move_val += weights.move_near_dvonn_mult *
+								pow( weights.move_near_dvonn_base,
+								     dvonn_dist[r2][c2] );
 
 							/* Penalty for immobility: */
-							if (!g->mobile) move_val *= 1.0;
+							if (!g->mobile) move_val *= weights.move_immobile;
 							field_val += move_val;
 						}
 					}
 				}
 
 				/* Penalty if immobile */
-				if (!f->mobile) field_val *= 0.0;
+				if (!f->mobile) field_val *= weights.stack_immobile;
 
 				/* Value of pieces: (independent of mobility) */
-				field_val += 0.0f*f->pieces*powf(0.5f, dvonn_dist[r1][c1]);
+				field_val += f->pieces * weights.pieces_mult *
+					powf(weights.pieces_base, dvonn_dist[r1][c1]);
 
 				player_vals[f->player] += field_val;
 			}

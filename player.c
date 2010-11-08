@@ -249,13 +249,17 @@ static void print_usage()
 		"\t--tt=<val>        set use of table (0: off, 1: on)\n"
 		"\t--mo=<val>        enable move ordering "
 			"(0: off, 1: heuristic, 2: evaluated)\n"
-		"\t--killer=<val>    set killer heuristic (0: off, 1: on)\n",
+		"\t--killer=<val>    set killer heuristic (0: off, 1: on)\n"
+		"\t--weights=a:..:a  set evaluation function weights\n",
 		default_player_time );
 }
 
 static void parse_args(int argc, char *argv[])
 {
 	int pos;
+	float *ws = (float*)&weights;
+
+	assert(sizeof(weights) == 9*sizeof(float));
 
 	for (pos = 1; pos < argc && argv[pos][0] == '-'; ++pos)
 	{
@@ -289,6 +293,12 @@ static void parse_args(int argc, char *argv[])
 		if (sscanf(argv[pos], "--killer=%d", &ai_use_killer) == 1) {
 			continue;
 		}
+		if (sscanf(argv[pos], "--weights=%f:%f:%f:%f:%f:%f:%f:%f:%f",
+			&ws[0], &ws[1], &ws[2], &ws[3], &ws[4], &ws[5],
+			&ws[6], &ws[7], &ws[8] ) == 9) {
+			continue;
+		}
+
 		break;
 	}
 	if (pos < argc) {
