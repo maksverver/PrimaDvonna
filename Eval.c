@@ -84,69 +84,44 @@ struct Weights {
 	double MovesToEnemy[2];     /* offset 112 */
 };
 
-static struct Weights weights = {
-	 /*   immobile          mobile      */
-	 /* nolife life       nolife life   */
-	{ { 0.000, 0.050 }, { 0.050, 0.050 } },  /* Towers */
-	{ { 0.150, 0.000 }, { 0.200, 0.075 } },  /* Moves */
-	{ { 0.005, 0.050 }, { 0.010, 0.075 } },  /* Score */
-
-	{ 0.030, 0.200 },                        /* MovesToLife */
-	{ 0.000, 0.050 } };                      /* MovesToEnemy */
-
 /* Evaluate a board during the stacking phase. */
 EXTERN val_t eval_stacking(const Board *board)
 {
-	int r1, c1, r2, c2, dir, sign, i, j;
+	int r1, c1, r2, c2, dir, sign;
 	const Field *f, *g;
-	val_t value;
+	int player = next_player(board);
 	bool game_over = true;
-	int wTowers [2][2] = { { 0, 0 }, { 0, 0 } };
-	int wMoves  [2][2] = { { 0, 0 }, { 0, 0 } };
-	int wScore  [2][2] = { { 0, 0 }, { 0, 0 } };
-	int wMovesToLife  [2] = { 0, 0 };
-	int wMovesToEnemy [2] = { 0, 0 };
+	int stacks = 0, score = 0, moves = 0, to_life = 0, to_enemy = 0;
 
 	for (r1 = 0; r1 < H; ++r1) {
 		for (c1 = 0; c1 < W; ++c1) {
 			f = &board->fields[r1][c1];
 			if (f->removed || f->player < 0) continue;
-			sign = (f->player == WHITE) ? +1 : -1;
-			wTowers[f->mobile?1:0][f->dvonns?1:0] += sign;
-			wScore[f->mobile?1:0][f->dvonns?1:0] += f->pieces * sign;
+			sign = (f->player == player) ? +1 : -1;
+			stacks += sign;
+			score  += f->pieces * sign;
 			for (dir = 0; dir < 6; ++dir) {
 				r2 = r1 + DR[dir] * f->pieces;
-				c2 = c1 + DC[dir] * f->pieces;
-				if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W) {
-					g = &board->fields[r2][c2];
-					if (g->removed) continue;
-					if (f->mobile) game_over = false;
-					if (g->dvonns) {
-						wMovesToLife[f->mobile?1:0] += sign;
+				if ((unsigned)r2 < H) {
+					c2 = c1 + DC[dir] * f->pieces;
+					if ((unsigned)c2 < W) {
+						g = &board->fields[r2][c2];
+						if (g->removed) continue;
+						if (f->mobile) {
+							game_over = false;
+							if (g->dvonns) to_life += sign;
+							if ((f->player ^ g->player) > 0) to_enemy += sign;
+						}
+						moves += sign;
 					}
-					if (g->player == 1 - f->player) {
-						wMovesToEnemy[f->mobile?1:0] += sign;
-					}
-					wMoves[f->mobile?1:0][f->dvonns?1:0] += sign;
 				}
 			}
 		}
 	}
 
-	if (game_over) return eval_end(board);
+	if (game_over) return 100.0*score;
 
-	value = 0;
-	for (i = 0; i < 2; ++i) {
-		for (j = 0; j < 2; ++j) {
-			value += wTowers [i][j] * weights.Towers [i][j];
-			value += wMoves  [i][j] * weights.Moves  [i][j];
-			value += wScore  [i][j] * weights.Score  [i][j];
-		}
-		value += wMovesToLife  [i] * weights.MovesToLife  [i];
-		value += wMovesToEnemy [i] * weights.MovesToEnemy [i];
-	}
-
-	return (next_player(board) == WHITE) ? value : -value;
+	return 0.50*stacks + 0.01*score + 0.15*moves + 0.1*to_life + 0.1*to_enemy;
 }
 
 /* Evaluate an end position. */
