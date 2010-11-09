@@ -1,4 +1,5 @@
 #include "Eval.h"
+#include <math.h>
 #include <assert.h>
 
 const val_t min_val = -9999;
@@ -76,14 +77,6 @@ EXTERN val_t eval_placing(const Board *board)
 	return score[p] - score[1 - p];
 }
 
-struct Weights {
-	double Towers[2][2];        /* offset   0 */
-	double Moves[2][2];         /* offset  32 */
-	double Score[2][2];         /* offset  64 */
-	double MovesToLife[2];      /* offset  96 */
-	double MovesToEnemy[2];     /* offset 112 */
-};
-
 /* Evaluate a board during the stacking phase. */
 EXTERN val_t eval_stacking(const Board *board)
 {
@@ -118,7 +111,6 @@ EXTERN val_t eval_stacking(const Board *board)
 			}
 		}
 	}
-
 	if (game_over) return 100.0*score;
 
 	return 0.50*stacks + 0.01*score + 0.15*moves + 0.1*to_life + 0.1*to_enemy;

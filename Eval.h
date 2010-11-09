@@ -6,6 +6,7 @@
 /* Type of values used to evaluate game positions: */
 #define VAL_FMT "%f"
 typedef float val_t;
+
 extern const val_t min_val, max_val;
 
 /* Board evaluation functions, used by AI: */

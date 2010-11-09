@@ -12,9 +12,9 @@
 static const int max_depth = 20;
 
 /* Search algorithm parameters: */
-bool ai_use_tt     = true;
-bool ai_use_mo     = true;
-bool ai_use_killer = false;
+int ai_use_tt     = 1;
+int ai_use_mo     = 2;
+int ai_use_killer = 0;
 
 /* Global flag to abort search: */
 static volatile bool aborted = false;
@@ -125,7 +125,8 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 			/* Only one move available: */
 			killer = moves[0];
 			board_do(board, &moves[0]);
-			/* Note: `depth - 1' was `depth' here. */
+			/* Note: `depth - 1' was `depth' here.
+			   Need to benchmark which works better later. */
 			res = -dfs(board, depth - 1, (move_passes(&moves[0]) ? pass+1 : 0),
 					   next_lo, next_hi, NULL);
 			board_undo(board, &moves[0]);
@@ -144,7 +145,9 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 			if (ai_use_mo) {
 				/* When using evaluation-based ordering, doing this when depth
 				   == 1 only wastes time: */
-				if (depth > 1) order_moves(board, moves, nmove);
+				if (ai_use_mo < 2 || depth > 1) {
+					order_moves(board, moves, nmove);
+				}
 			}
 
 			/* Killer heuristic: */

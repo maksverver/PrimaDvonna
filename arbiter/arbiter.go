@@ -15,6 +15,7 @@ import (
 
 var logPath = ""
 var msgPath = ""
+var quiet = false
 
 type Result struct {
 	player [2]int   // 0-based player indices
@@ -233,8 +234,10 @@ func toYesNo(v bool) string {
 }
 
 func runTournament(commands []string, rounds int, firstOnly bool) []Result {
-	fmt.Printf(" Id        Player 1             Player 2        Score   Points  Failed       Time used\n")
-	fmt.Printf("---- -------------------- --------------------  -----  -------  -------  -----------------\n")
+	if !quiet {
+		fmt.Printf(" Id             Player 1                       Player 2             Score   Points  Failed       Time used\n")
+		fmt.Printf("---- ------------------------------ ------------------------------  -----  -------  -------  -----------------\n")
+	}
 
 	numResults := rounds * len(commands) * (len(commands) - 1)
 	if firstOnly {
@@ -262,20 +265,22 @@ outermost:
 						}
 					}
 					res := runMatch([2]int{i, j}, [2]string{commands[i], commands[j]}, logFilePath, msgFilePath)
-					player1 := shorten(commands[i], 20)
-					player2 := shorten(commands[j], 20)
+					player1 := shorten(commands[i], 30)
+					player2 := shorten(commands[j], 30)
 					if res.score[0] > res.score[1] {
 						player1 = strings.ToUpper(player1)
 					} else if res.score[1] > res.score[0] {
 						player2 = strings.ToUpper(player2)
 					}
-					fmt.Printf(
-						"%4d %-20s %-20s  %2d %2d  %3d %3d  %-3s %-3s  %7.3fs %7.3fs\n",
-						n+1, player1, player2,
-						res.score[0], res.score[1],
-						res.points[0], res.points[1],
-						toYesNo(res.failed[0]), toYesNo(res.failed[1]),
-						res.time[0], res.time[1])
+					if !quiet {
+						fmt.Printf(
+							"%4d %-30s %-30s  %2d %2d  %3d %3d  %-3s %-3s  %7.3fs %7.3fs\n",
+							n+1, player1, player2,
+							res.score[0], res.score[1],
+							res.points[0], res.points[1],
+							toYesNo(res.failed[0]), toYesNo(res.failed[1]),
+							res.time[0], res.time[1])
+					}
 					results[n] = res
 					n++
 					if firstOnly {
@@ -285,7 +290,9 @@ outermost:
 			}
 		}
 	}
-	fmt.Printf("---- -------------------- --------------------  -----  -------  -------  -----------------\n")
+	if !quiet {
+		fmt.Printf("---- ------------------------------ ------------------------------  -----  -------  -------  -----------------\n")
+	}
 	return results
 }
 
@@ -304,6 +311,7 @@ func main() {
 	rand.Seed(time.Nanoseconds())
 	rounds := 1
 	single := false
+	flag.BoolVar(&quiet, "quiet", quiet, "print only plain-text results")
 	flag.BoolVar(&single, "single", single, "play only a single game")
 	flag.IntVar(&rounds, "rounds", rounds, "number of rounds to play")
 	flag.StringVar(&msgPath, "msg", msgPath, "path to player message log files")
@@ -365,84 +373,94 @@ func main() {
 			}
 		}
 
-		// Sort players by total points:
-		pointsPlayers := make(IntPairSlice, len(players))
-		for i := range pointsPlayers {
-			pointsPlayers[i] = IntPair{totalPoints[i], -i}
-		}
-		sort.Sort(pointsPlayers)
-		pointsPlayers.Reverse()
-
-		// Print ranking ordered by Codecup total game points
-		fmt.Println()
-		fmt.Println("No Player               Points  Won Tied Lost Fail Avg Time Max Time")
-		fmt.Println("-- -------------------- ------ ---- ---- ---- ---- -------- --------")
-		for i, ip := range pointsPlayers {
-			p := -ip.second
-			fmt.Printf("%2d %-20s %6d %4d %4d %4d %4d %7.3fs %7.3fs\n",
-				i+1, shorten(players[p], 20), totalPoints[p], gamesWon[p], gamesTied[p], gamesLost[p],
-				gamesFailed[p], timeUsed[p]/float(numGames), timeMax[p])
-		}
-		fmt.Println("-- -------------------- ------ ---- ---- ---- ---- -------- --------")
-
-		if len(players) > 2 {
-			// Print win/loss matrix
-			fmt.Println()
-			fmt.Printf("%24s", "")
-			for i := range players {
-				fmt.Printf(" %2d ", i+1)
+		if quiet { // Brief results
+			for p := range players {
+				fmt.Printf("%d\t%d\t%d\t%d\t%d\t%f\t%f\n",
+					totalPoints[p], gamesWon[p], gamesTied[p], gamesLost[p],
+					gamesFailed[p], timeUsed[p]/float(numGames), timeMax[p])
 			}
-			fmt.Println()
-			fmt.Printf("%24s", "")
-			for _ = range players {
-				fmt.Printf(" ---")
+
+		} else { // Verbose results
+
+			// Sort players by total points:
+			pointsPlayers := make(IntPairSlice, len(players))
+			for i := range pointsPlayers {
+				pointsPlayers[i] = IntPair{totalPoints[i], -i}
 			}
+			sort.Sort(pointsPlayers)
+			pointsPlayers.Reverse()
+
+			// Print ranking ordered by Codecup total game points
 			fmt.Println()
+			fmt.Println("No Player                         Points  Won Tied Lost Fail Avg Time Max Time")
+			fmt.Println("-- ------------------------------ ------ ---- ---- ---- ---- -------- --------")
 			for i, ip := range pointsPlayers {
 				p := -ip.second
-				fmt.Printf("%2d %20s ", i+1, shorten(players[p], 20))
-				for _, jp := range pointsPlayers {
-					q := -jp.second
-					if p == q {
-						fmt.Printf("    ")
-					} else {
-						fmt.Printf(" %3d", winLoss[p][q])
-					}
-				}
-				fmt.Println()
+				fmt.Printf("%2d %-30s %6d %4d %4d %4d %4d %7.3fs %7.3fs\n",
+					i+1, shorten(players[p], 30), totalPoints[p], gamesWon[p], gamesTied[p], gamesLost[p],
+					gamesFailed[p], timeUsed[p]/float(numGames), timeMax[p])
 			}
-			fmt.Println("Win count of player 1 (row) against player 2 (column)")
-		}
+			fmt.Println("-- ------------------------------ ------ ---- ---- ---- ---- -------- --------")
 
-		// Print average difference in disks for player against each opponent:
-		if !single {
-			fmt.Println()
-			fmt.Printf("%24s", "")
-			for i := range players {
-				fmt.Printf(" %4d   ", i+1)
-			}
-			fmt.Println()
-			fmt.Printf("%24s", "")
-			for _ = range players {
-				fmt.Printf(" ------")
-			}
-			fmt.Println()
-			for i, ip := range pointsPlayers {
-				p := -ip.second
-				fmt.Printf("%2d %20s ", i+1, shorten(players[p], 20))
-				for _, jp := range pointsPlayers {
-					q := -jp.second
-					if p == q {
-						fmt.Printf("       ")
-					} else {
-						diff := float64(pairScore[p][q] - pairScore[q][p])
-						games := float64(2 * rounds)
-						fmt.Printf(" %6.2f", diff/games)
-					}
+			if len(players) > 2 {
+				// Print win/loss matrix
+				fmt.Println()
+				fmt.Printf("%34s", "")
+				for i := range players {
+					fmt.Printf(" %2d ", i+1)
 				}
 				fmt.Println()
+				fmt.Printf("%34s", "")
+				for _ = range players {
+					fmt.Printf(" ---")
+				}
+				fmt.Println()
+				for i, ip := range pointsPlayers {
+					p := -ip.second
+					fmt.Printf("%2d %30s ", i+1, shorten(players[p], 30))
+					for _, jp := range pointsPlayers {
+						q := -jp.second
+						if p == q {
+							fmt.Printf("    ")
+						} else {
+							fmt.Printf(" %3d", winLoss[p][q])
+						}
+					}
+					fmt.Println()
+				}
+				fmt.Println("Win count of player 1 (row) against player 2 (column)")
 			}
-			fmt.Println("Average score difference between players.")
+
+			// Print average difference in disks for player against each opponent:
+			if !single {
+				fmt.Println()
+				fmt.Printf("%24s", "")
+				for i := range players {
+					fmt.Printf(" %4d   ", i+1)
+				}
+				fmt.Println()
+				fmt.Printf("%24s", "")
+				for _ = range players {
+					fmt.Printf(" ------")
+				}
+				fmt.Println()
+				for i, ip := range pointsPlayers {
+					p := -ip.second
+					fmt.Printf("%2d %30s ", i+1, shorten(players[p], 30))
+					for _, jp := range pointsPlayers {
+						q := -jp.second
+						if p == q {
+							fmt.Printf("       ")
+						} else {
+							diff := float64(pairScore[p][q] - pairScore[q][p])
+							games := float64(2 * rounds)
+							fmt.Printf(" %6.2f", diff/games)
+						}
+					}
+					fmt.Println()
+				}
+				fmt.Println("Average score difference between players.")
+			}
 		}
 	}
 }

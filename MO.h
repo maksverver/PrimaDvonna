@@ -11,6 +11,6 @@ EXTERN void shuffle_moves(Move *moves, int nmove);
 EXTERN void move_to_front(Move *moves, int nmove, Move killer);
 
 /* Heuristically (but quickly) orders moves from best-to-worst. */
-EXTERN void order_moves(Board *board, Move *moves, int nmove);
+EXTERN void order_moves(const Board *board, Move *moves, int nmove);
 
 #endif /* ndef MOVE_ORDERING_H_INCLUDED */

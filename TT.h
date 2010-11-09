@@ -10,7 +10,7 @@ typedef unsigned long long hash_t;
 typedef struct TTEntry {
 	hash_t hash;
 	val_t  lo, hi;
-	short  depth;
+	int    depth;
 	Move   killer;
 #ifdef TT_DEBUG
 	unsigned char data[50];

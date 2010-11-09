@@ -1,60 +1,35 @@
-Note for test competition 4:
+Note for after test competition 4:
  - Timing code has changed yet again. check if the online judge is still 70~90ms
    behind my expected time. If not, up the time limit to e.g. 4.95 or so.
 
-Maybe TODO:
-   - debug Holtz' failure in game 120 of local-tournament
-
-Next version:
-  - improve set-up phase so losses like those in Round 3 don't occur anymore!
-  - more sophisticated evaluation function:
-     - borrow from Holtz (rates stacks primarily, but in a complex way)
-     - borrow from Dvonner (rates stacks, stones and moves)
-     - possible ways to account for connectivity:
-        - minimum distance to closest life stone?
-        - number of reachable life stones? (over distinct paths?)
-        - "minimum cut" required to disconnect stones? (take into account which
-        - player controls them? take into account some stacks are immobile?)
-        - prepare for players moving life stone away?
-
-     => change evaluation function to use float values
-     => allow running for a fixed number of evaluations (a la Dvonner) instead
-        of a limited amount of time (for fairer comparisons)
-     => implement various indicators as mentioned above
-
-  - GOAL: beat Dvonner and Holtz consistently!
+For next competition:
+  - dvonner-simplified branch seems like the best candidate for next match.
+  - benchmark four versions: killer=0/1 mo=1/2 and see what works best.
+  - do another big test with Dvonner, Holtz and player3 from caia
+  - remove `pass' as dfs() parameter? (are there positions where we benefit from it?)
 
 For final version:
-  - remove conditional code for small performance boost?
-  - manually unroll small loops (such as over 6 directions)?
   - replace range checks like (r >= 0 && r < H) with ((unsigned)r <= H)
-    and nonsense likethis.
-  - change compile.pl to #define NDEBUG so assertions are not tested anymore
+    and nonsense like this.
+  - change compile.pl to #define NDEBUG so assertions are not tested anymore?
 
 Later:
- - reconsider using killer heuristic: with evaluation-based move-ordering, it
-   seems to make matters worse, rather than better!
+ - better handling of 'exact' values; if these are stored in the tt, their depth
+   should be considered infinite.
+ - consider move representation:
+    - maybe ints instead of chars is more efficient?
+    - change library functions so single moves are passed by value?
+    (how to benchmark these changes when evaluation takes most time?)
+Maybe later:
  - include principal variation in AI result.
  - consider implementing NegaScout? (should work well with killer heuristic?)
  - consider implementing  MTD(f)? (tricky with float values)
- - remove `best' as dfs() parameter? (then, how to shuffle moves?)
- - remove `pass' as dfs() parameter? (are there positions where we benefit from it?)
- - better handling of 'exact' values; if these are stored in the tt, their depth
-   should be considered infinite.
- - test if current move representation is inefficient (ints instead of chars?)
- - change library functions so single moves are passed by value?
- - smarter move ordering for higher depths:
-    - call eval directly?
-    - should we query the transposition table or not?
-    - should we update the transposition table or not?
  - make board hashing for TT more efficient, if possible.
  - check hash table performance:
      - how often do collisions occur?
      - how full is the table when they happen?
      - reconsider replacement policy (replace if depth >= tt->depth only?)
- - optimize time budget for moves:
-     - we now divide time approximately evenly over stacking moves, but maybe
-       that is not optimal.
+ - try to optimize time budget for moves
  - validate all code!
      - print it out, verify, add comments...
  - consider auto-learning for evaluation parameters?

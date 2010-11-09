@@ -123,65 +123,6 @@ static int max_moves_left(const Board *board)
 	return stacks - 1;
 }
 
-/* For debugging: quick hack to get a setup move from Dvonner: */
-static void get_dvonner_setup_move(const Board *board, Move *move)
-{
-	int r, c;
-	const Field *f;
-	char moves[3][N][3];
-	int nmove[3] = { 0, 0, 0 }, n;
-	char command[500], line[500];
-
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			f = &board->fields[r][c];
-			if (!f->removed && f->pieces) {
-				int p = f->player + 1, i = nmove[p]++;
-				moves[p][i][0] = 'A' + c;
-				moves[p][i][1] = '1' + r;
-				moves[p][i][2] = '\0';
-			}
-		}
-	}
-	assert(nmove[1] == nmove[2] || nmove[1] + 1 == nmove[2]);
-	assert(nmove[0] <= D);
-	assert(nmove[0] == D || (nmove[1] == 0 && nmove[2] == 0));
-
-	/* Write temporary Dvonner savegame file: */
-	FILE *fp = fopen("tmp.dvg", "wt");
-	assert(fp != NULL);
-	for (n = 0; n < nmove[0] + nmove[1] + nmove[2]; ++n) {
-		fprintf(fp, "%s%s",
-			(n < D) ? moves[0][n] : moves[1 + n%2][(n - D)/2],
-			(n%2 == 0) ? "  " : "\n" );
-	}
-	fprintf(fp, "BREAK\n");
-	fclose(fp);
-
-	/* Execute Dvonner to obtain move: */
-	sprintf(command,
-		"printf '/stop\n/load tmp\n/color %s\n/start\n/stop\n/quit\n'"
-		" | players/dvonner.bin "
-		" | grep 'Dvonner does setup move' | grep -o '[A-K][1-5]'",
-		(next_player(board) == WHITE) ? "black" : "white");
-	fp = popen(command, "r");
-	if (fp == NULL) {
-		fprintf(stderr, "Failed to execute Dvonner!\n");
-		exit(EXIT_FAILURE);
-	}
-	if (fgets(line, sizeof(line), fp) == NULL) {
-		fclose(fp);
-		fprintf(stderr, "Failed to read from Dvonner!\n");
-		exit(EXIT_FAILURE);
-	}
-	fclose(fp);
-	line[2] = '\0';
-	if (!parse_move(line, move)) {
-		fprintf(stderr, "Could not parse move!\n");
-		exit(EXIT_FAILURE);
-	}
-}
-
 static bool select_move(Board *board, Move *move)
 {
 	bool ok;
@@ -189,14 +130,9 @@ static bool select_move(Board *board, Move *move)
 	AI_Limit limit = arg_limit;
 
 	if (board->moves < N) {
-#if 1
 		/* Placement phase: just greedily pick best move. */
 		limit.depth = 1;
 		ok = ai_select_move(board, &limit, &result);
-#else /* DEBUG */
-		get_dvonner_setup_move(board, move);
-		return true;
-#endif
 	} else {
 #if 1
 		/* Stacking phase: divide remaining time over est. moves to play: */
@@ -320,10 +256,10 @@ static void print_usage()
 	"stop after evaluating given number of positions\n"
 		"\t--time=<time>     "
 	"maximum time per game/state (default when playing: %.2fs)\n"
-		"\t--enable-tt       enable transposition table\n"
-		"\t--disable-tt      disable transposition table\n"
-		"\t--enable-mo       enable move ordering\n"
-		"\t--disable-mo      disable move ordering\n",
+		"\t--tt=<val>        set use of table (0: off, 1: on)\n"
+		"\t--mo=<val>        enable move ordering "
+			"(0: off, 1: heuristic, 2: evaluated)\n"
+		"\t--killer=<val>    set killer heuristic (0: off, 1: on)\n",
 		default_player_time );
 }
 
@@ -354,30 +290,16 @@ static void parse_args(int argc, char *argv[])
 		if (sscanf(argv[pos], "--time=%lf", &arg_limit.time) == 1) {
 			continue;
 		}
-		if (strcmp(argv[pos], "--enable-tt") == 0) {
-			ai_use_tt = true;
+		if (sscanf(argv[pos], "--tt=%d", &ai_use_tt) == 1) {
 			continue;
 		}
-		if (strcmp(argv[pos], "--disable-tt") == 0) {
-			ai_use_tt = false;
+		if (sscanf(argv[pos], "--mo=%d", &ai_use_mo) == 1) {
 			continue;
 		}
-		if (strcmp(argv[pos], "--enable-mo") == 0) {
-			ai_use_mo = true;
+		if (sscanf(argv[pos], "--killer=%d", &ai_use_killer) == 1) {
 			continue;
 		}
-		if (strcmp(argv[pos], "--disable-mo") == 0) {
-			ai_use_mo = false;
-			continue;
-		}
-		if (strcmp(argv[pos], "--enable-killer") == 0) {
-			ai_use_killer = true;
-			continue;
-		}
-		if (strcmp(argv[pos], "--disable-killer") == 0) {
-			ai_use_killer = false;
-			continue;
-		}
+
 		break;
 	}
 	if (pos < argc) {
@@ -385,6 +307,30 @@ static void parse_args(int argc, char *argv[])
 		print_usage();
 		exit(EXIT_FAILURE);
 	}
+}
+
+static void print_memory_use()
+{
+	char line[1024];
+	FILE *fp;
+	long a, b, bytes = 0;
+
+	fp = fopen("/proc/self/maps", "rt");
+	if (fp == NULL) {
+		fprintf(stderr, "Couldn't open /proc/self/maps!\n");
+	} else {
+		while (fgets(line, sizeof(line), fp) != NULL) {
+			if (sscanf(line, "%lx-%lx ", &a, &b) == 2) {
+				bytes += b - a;
+			} else {
+				fprintf(stderr, "Couldn't parse line: %s!\n", line);
+				break;
+			}
+		}
+		fclose(fp);
+	}
+	fprintf(stderr, "Memory used: %ld bytes (%.3f MB)\n",
+		bytes, 1.0*bytes/(1<<20));
 }
 
 int main(int argc, char *argv[])
@@ -412,19 +358,23 @@ int main(int argc, char *argv[])
 
 	/* Initialize transposition table: */
 	if (ai_use_tt) {
-		tt_init(3000017);
+		tt_init(2345699); /* ~54 MB at 24 bytes per entry */
 		fprintf(stderr, "%.3f MB transposition table is enabled.\n",
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);
 	} else {
 		fprintf(stderr, "Transposition table is disabled.\n");
-		ai_use_killer = false;
+		ai_use_killer = 0;  /* implicit */
 	}
 
 	/* Print other parameters: */
-	fprintf(stderr, "Move ordering is %sabled.\n",
-		ai_use_mo ? "en" : "dis");
-	fprintf(stderr, "Killer heuristic is %sabled.\n",
-		ai_use_killer ? "en" : "dis");
+	fprintf(stderr, "Move ordering is %s.\n",
+		ai_use_mo == 0 ? "disabled" :
+		ai_use_mo == 1 ? "heuristic" :
+		ai_use_mo == 2 ? "evaluated" : "invalid");
+	fprintf(stderr, "Killer heuristic is %s.\n",
+		ai_use_killer ? "enabled" : "disabled");
+	print_memory_use();
+
 	fprintf(stderr, "Initialization took %.3fs.\n", time_used());
 
 	/* Run main program: */
