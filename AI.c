@@ -11,10 +11,10 @@
 /* Maximum search depth: */
 static const int max_depth = 20;
 
-/* Search algorithm parameters: */
+/* Search algorithm parameters: (defaults set here perform best) */
 int ai_use_tt     = 1;
-int ai_use_mo     = 2;
-int ai_use_killer = 0;
+int ai_use_mo     = 1;
+int ai_use_killer = 1;
 
 /* Global flag to abort search: */
 static volatile bool aborted = false;

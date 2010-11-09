@@ -4,7 +4,6 @@ Note for after test competition 4:
 
 For next competition:
   - dvonner-simplified branch seems like the best candidate for next match.
-  - benchmark four versions: killer=0/1 mo=1/2 and see what works best.
   - do another big test with Dvonner, Holtz and player3 from caia
   - remove `pass' as dfs() parameter? (are there positions where we benefit from it?)
 
