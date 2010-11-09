@@ -259,7 +259,8 @@ static void print_usage()
 		"\t--tt=<val>        set use of table (0: off, 1: on)\n"
 		"\t--mo=<val>        enable move ordering "
 			"(0: off, 1: heuristic, 2: evaluated)\n"
-		"\t--killer=<val>    set killer heuristic (0: off, 1: on)\n",
+		"\t--killer=<val>    set killer heuristic "
+			"(0: off, 1: one ply, 2: two ply)\n",
 		default_player_time );
 }
 
@@ -372,7 +373,9 @@ int main(int argc, char *argv[])
 		ai_use_mo == 1 ? "heuristic" :
 		ai_use_mo == 2 ? "evaluated" : "invalid");
 	fprintf(stderr, "Killer heuristic is %s.\n",
-		ai_use_killer ? "enabled" : "disabled");
+		ai_use_killer == 0 ? "disabled" :
+                ai_use_killer == 1 ? "one ply" :
+                ai_use_killer == 2 ? "two ply" : "invalid");
 	print_memory_use();
 
 	fprintf(stderr, "Initialization took %.3fs.\n", time_used());
