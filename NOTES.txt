@@ -128,3 +128,12 @@ conclusion is that apperantly the old time allocation was much better! The
 bigger difference in score than in the previous set of games I cannot account
 for. It makes sense to chalk it up to chance, as the stone difference appears
 to be smaller than before, suggesting the player was not fundamentally stronger.
+
+================================================================================
+
+It turns out that the CodeCup memory limit is 64,000,000 bytes, not 64 MB!
+This is slightly over 61 MB. I have set the transposition table to use 57 MB,
+leaving about 4 MB for the rest of the program. This seems safe because I do
+little other allocations, and although the stack grows dynamically, I do not
+use a large amount of stack space. The only recursive function is the search
+in AI.c but that is limited to depth 20.

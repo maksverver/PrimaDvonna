@@ -2,8 +2,15 @@
 #include <math.h>
 #include <assert.h>
 
-const val_t min_val = -9999;
-const val_t max_val = +9999;
+const val_t min_val = -1000.0f * (N + 1);
+const val_t max_val = +1000.0f * (N + 1);
+
+struct EvalWeights eval_weights = {
+	1.00f,    /* stacks */
+	0.02f,    /* score */
+	0.30f,    /* moves */
+	0.20f,    /* to_life */
+	0.20f };  /* to_enemy */
 
 /* Returns whether the given field lies on the edge of the board: */
 static bool is_edge_field(const Board *board, int r, int c)
@@ -111,13 +118,18 @@ EXTERN val_t eval_stacking(const Board *board)
 			}
 		}
 	}
-	if (game_over) return 100.0*score;
 
-	return 0.50*stacks + 0.01*score + 0.15*moves + 0.1*to_life + 0.1*to_enemy;
+	if (game_over) return 1000.0f*score;
+
+	return stacks   * eval_weights.stacks
+	     + score    * eval_weights.score
+	     + moves    * eval_weights.moves
+	     + to_life  * eval_weights.to_life
+	     + to_enemy * eval_weights.to_enemy;
 }
 
 /* Evaluate an end position. */
 EXTERN val_t eval_end(const Board *board)
 {
-	return 100*board_score(board);
+	return 1000.0f*board_score(board);
 }

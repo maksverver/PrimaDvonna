@@ -260,7 +260,8 @@ static void print_usage()
 		"\t--mo=<val>        enable move ordering "
 			"(0: off, 1: heuristic, 2: evaluated)\n"
 		"\t--killer=<val>    set killer heuristic "
-			"(0: off, 1: one ply, 2: two ply)\n",
+			"(0: off, 1: one ply, 2: two ply)\n"
+		"\t--weights=a:..:e  set evaluation function weights\n",
 		default_player_time );
 }
 
@@ -300,7 +301,11 @@ static void parse_args(int argc, char *argv[])
 		if (sscanf(argv[pos], "--killer=%d", &ai_use_killer) == 1) {
 			continue;
 		}
-
+		if (sscanf(argv[pos], "--weights=%f:%f:%f:%f:%f",
+			&eval_weights.stacks, &eval_weights.score, &eval_weights.moves,
+			&eval_weights.to_life, &eval_weights.to_enemy) == 5) {
+			continue;
+		}
 		break;
 	}
 	if (pos < argc) {

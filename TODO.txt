@@ -3,7 +3,6 @@ Note for after test competition 4:
    behind my expected time. If not, up the time limit to e.g. 4.95 or so.
 
 For next competition:
-  - dvonner-simplified branch seems like the best candidate for next match.
   - do another big test with Dvonner, Holtz and player3 from caia
   - remove `pass' as dfs() parameter? (are there positions where we benefit from it?)
 
