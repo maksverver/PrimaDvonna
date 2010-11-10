@@ -126,6 +126,11 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 		assert(next_player(board) == *next_player);
 		assert(board->moves > N);
 	}
+
+#ifdef ZOBRIST
+	board->hash = zobrist_hash(board);
+#endif
+
 	return true;
 }
 

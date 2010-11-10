@@ -45,14 +45,14 @@ def print_steps_index():
 	print 'const int *board_steps[50][5][11] = {'
 	for n in range(50):
 		print '\t{ /* ' + str(n) + ' */'
-		for r1 in range(H):
+		for r in range(H):
 			values = []
-			for c1 in range(W):
-				values.append(steps_index[get_steps(n, r1, c1)])
+			for c in range(W):
+				values.append(steps_index[get_steps(n, r, c)])
 			line = "\t\t{ "
 			line += ', '.join(map(lambda v: "a+%3d"%v, values))
 			line += " }"
-			if r1 + 1 < H:
+			if r + 1 < H:
 				line += ','
 			else:
 				line += ' }'

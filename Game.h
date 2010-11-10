@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#ifdef ZOBRIST
+typedef unsigned long long hash_t;
+#endif /* ndef ZOBRIST */
+
 #define W    11             /* board width */
 #define H     5             /* board height */
 #define N    49             /* maximum number of accessible fields */
@@ -27,9 +31,16 @@ typedef struct Board
 {
 	int   moves;          /* number of moves played on this board */
 	Field fields[H][W];   /* fields of the board */
+#ifdef ZOBRIST
+	unsigned long long hash;  /* hash code for the field */
+#endif
 } Board;
 
-/* TODO: document */
+/* Index of possible moves which can be made with stacks of different heights
+   at different positions. board_steps[height][row][column] points to a
+   zero-terminated array of integers, where each integer is an offset relative
+   to the current field. e.g. If *board_steps[3][r][c] == 7, then there is a
+   step of size 3 to field (&board->fields[r][c] + 7). */
 extern const int *board_steps[50][5][11];
 
 /* This macro determines which color plays next: */
@@ -69,6 +80,12 @@ EXTERN int distance(int r1, int c1, int r2, int c2);
 /* (Re)initialize a board structure to an empty board: */
 EXTERN void board_clear(Board *board);
 
+#ifdef ZOBRIST
+/* Recalculates the Zobrist hash of a board from scratch and returns the result.
+   The existing value of board->hash is neither used nor updated. */
+EXTERN hash_t zobrist_hash(const Board *board);
+#endif
+
 /* Do/undo moves (which must be valid, e.g. returned by generate_moves()) */
 EXTERN void board_do(Board *board, const Move *m);
 EXTERN void board_undo(Board *board, const Move *m);
@@ -96,5 +113,9 @@ EXTERN void board_scores(const Board *board, int scores[2]);
 
 /* Calculates the score for the current player: */
 EXTERN int board_score(const Board *board);
+
+#ifdef NDEBUG
+#define board_validate(board)
+#endif
 
 #endif /* ndef GAME_H_INCLUDED */

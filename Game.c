@@ -2,6 +2,13 @@
 #include <string.h>
 #include "Game.h"
 
+#ifdef ZOBRIST
+/* Include the zobrist key tables directly into the source here, because they
+   are not needed anywhere else, and this allows compiling without the key file
+   if ZOBRIST is not defined: */
+#include "Game-zobrist-keys.c"
+#endif
+
 Move move_null = {  0,  0,  0,  0 };
 Move move_pass = { -1, -1, -1, -1 };
 
@@ -32,7 +39,36 @@ EXTERN void board_clear(Board *board)
 			board->fields[r][c].mobile = 6;
 		}
 	}
+#ifdef ZOBRIST
+	board->hash = init_key;
+#endif
 }
+
+#ifdef ZOBRIST
+/* Encodes the given field's `pieces', `player' and `dvonns' field into a
+   unique number between 0 and and 4*(N + 1) == 200, exclusive. */
+static int field_id(const struct Field *f) {
+	int res = 4*f->pieces + 2*f->player;
+	if (f->dvonns) ++res;
+	return res;
+}
+
+/* Recalculates the Zobrist hash of a board. */
+EXTERN hash_t zobrist_hash(const Board *board) {
+	const Field *f;
+	int n;
+	hash_t hash;
+
+	hash = init_key;
+	if (board->moves % 2) hash ^= player_key;
+	if (board->moves >= N) hash ^= phase_key;
+	for (n = 0; n < H*W; ++n) {
+		f = &board->fields[0][n];
+		if (!f->removed && f->pieces) hash ^= field_key[field_id(f)][0][n];
+	}
+	return hash;
+}
+#endif
 
 static void place(Board *board, const Move *m)
 {
@@ -43,11 +79,17 @@ static void place(Board *board, const Move *m)
 	} else {
 		f->player = board->moves & 1;
 	}
+#ifdef ZOBRIST
+	board->hash ^= field_key[field_id(f)][m->r1][m->c1];
+#endif
 }
 
 static void unplace(Board *board, const Move *m)
 {
 	Field *f = &board->fields[m->r1][m->c1];
+#ifdef ZOBRIST
+	board->hash ^= field_key[field_id(f)][m->r1][m->c1];
+#endif
 	f->player = NONE;
 	f->pieces = 0;
 	f->dvonns = 0;
@@ -85,6 +127,9 @@ static void remove_unreachable(Board *board)
 		f = &board->fields[0][n];
 		if (!f->removed && !reachable[0][n]) {
 			f->removed = board->moves;
+#ifdef ZOBRIST
+			board->hash ^= field_key[field_id(f)][0][n];
+#endif
 		}
 	}
 }
@@ -117,12 +162,19 @@ static void stack(Board *board, const Move *m)
 	Field *f = &board->fields[m->r1][m->c1];
 	Field *g = &board->fields[m->r2][m->c2];
 
+#ifdef ZOBRIST
+	board->hash ^= field_key[field_id(f)][m->r1][m->c1];
+	board->hash ^= field_key[field_id(g)][m->r2][m->c2];
+#endif
 	tmp_player = f->player;
 	f->player = g->player;
 	g->player = tmp_player;
 	g->pieces += f->pieces;
 	g->dvonns += f->dvonns;
 	f->removed = board->moves;
+#ifdef ZOBRIST
+	board->hash ^= field_key[field_id(g)][m->r2][m->c2];
+#endif
 	/* We must remove disconnected fields, but since remove_unreachable()
 		is expensive, we try to elide it if permissible: */
 	if (f->dvonns || may_be_bridge(board, m->r1, m->c1)) {
@@ -135,6 +187,9 @@ static void restore_unreachable(Board *board, int n)
 	int m;
 	const int *step;
 
+#ifdef ZOBRIST
+	board->hash ^= field_key[field_id(&board->fields[0][n])][0][n];
+#endif
 	board->fields[0][n].removed = 0;
 	for (step = board_steps[1][0][n]; *step; ++step) {
 		m = n + *step;
@@ -150,13 +205,24 @@ static void unstack(Board *board, const Move *m)
 	Field *f = &board->fields[m->r1][m->c1];
 	Field *g = &board->fields[m->r2][m->c2];
 
+	/* Note to self: do not reorder anything here, or you will break things!
+	   Updating the Zobrist hash is sensitive to the order of these statements,
+	   because the destination field itself may have been removed, and must be
+	   restored by restore_unreachable() with the correct contents. */
+
+#ifdef ZOBRIST
+	board->hash ^= field_key[field_id(g)][m->r2][m->c2];
+#endif
 	tmp_player = f->player;
 	f->player = g->player;
+	assert(f->removed == board->moves);
+	restore_unreachable(board, W*m->r1 + m->c1);
 	g->player = tmp_player;
 	g->pieces -= f->pieces;
 	g->dvonns -= f->dvonns;
-	assert(f->removed == board->moves);
-	restore_unreachable(board, W*m->r1 + m->c1);
+#ifdef ZOBRIST
+	board->hash ^= field_key[field_id(g)][m->r2][m->c2];
+#endif
 }
 
 /* Used also by IO.c: */
@@ -178,10 +244,18 @@ EXTERN void board_do(Board *board, const Move *m)
 		update_neighbour_mobility(board, m->r1, m->c1, -1);
 	}
 	++board->moves;
+#ifdef ZOBRIST
+	if (board->moves == N) board->hash ^= phase_key;
+	board->hash ^= player_key;
+#endif
 }
 
 EXTERN void board_undo(Board *board, const Move *m)
 {
+#ifdef ZOBRIST
+	board->hash ^= player_key;
+	if (board->moves == N) board->hash ^= phase_key;
+#endif
 	--board->moves;
 	if (m->r2 >= 0) {  /* stack */
 		unstack(board, m);
@@ -237,6 +311,9 @@ EXTERN void board_validate(const Board *board)
 			if (!f->removed) validate_mobility(board, r, c);
 		}
 	}
+#ifdef ZOBRIST
+	assert(zobrist_hash(board) == board->hash);
+#endif
 	/* This doesn't really belong here, but I want to check it somewhere: */
 	assert(sizeof(Move) == sizeof(int));
 }

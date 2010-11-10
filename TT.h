@@ -3,8 +3,9 @@
 #include "Game.h"
 #include "AI.h"
 
-/* 64-bit hash code type: */
+#ifndef ZOBRIST
 typedef unsigned long long hash_t;
+#endif
 
 /* Transposition table entry: */
 typedef struct TTEntry {
@@ -30,10 +31,11 @@ EXTERN void tt_fini(void);
 /* Serializes the board state into a unique 50-byte descriptor. */
 EXTERN void serialize_board(const Board *board, unsigned char output[50]);
 
-/* Computes a 64-bit FNV-1 hash. */
-EXTERN hash_t fnv1(unsigned char *data, size_t len);
-
+#ifdef ZOBRIST
+#define hash_board(board) ((board)->hash)
+#else
 /* Computes a hash code for the given board. */
 EXTERN hash_t hash_board(const Board *board);
+#endif
 
 #endif /* ndef TT_H_INCLUDED */

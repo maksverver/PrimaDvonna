@@ -224,11 +224,11 @@ static void solve_state(const char *descr)
 	if (next_player == NONE) {
 		fprintf(stderr, "Game already finished!\n");
 	} else {
-		board_validate(&board);
 		if (!ai_select_move(&board, &arg_limit, &result)) {
 			fprintf(stderr, "Internal error: no move selected!\n");
 			exit(EXIT_FAILURE);
 		}
+		board_validate(&board);
 		npv = ai_extract_pv(&board, pv, sizeof(pv)/sizeof(*pv));
 		fprintf(stderr, "Principal variation:");
 		for (n = 0; n < npv; ++n) {
@@ -364,7 +364,7 @@ int main(int argc, char *argv[])
 
 	/* Initialize transposition table: */
 	if (ai_use_tt) {
-		tt_init(2500009); /* ~57.22 MB at 24 bytes per entry */
+		tt_init(1<<21);  /* 2 M entries = 48 MB at 24 bytes per entry */
 		fprintf(stderr, "%.3f MB transposition table is enabled.\n",
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);
 	} else {

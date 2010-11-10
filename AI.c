@@ -27,6 +27,11 @@ static void reset_rng()
 	srand(rng_seed);
 }
 
+static TTEntry *tt_entry(hash_t hash)
+{
+	return &tt[(size_t)(hash ^ (hash >> 32))&(tt_size - 1)];
+}
+
 /* Implements depth-first minimax search with alpha-beta pruning.
 
    Takes the current game state in `board' and `pass' (the number of passes
@@ -60,13 +65,11 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 	Move killer = move_null;
 
 	if (ai_use_tt) { /* look up in transposition table: */
+		hash = hash_board(board);
 #ifdef TT_DEBUG
 		serialize_board(board, data);
-		hash = fnv1(data, 50);
-#else
-		hash = hash_board(board);
 #endif
-		entry = &tt[hash%tt_size];
+		entry = tt_entry(hash);
 		if (entry->hash == hash) {
 #ifdef TT_DEBUG  /* detect hash collisions */
 			assert(memcmp(entry->data, data, 50) == 0);
@@ -304,7 +307,7 @@ EXTERN int ai_extract_pv(Board *board, Move *moves, int nmove)
 	for (n = 0; n < nmove && generate_all_moves(board, NULL) > 0 ; ++n)
 	{
 		hash = hash_board(board);
-		entry = &tt[hash%tt_size];
+		entry = tt_entry(hash);
 		if (entry->hash != hash || move_is_null(&entry->killer)) break;
 		assert(valid_move(board, &entry->killer));
 		moves[n] = entry->killer;

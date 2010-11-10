@@ -2,23 +2,35 @@ Note for after test competition 4:
  - Timing code has changed yet again. check if the online judge is still 70~90ms
    behind my expected time. If not, up the time limit to e.g. 4.95 or so.
 
-For next competition:
+For test competition 4:
   - do another big test with Dvonner, Holtz and player3 from caia
-  - remove `pass' as dfs() parameter? (are there positions where we benefit from it?)
+  - maybe: remove `pass' as dfs() parameter?
+  - better handling of 'exact' values; if these are stored in the tt, their
+    depth should be considered infinite.
+  - large benchmark to determine if `depth - 1` or `depth` works better when
+    only one move is available.
+  - get rid of EXTERN nonsense? (also in compile.pl!) (benchmark if it helps)
+
+For test competition 5:
+  - negascout?
+  - improve setup function (borrow for Dvonner?)
+
+For test competition 6:
+  - improve evaluation function (how?)
 
 For final version:
-  - replace range checks like (r >= 0 && r < H) with ((unsigned)r <= H)
-    and nonsense like this.
   - change compile.pl to #define NDEBUG so assertions are not tested anymore?
 
 Later:
- - better handling of 'exact' values; if these are stored in the tt, their depth
-   should be considered infinite.
  - consider move representation:
     - maybe ints instead of chars is more efficient?
     - change library functions so single moves are passed by value?
-    (how to benchmark these changes when evaluation takes most time?)
+      (how to benchmark these changes when evaluation takes most time?)
+ - include some benchmarks and run them on the Codecup server, tweaking various
+   parameters?
+
 Maybe later:
+ - represent moves as two ints (source, destination?)
  - include principal variation in AI result.
  - consider implementing NegaScout? (should work well with killer heuristic?)
  - consider implementing  MTD(f)? (tricky with float values)
@@ -41,10 +53,3 @@ Overall:
  - improve move ordering heuristic:
     - to evaluate: take a random sample of positions, rank possible moves by
       value, and see which ones tend to be good?
- - benchmark code, find bottlenecks, fix them.
-
-Test suite:
- - transposition table tests: check values for various positions with and
-   without tt, and ensure their values are equal.
- - collect various positions; benchmark and validate player with different
-   techniques enabled?
