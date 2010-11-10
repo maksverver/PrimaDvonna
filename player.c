@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
 
 	/* Initialize transposition table: */
 	if (ai_use_tt) {
-		tt_init(2345699); /* ~54 MB at 24 bytes per entry */
+		tt_init(2500009); /* ~57.22 MB at 24 bytes per entry */
 		fprintf(stderr, "%.3f MB transposition table is enabled.\n",
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);
 	} else {
