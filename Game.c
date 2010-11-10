@@ -56,38 +56,35 @@ static void unplace(Board *board, const Move *m)
 /* Temporary space shared by mark_reachable() and remove_reachable(): */
 static bool reachable[H][W];
 
-static void mark_reachable(Board *board, int r1, int c1) {
-	int d, r2, c2;
+static void mark_reachable(Board *board, int n) {
+	const int *step;
+	int m;
 
-	reachable[r1][c1] = true;
-	for (d = 0; d < 6; ++d) {
-		r2 = r1 + DR[d];
-		c2 = c1 + DC[d];
-		if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W &&
-			!board->fields[r2][c2].removed && !reachable[r2][c2]) {
-			mark_reachable(board, r2, c2);
+	reachable[0][n] = true;
+	for (step = board_steps[1][0][n]; *step; ++step) {
+		m = n + *step;
+		if (!board->fields[0][m].removed && !reachable[0][m]) {
+			mark_reachable(board, m);
 		}
 	}
 }
 
 static void remove_unreachable(Board *board)
 {
-	int r, c;
+	int n;
+	Field *f;
 
 	memset(reachable, 0, sizeof(reachable));
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			if (!board->fields[r][c].removed &&
-				board->fields[r][c].dvonns && !reachable[r][c]) {
-				mark_reachable(board, r, c);
-			}
+	for (n = 0; n < H*W; ++n) {
+		f = &board->fields[0][n];
+		if (!f->removed && f->dvonns && !reachable[0][n]) {
+			mark_reachable(board, n);
 		}
 	}
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			if (!board->fields[r][c].removed && !reachable[r][c]) {
-				board->fields[r][c].removed = board->moves;
-			}
+	for (n = 0; n < H*W; ++n) {
+		f = &board->fields[0][n];
+		if (!f->removed && !reachable[0][n]) {
+			f->removed = board->moves;
 		}
 	}
 }
@@ -133,17 +130,16 @@ static void stack(Board *board, const Move *m)
 	}
 }
 
-static void restore_unreachable(Board *board, int r1, int c1)
+static void restore_unreachable(Board *board, int n)
 {
-	int d, r2, c2;
+	int m;
+	const int *step;
 
-	board->fields[r1][c1].removed = 0;
-	for (d = 0; d < 6; ++d) {
-		r2 = r1 + DR[d];
-		c2 = c1 + DC[d];
-		if (r2 >= 0 && r2 < H && c2 >= 0 && c2 < W &&
-			board->fields[r2][c2].removed == board->moves) {
-			restore_unreachable(board, r2, c2);
+	board->fields[0][n].removed = 0;
+	for (step = board_steps[1][0][n]; *step; ++step) {
+		m = n + *step;
+		if (board->fields[0][m].removed == board->moves) {
+			restore_unreachable(board, m);
 		}
 	}
 }
@@ -160,22 +156,15 @@ static void unstack(Board *board, const Move *m)
 	g->pieces -= f->pieces;
 	g->dvonns -= f->dvonns;
 	assert(f->removed == board->moves);
-	restore_unreachable(board, m->r1, m->c1);
+	restore_unreachable(board, W*m->r1 + m->c1);
 }
 
 /* Used also by IO.c: */
 EXTERN void update_neighbour_mobility(Board *board, int r1, int c1, int diff)
 {
-	int d, r2, c2;
-
-	for (d = 0; d < 6; ++d) {
-		r2 = r1 + DR[d];
-		if (r2 >= 0 && r2 < H) {
-			c2 = c1 + DC[d];
-			if (c2 >= 0 && c2 < W) {
-				board->fields[r2][c2].mobile += diff;
-			}
-		}
+	const int *step;
+	for (step = board_steps[1][r1][c1]; *step; ++step) {
+		(&board->fields[r1][c1] + *step)->mobile += diff;
 	}
 }
 
@@ -252,16 +241,15 @@ EXTERN void board_validate(const Board *board)
 	assert(sizeof(Move) == sizeof(int));
 }
 
+/* Generates a list of possible setup moves. */
 static int gen_places(const Board *board, Move moves[N])
 {
 	int r, c, nmove = 0;
 	for (r = 0; r < H; ++r) {
 		for (c = 0; c < W; ++c) {
 			if (!board->fields[r][c].pieces && !board->fields[r][c].removed) {
-				if (moves) {
-					Move new_move = { r, c, -1, -1 };
-					moves[nmove] = new_move;
-				}
+				Move new_move = { r, c, -1, -1 };
+				moves[nmove] = new_move;
 				++nmove;
 			}
 		}
@@ -269,100 +257,72 @@ static int gen_places(const Board *board, Move moves[N])
 	return nmove;
 }
 
-/* Generates a list of possible stacking moves for either player: */
-static int gen_all_stacks(const Board *board, Move *moves)
-{
-	const Field *f, *g;
-	int r1, c1, d, r2, c2, nmove = 0;
-
-	for (r1 = 0; r1 < H; ++r1) {
-		for (c1 = 0; c1 < W; ++c1) {
-			f = &board->fields[r1][c1];
-			if (!f->removed && f->player != NONE && f->mobile) {
-				for (d = 0; d < 6; ++d) {
-					r2 = r1 + f->pieces*DR[d];
-					if (r2 >= 0 && r2 < H) {
-						c2 = c1 + f->pieces*DC[d];
-						if (c2 >= 0 && c2 < W) {
-							g = &board->fields[r2][c2];
-							if (!g->removed) {
-								if (moves) {
-									Move new_move = { r1, c1, r2, c2};
-									moves[nmove] = new_move;
-								}
-								++nmove;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return nmove;
-}
-
-/* Generates a list of possible stacking moves for a particular player.
-   Differs from above in two key aspects (and two lines of source code):
-    - only generates moves for stacks of the given player's color
-    - if no moves are found, adds a pass move to the list instead */
+/* Generates a list of possible stacking moves, either for one of the two
+   players (if `player' is WHITE or BLACK) or both (if `player' is NONE): */
 static int gen_stacks(const Board *board, Move *moves, Color player)
 {
 	const Field *f, *g;
-	int r1, c1, d, r2, c2, nmove = 0;
+	const int *step;
+	int n, m, nmove = 0;
 
-	for (r1 = 0; r1 < H; ++r1) {
-		for (c1 = 0; c1 < W; ++c1) {
-			f = &board->fields[r1][c1];
-			if (!f->removed && f->player == player && f->mobile) {
-				for (d = 0; d < 6; ++d) {
-					r2 = r1 + f->pieces*DR[d];
-					if (r2 >= 0 && r2 < H) {
-						c2 = c1 + f->pieces*DC[d];
-						if (c2 >= 0 && c2 < W) {
-							g = &board->fields[r2][c2];
-							if (!g->removed) {
-								if (moves) {
-									Move new_move = { r1, c1, r2, c2};
-									moves[nmove] = new_move;
-								}
-								++nmove;
-							}
-						}
-					}
+	for (n = 0; n < H*W; ++n) {
+		f = &board->fields[0][n];
+		if (!f->removed && f->mobile && f->player >= 0 &&
+			(player == NONE || f->player == player)) {
+			for (step = board_steps[f->pieces][0][n]; *step; ++step) {
+				m = n + *step;
+				g = f + *step;
+				if (!g->removed) {
+					Move new_move = { n/W, n%W, m/W, m%W};
+					moves[nmove] = new_move;
+					++nmove;
 				}
 			}
 		}
 	}
-	if (nmove == 0) moves[nmove++] = move_pass;
 	return nmove;
 }
 
 EXTERN int generate_all_moves(const Board *board, Move moves[2*M])
 {
-	return board->moves < N
-		? gen_places(board, moves)
-		: gen_all_stacks(board, moves);
+	static Move dummy_moves[2*M];
+
+	if (!moves) moves = dummy_moves;
+
+	if (board->moves < N) {
+		return gen_places(board, moves);
+	} else {
+		return gen_stacks(board, moves, NONE);
+	}
 }
 
 EXTERN int generate_moves(const Board *board, Move moves[M])
 {
-	return board->moves < N
-		? gen_places(board, moves)
-		: gen_stacks(board, moves, next_player(board));
+	static Move dummy_moves[M];
+
+	if (!moves) moves = dummy_moves;
+
+	if (board->moves < N) {
+		return gen_places(board, moves);
+	} else {
+		int nmove;
+
+		nmove = gen_stacks(board, moves, next_player(board));
+		if (nmove == 0) moves[nmove++] = move_pass;
+		return nmove;
+	}
 }
 
 EXTERN void board_scores(const Board *board, int scores[2])
 {
-	int r, c;
+	int n;
+	const Field *f;
 
 	scores[0] = scores[1] = 0;
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			const Field *f = &board->fields[r][c];
-
-			if (!f->removed && (f->player == 0 || f->player == 1)) {
-				scores[f->player] += f->pieces;
-			}
+	for (n = 0; n < H*W; ++n) {
+		f = &board->fields[0][n];
+		if (!f->removed && (f->player == 0 || f->player == 1)) {
+			scores[f->player] += f->pieces;
 		}
 	}
 }
@@ -381,7 +341,9 @@ EXTERN bool valid_move(const Board *board, const Move *move)
 
 EXTERN int board_score(const Board *board)
 {
-	int sc[2], player = next_player(board);
+	int sc[2], player;
+
+	player = next_player(board);
 	board_scores(board, sc);
 	return sc[player] - sc[1 - player];
 }

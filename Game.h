@@ -29,6 +29,9 @@ typedef struct Board
 	Field fields[H][W];   /* fields of the board */
 } Board;
 
+/* TODO: document */
+extern const int *board_steps[50][5][11];
+
 /* This macro determines which color plays next: */
 #define next_player(b) ((b)->moves < N ? ((b)->moves&1) : ((b)->moves - N)&1)
 

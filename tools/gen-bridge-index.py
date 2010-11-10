@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Script to generate an index of neighbour bitmasks and whether not these
 # correspond to possible bridges. A neighbour bitmask is a six-bit bitmask that

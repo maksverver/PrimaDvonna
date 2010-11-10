@@ -434,12 +434,12 @@ func main() {
 			// Print average difference in disks for player against each opponent:
 			if !single {
 				fmt.Println()
-				fmt.Printf("%24s", "")
+				fmt.Printf("%34s", "")
 				for i := range players {
 					fmt.Printf(" %4d   ", i+1)
 				}
 				fmt.Println()
-				fmt.Printf("%24s", "")
+				fmt.Printf("%34s", "")
 				for _ = range players {
 					fmt.Printf(" ------")
 				}

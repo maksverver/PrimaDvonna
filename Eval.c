@@ -87,35 +87,28 @@ EXTERN val_t eval_placing(const Board *board)
 /* Evaluate a board during the stacking phase. */
 EXTERN val_t eval_stacking(const Board *board)
 {
-	int r1, c1, r2, c2, dir, sign;
+	int n, sign;
+	const int *step;
 	const Field *f, *g;
 	int player = next_player(board);
 	bool game_over = true;
 	int stacks = 0, score = 0, moves = 0, to_life = 0, to_enemy = 0;
 
-	for (r1 = 0; r1 < H; ++r1) {
-		for (c1 = 0; c1 < W; ++c1) {
-			f = &board->fields[r1][c1];
-			if (f->removed || f->player < 0) continue;
-			sign = (f->player == player) ? +1 : -1;
-			stacks += sign;
-			score  += f->pieces * sign;
-			for (dir = 0; dir < 6; ++dir) {
-				r2 = r1 + DR[dir] * f->pieces;
-				if ((unsigned)r2 < H) {
-					c2 = c1 + DC[dir] * f->pieces;
-					if ((unsigned)c2 < W) {
-						g = &board->fields[r2][c2];
-						if (g->removed) continue;
-						if (f->mobile) {
-							game_over = false;
-							if (g->dvonns) to_life += sign;
-							if ((f->player ^ g->player) > 0) to_enemy += sign;
-						}
-						moves += sign;
-					}
-				}
+	for (n = 0; n < W*H; ++n) {
+		f = &board->fields[0][n];
+		if (f->removed || f->player < 0) continue;
+		sign = (f->player == player) ? +1 : -1;
+		stacks += sign;
+		score  += f->pieces * sign;
+		for (step = board_steps[f->pieces][0][n]; *step; ++step) {
+			g = f + *step;
+			if (g->removed) continue;
+			if (f->mobile) {
+				game_over = false;
+				if (g->dvonns) to_life += sign;
+				if ((f->player ^ g->player) > 0) to_enemy += sign;
 			}
+			moves += sign;
 		}
 	}
 
