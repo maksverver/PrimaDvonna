@@ -256,7 +256,7 @@ static void print_usage()
 	"stop after evaluating given number of positions\n"
 		"\t--time=<time>     "
 	"maximum time per game/state (default when playing: %.2fs)\n"
-		"\t--tt=<val>        set use of table (0: off, 1: on)\n"
+		"\t--tt=<size>       set use of table (0: off)\n"
 		"\t--mo=<val>        enable move ordering "
 			"(0: off, 1: heuristic, 2: evaluated)\n"
 		"\t--killer=<val>    set killer heuristic "
@@ -363,8 +363,8 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "RNG seed %d.\n", arg_seed);
 
 	/* Initialize transposition table: */
-	if (ai_use_tt) {
-		tt_init(1<<21);  /* 2 M entries = 48 MB at 24 bytes per entry */
+	if (ai_use_tt > 0) {
+		tt_init(1<<ai_use_tt);  /* 2 M entries = 48 MB at 24 bytes per entry */
 		fprintf(stderr, "%.3f MB transposition table is enabled.\n",
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);
 	} else {
