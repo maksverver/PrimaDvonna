@@ -130,8 +130,11 @@ static val_t dfs(Board *board, int depth, int pass, val_t lo, val_t hi,
 			board_do(board, &moves[0]);
 			/* Note: `depth - 1' was `depth' here.
 			   Need to benchmark which works better later. */
-			res = -dfs(board, depth - 1, (move_passes(&moves[0]) ? pass+1 : 0),
+			res = dfs(board, depth - 1, (move_passes(&moves[0]) ? pass+1 : 0),
 					   next_lo, next_hi, NULL);
+			/* After all moves EXCEPT the N'th, the next player changes. In
+			   this case, the last player had only one move: */
+			if (board->moves != N) res = -res;
 			board_undo(board, &moves[0]);
 			if (aborted) return 0;
 		} else {

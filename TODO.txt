@@ -11,6 +11,12 @@ For test competition 4:
     only one move is available.
   - get rid of EXTERN nonsense? (also in compile.pl!) (benchmark if it helps)
 
+  - review hashing code:
+     - Zobrist hashing seems to give more collissions (need stats!)
+     - maybe FNV is better because fewer positions are evaluated?
+     - how can I test on a Pentium IV?
+
+
 For test competition 5:
   - negascout?
   - improve setup function (borrow for Dvonner?)

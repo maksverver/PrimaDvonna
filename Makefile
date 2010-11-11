@@ -1,4 +1,4 @@
-CFLAGS=-g -O2 -m32 -Wall -Wextra -DEXTERN=extern -DxTT_DEBUG -DTT_KILLER -DZOBRIST
+CFLAGS=-g -O2 -m32 -Wall -Wextra -DEXTERN=extern -DxTT_DEBUG -DTT_KILLER -DxZOBRIST
 LDFLAGS=-m32
 LDLIBS=-lm
 SRCS=AI.c Crash.c Eval.c Game.c Game-steps.c IO.c MO.c Time.c TT.c player.c
