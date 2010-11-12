@@ -4,10 +4,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#ifdef ZOBRIST
-typedef unsigned long long hash_t;
-#endif /* ndef ZOBRIST */
-
 #define W    11             /* board width */
 #define H     5             /* board height */
 #define N    49             /* maximum number of accessible fields */
@@ -27,12 +23,20 @@ typedef struct Field
 	signed char   mobile;      /* number of open neighbouring directions */
 } Field;
 
+#ifdef ZOBRIST
+typedef union LargeInteger
+{
+	unsigned int ui[2];
+	unsigned long long ull;
+} LargeInteger;
+#endif
+
 typedef struct Board
 {
 	int   moves;          /* number of moves played on this board */
 	Field fields[H][W];   /* fields of the board */
 #ifdef ZOBRIST
-	unsigned long long hash;  /* hash code for the field */
+	LargeInteger hash;    /* hash code for the board */
 #endif
 } Board;
 
@@ -83,7 +87,7 @@ EXTERN void board_clear(Board *board);
 #ifdef ZOBRIST
 /* Recalculates the Zobrist hash of a board from scratch and returns the result.
    The existing value of board->hash is neither used nor updated. */
-EXTERN hash_t zobrist_hash(const Board *board);
+EXTERN LargeInteger zobrist_hash(const Board *board);
 #endif
 
 /* Do/undo moves (which must be valid, e.g. returned by generate_moves()) */
@@ -92,7 +96,11 @@ EXTERN void board_undo(Board *board, const Move *m);
 
 /* Does an internal consistency check on the board and aborts the program if
    any check fails. Does not catch all inconsistencies! */
+#ifndef NDEBUG
 EXTERN void board_validate(const Board *board);
+#else /* def NDEBUG */
+#define board_validate(board)
+#endif
 
 /* Generates a list of all moves for both players and returns it length.
    This list does not include passes for either player. */
@@ -113,9 +121,5 @@ EXTERN void board_scores(const Board *board, int scores[2]);
 
 /* Calculates the score for the current player: */
 EXTERN int board_score(const Board *board);
-
-#ifdef NDEBUG
-#define board_validate(board)
-#endif
 
 #endif /* ndef GAME_H_INCLUDED */

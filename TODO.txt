@@ -3,7 +3,6 @@ Note for after test competition 4:
    behind my expected time. If not, up the time limit to e.g. 4.95 or so.
 
 For test competition 4:
-  - do another big test with Dvonner, Holtz and player3 from caia
   - maybe: remove `pass' as dfs() parameter?
   - better handling of 'exact' values; if these are stored in the tt, their
     depth should be considered infinite.

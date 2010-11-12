@@ -32,10 +32,12 @@ sub include
     close FP;
 }
 
-
-#print "#define NDEBUG\n";
-print "#undef EXTERN\n";
-print "#define EXTERN static\n";
-foreach my $fn (@ARGV) {
-    include $fn;
+foreach my $arg (@ARGV) {
+    if ($arg =~ /^-D(\w*)$/) {
+        print "#undef $1\n#define $1 1\n";
+    } elsif ($arg =~ /^-D(\w*)=(.*)/) {
+        print "#undef $1\n#define $1 $2\n";
+    } else {
+        include $arg;
+    }
 }

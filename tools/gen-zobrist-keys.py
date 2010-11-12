@@ -1,35 +1,22 @@
 #!/usr/bin/env python2
 
-import struct
+import random
 
 N,H,W = 49,5,11
 
 def keys():
-	fp = file('/dev/urandom', 'rb')
 	while True:
-		yield "0x%016xull" % struct.unpack('=Q', fp.read(8))
+		yield "" % random.getrandbits(64)
 
 it = keys()
 
-print 'static const hash_t field_key[4*(N+1)][H][W] = {'
-for n in range(4*(N+1)):
-	print '\t{ /* ' + str(n) + ' */'
-	for r in range(H):
-		values = []
-		for c in range(W):
-			values.append(it.next())
-		line = "\t\t{ "
-		line += ', '.join(values)
-		line += " }"
-		if r + 1 < H:
-			line += ','
-		else:
-			line += ' }'
-			if n + 1 < 4*(N+1):
-				line += ','
-			else:
-				line += ' };'
-		print line
-print 'static const hash_t player_key = ' + it.next() + ';'
-print 'static const hash_t phase_key = ' + it.next() + ';'
-print 'static const hash_t init_key = ' + it.next() + ';'
+num_field_keys = 4*(N+1)*H*W
+print 'static const unsigned long long zobrist_init_key = 0x%016xull;' % random.getrandbits(64)
+print 'static const unsigned long long zobrist_player_key = 0x%016xull;' % random.getrandbits(64)
+print 'static const unsigned long long zobrist_phase_key = 0x%016xull;' % random.getrandbits(64)
+print 'static const unsigned zobrist_field_key[4*(N+1)*H*W] = {'
+for n in range(num_field_keys//W):
+	values = []
+	for c in range(W):
+		values.append("0x%08xu" % random.getrandbits(32))
+	print "\t " + ', '.join(values) + (" };", ",")[n + 1 < num_field_keys//W]

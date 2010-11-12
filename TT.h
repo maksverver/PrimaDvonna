@@ -3,9 +3,7 @@
 #include "Game.h"
 #include "AI.h"
 
-#ifndef ZOBRIST
 typedef unsigned long long hash_t;
-#endif
 
 /* Transposition table entry: */
 typedef struct TTEntry {
@@ -32,7 +30,7 @@ EXTERN void tt_fini(void);
 EXTERN void serialize_board(const Board *board, unsigned char output[50]);
 
 #ifdef ZOBRIST
-#define hash_board(board) ((board)->hash)
+#define hash_board(board) ((hash_t)((board)->hash.ull))
 #else
 /* Computes a hash code for the given board. */
 EXTERN hash_t hash_board(const Board *board);

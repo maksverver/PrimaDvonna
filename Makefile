@@ -1,4 +1,4 @@
-CFLAGS=-g -O2 -m32 -Wall -Wextra -DEXTERN=extern -DxTT_DEBUG -DTT_KILLER -DxZOBRIST
+CFLAGS=-g -O2 -m32 -Wall -Wextra -DEXTERN=extern -DxTT_DEBUG -DZOBRIST
 LDFLAGS=-m32
 LDLIBS=-lm
 SRCS=AI.c Crash.c Eval.c Game.c Game-steps.c IO.c MO.c Time.c TT.c player.c
@@ -14,7 +14,7 @@ player: $(OBJS)
 	$(CC) $(LDFLAGS) -o player $(OBJS) $(LDLIBS)
 
 submission.c: tools/compile.pl $(SRCS)
-	tools/compile.pl $(SRCS) >submission.c
+	tools/compile.pl -DEXTERN=static -DZOBRIST $(SRCS) >submission.c
 
 clean:
 	rm -f $(OBJS)
