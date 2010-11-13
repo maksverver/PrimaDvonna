@@ -212,7 +212,7 @@ static void solve_state(const char *descr)
 	Color next_player;
 	AI_Result result;
 	Board board;
-	Move pv[40];
+	Move pv[AI_MAX_DEPTH];
 	int n, npv;
 
 	if (!parse_state(descr, &board, &next_player)) {
@@ -229,7 +229,7 @@ static void solve_state(const char *descr)
 			exit(EXIT_FAILURE);
 		}
 		board_validate(&board);
-		npv = ai_extract_pv(&board, pv, sizeof(pv)/sizeof(*pv));
+		npv = ai_extract_pv(&board, pv, AI_MAX_DEPTH);
 		fprintf(stderr, "Principal variation:");
 		for (n = 0; n < npv; ++n) {
 			fprintf(stderr, " %s", format_move(&pv[n]));

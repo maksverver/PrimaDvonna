@@ -4,6 +4,9 @@
 #include "Game.h"
 #include "Eval.h"
 
+/* Maximum search depth: */
+#define AI_MAX_DEPTH 20
+
 /* Search algorithm parameters: */
 extern int ai_use_tt;      /* use transposition table? (0 or 1) */
 extern int ai_use_mo;      /* use move reordering? (0, 1 or 2) */

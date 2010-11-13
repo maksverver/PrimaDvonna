@@ -3,18 +3,9 @@ Note for after test competition 4:
    behind my expected time. If not, up the time limit to e.g. 4.95 or so.
 
 For test competition 4:
-  - maybe: remove `pass' as dfs() parameter?
   - better handling of 'exact' values; if these are stored in the tt, their
     depth should be considered infinite.
-  - large benchmark to determine if `depth - 1` or `depth` works better when
-    only one move is available.
   - get rid of EXTERN nonsense? (also in compile.pl!) (benchmark if it helps)
-
-  - review hashing code:
-     - Zobrist hashing seems to give more collissions (need stats!)
-     - maybe FNV is better because fewer positions are evaluated?
-     - how can I test on a Pentium IV?
-
 
 For test competition 5:
   - negascout?
@@ -27,19 +18,19 @@ For final version:
   - change compile.pl to #define NDEBUG so assertions are not tested anymore?
 
 Later:
- - consider move representation:
-    - maybe ints instead of chars is more efficient?
-    - change library functions so single moves are passed by value?
-      (how to benchmark these changes when evaluation takes most time?)
+ - see if we can override target/optimization options.
+   GCC 4.4 supports #pragma GCC target/optimization and
+   __attribute__((target())), maybe GCC 4.3 does, too?
  - include some benchmarks and run them on the Codecup server, tweaking various
    parameters?
+ - include principal variation in AI result.
 
 Maybe later:
  - represent moves as two ints (source, destination?)
- - include principal variation in AI result.
+    - then we could also linearize the fields of the board. requires stable
+      board representation, though!
  - consider implementing NegaScout? (should work well with killer heuristic?)
- - consider implementing  MTD(f)? (tricky with float values)
- - make board hashing for TT more efficient, if possible.
+ - consider implementing MTD(f)? (tricky with float values)
  - check hash table performance:
      - how often do collisions occur?
      - how full is the table when they happen?
@@ -50,7 +41,7 @@ Maybe later:
  - consider auto-learning for evaluation parameters?
    See: http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
    Note: this is what Dvonner did!
- - test against Rororobot and Jan's Program on littlegolem.net
+ - test against Rororobot on littlegolem.net
 
 Overall:
  - improve placement phase evaluation function

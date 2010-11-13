@@ -2,8 +2,8 @@
 #include <math.h>
 #include <assert.h>
 
-const val_t min_val = -1000.0f * (N + 1);
-const val_t max_val = +1000.0f * (N + 1);
+const val_t val_min = -1000.0f * (N + 1);
+const val_t val_max = +1000.0f * (N + 1);
 
 struct EvalWeights eval_weights = {
 	1.00f,    /* stacks */
@@ -52,7 +52,7 @@ EXTERN val_t eval_placing(const Board *board)
 			const Field *f = &board->fields[r][c];
 
 			if (f->pieces > 0 && f->player >= 0) {
-				int min_dist_to_dvonn = max_val;
+				int min_dist_to_dvonn = val_max;
 				int tot_dist_to_dvonn = 0;
 				int neighbours = 0;
 
@@ -85,6 +85,7 @@ EXTERN val_t eval_placing(const Board *board)
 }
 
 /* Evaluate a board during the stacking phase. */
+__attribute__((__target__("arch=pentium4")))
 EXTERN val_t eval_stacking(const Board *board)
 {
 	int n, sign;

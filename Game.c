@@ -333,7 +333,7 @@ EXTERN void board_validate(const Board *board)
 		}
 	}
 #ifdef ZOBRIST
-	assert(zobrist_hash(board) == board->hash);
+	assert(zobrist_hash(board).ull == board->hash.ull);
 #endif
 
 	/* Size checks don't really belong here, but I need to check somewhere: */
@@ -342,7 +342,7 @@ EXTERN void board_validate(const Board *board)
 	assert(sizeof(board->hash.ui) == sizeof(board->hash.ull));
 #endif
 }
-#endif NDEBUG
+#endif /* NDEBUG */
 
 /* Generates a list of possible setup moves. */
 static int gen_places(const Board *board, Move moves[N])

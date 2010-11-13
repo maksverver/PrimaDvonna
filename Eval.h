@@ -7,7 +7,7 @@
 #define VAL_FMT "%f"
 typedef float val_t;
 
-extern const val_t min_val, max_val;
+extern const val_t val_min, val_max;
 
 typedef struct EvalWeights {
 	float stacks;    /* controlled stacks (mobile or not) */
