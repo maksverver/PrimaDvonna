@@ -34,7 +34,7 @@ Maybe later:
  - check hash table performance:
      - how often do collisions occur?
      - how full is the table when they happen?
-     - reconsider replacement policy (replace if depth >= tt->depth only?)
+     - reconsider replacement policy (current version may keep stale positions)
  - try to optimize time budget for moves
  - validate all code!
      - print it out, verify, add comments...

@@ -85,7 +85,6 @@ EXTERN val_t eval_placing(const Board *board)
 }
 
 /* Evaluate a board during the stacking phase. */
-__attribute__((__target__("arch=pentium4")))
 EXTERN val_t eval_stacking(const Board *board)
 {
 	int n, sign;

@@ -16,6 +16,22 @@ typedef struct TTEntry {
 #endif
 } TTEntry;
 
+#ifdef TT_DEBUG
+typedef struct TTStats {
+	long long queries;      /* number of times the TT was queried */
+	long long missing;      /*   of which position was missing */
+	long long shallow;      /*   of which search depth was insufficient */
+	long long partial;      /*   which were used only partially */
+	long long updates;      /* number of updates */
+	long long discarded;    /*   of which discarded due to replacement policy */
+	long long updated;      /*   position existed with equal depth */
+	long long upgraded;     /*   position existed with different depth */
+	long long overwritten;  /*   different position existed */
+} TTStats;
+
+TTStats tt_stats;
+#endif
+
 /* Transposition table: */
 extern TTEntry *tt;
 extern size_t tt_size;
@@ -34,6 +50,11 @@ EXTERN void serialize_board(const Board *board, unsigned char output[50]);
 #else
 /* Computes a hash code for the given board. */
 EXTERN hash_t hash_board(const Board *board);
+#endif
+
+#ifdef TT_DEBUG
+/* Counts the number of valid entries in the transposition table. */
+EXTERN size_t tt_population_count();
 #endif
 
 #endif /* ndef TT_H_INCLUDED */

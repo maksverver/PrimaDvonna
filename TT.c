@@ -2,18 +2,20 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define FNV64_OFFSET_BASIS 14695981039346656037ULL
-#define FNV64_PRIME 1099511628211ULL
-
 TTEntry *tt;
 size_t tt_size;
+
+#ifdef TT_DEBUG
+TTStats tt_stats;
+#endif
 
 EXTERN void tt_init(size_t size)
 {
 	assert(size > 0);
 	assert(tt == NULL);
 	assert((size & (size - 1)) == 0);  /* size should be a power of 2 */
-	while (tt == NULL && size >= 65536) {
+	if (size < 1024) size = 1024;
+	while (tt == NULL && size >= 1024) {
 		tt = calloc(size, sizeof(TTEntry));
 		if (tt == NULL) {
 			fprintf(stderr, "Faild to allocate %ld bytes for the "
@@ -50,6 +52,10 @@ EXTERN void serialize_board(const Board *board, unsigned char output[50])
 }
 
 #ifndef ZOBRIST
+
+#define FNV64_OFFSET_BASIS 14695981039346656037ULL
+#define FNV64_PRIME 1099511628211ULL
+
 #if 0
 static hash_t fnv1(unsigned char *data, size_t len)  /* 64-bit FNV-1 */
 {
@@ -89,6 +95,15 @@ EXTERN hash_t hash_board(const Board *board)
 		}
 	}
 	return res;
-
 }
+
 #endif  /* ndef ZOBRIST */
+
+#ifdef TT_DEBUG
+EXTERN size_t tt_population_count()
+{
+	size_t i, res = 0;
+	for (i = 0; i < tt_size; ++i) res += tt[i].hash != 0;
+	return res;
+}
+#endif

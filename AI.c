@@ -8,6 +8,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef TT_DEBUG
+#define IF_TT_DEBUG(x) x;
+#else
+#define IF_TT_DEBUG(x)
+#endif
+
 /* Search algorithm parameters: (defaults set here perform best) */
 int ai_use_tt     = 21;  /* size as a power of 2*/
 int ai_use_mo     = 1;
@@ -44,24 +50,21 @@ static TTEntry *tt_entry(hash_t hash)
 static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 {
 	hash_t hash = (hash_t)-1;
-#ifdef TT_DEBUG
-	unsigned char data[50];
-#endif
+	IF_TT_DEBUG( unsigned char data[50] )
 	TTEntry *entry = NULL;
 	val_t res = val_min;
 	Move best_move = move_null;
 
 	if (ai_use_tt) { /* look up in transposition table: */
 		hash = hash_board(board);
-#ifdef TT_DEBUG
-		serialize_board(board, data);
-#endif
+		IF_TT_DEBUG( serialize_board(board, data) )
 		entry = tt_entry(hash);
+		IF_TT_DEBUG( ++tt_stats.queries )
+		IF_TT_DEBUG( if (entry->hash != hash) ++tt_stats.missing )
 		if (entry->hash == hash) {
-#ifdef TT_DEBUG
 			/* detect hash collisions */
-			assert(memcmp(entry->data, data, 50) == 0);
-#endif
+			IF_TT_DEBUG( assert(memcmp(entry->data, data, 50) == 0) )
+			IF_TT_DEBUG( if (entry->depth != depth) ++tt_stats.shallow )
 			/* We could use >= depth here too, but that leads to search
 			   instability, which might better be avoided. */
 			if (entry->depth == depth &&
@@ -71,6 +74,7 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 				if (entry->lo >= hi) return entry->lo;
 				if (entry->hi <= lo) return entry->hi;
 				res = entry->lo;
+				IF_TT_DEBUG( ++tt_stats.partial )
 			}
 			best_move = entry->killer;
 		}
@@ -122,18 +126,29 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 			}
 		}
 	}
-	if (ai_use_tt) {  /* FIXME: replacement policy? */
-		/* FIXME: eval_intermediate() could end up calling eval_end() if
-			the current position is actually an end position. In that case,
-			we should really store depth = AI_MAX_DEPTH here! */
-		entry->hash   = hash;
-		entry->lo     = (depth == 0 || res > lo) ? res : val_min;
-		entry->hi     = (depth == 0 || res < hi) ? res : val_max;
-		entry->depth  = 0;
-		entry->killer = best_move;
-#ifdef TT_DEBUG
-		memcpy(entry->data, data, 50);
-#endif
+	if (ai_use_tt) {
+		IF_TT_DEBUG( ++tt_stats.updates )
+
+		if (entry->depth > depth) {  /* discard data and keep old entry */
+			IF_TT_DEBUG( ++tt_stats.discarded )
+		} else {  /* replace entry with new data */
+			IF_TT_DEBUG(
+				if (entry->hash != 0) {
+					if (entry->hash != hash) ++tt_stats.overwritten;
+					else if (entry->depth == depth) ++tt_stats.updated;
+					else ++tt_stats.upgraded;
+				} )
+
+			/* FIXME: eval_intermediate() could end up calling eval_end() if
+				the current position is actually an end position. In that case,
+				we should really store depth = AI_MAX_DEPTH here! */
+			entry->hash   = hash;
+			entry->lo     = (depth == 0 || res > lo) ? res : val_min;
+			entry->hi     = (depth == 0 || res < hi) ? res : val_max;
+			entry->depth  = depth;
+			entry->killer = best_move;
+			IF_TT_DEBUG( memcpy(entry->data, data, 50) )
+		}
 	}
 	if (return_best) *return_best = best_move;
 	return res;
@@ -231,6 +246,29 @@ EXTERN bool ai_select_move( Board *board,
 	}
 	if (alarm_set) clear_alarm();
 	if (signal_handler_set) signal_swap_handlers(SIGINT, &old_handler, NULL);
+#ifdef TT_DEBUG
+	{
+		long long pop = tt_population_count();
+		fprintf(stderr, "TT stats:\n");
+		fprintf(stderr, "\tqueries:       %20lld\n", tt_stats.queries);
+		fprintf(stderr, "\t  missing:     %20lld\n", tt_stats.missing);
+		fprintf(stderr, "\t  shallow:     %20lld\n", tt_stats.shallow);
+		fprintf(stderr, "\t  partial:     %20lld\n", tt_stats.partial);
+		fprintf(stderr, "\tupdates:       %20lld\n", tt_stats.updates);
+		fprintf(stderr, "\t  discarded:   %20lld\n", tt_stats.discarded);
+		fprintf(stderr, "\t  updated:     %20lld\n", tt_stats.updated);
+		fprintf(stderr, "\t  upgraded:    %20lld\n", tt_stats.upgraded);
+		fprintf(stderr, "\t  overwritten: %20lld\n", tt_stats.overwritten);
+		fprintf(stderr, "\tpopulation:    %20lld (%5.2f%%)\n",
+			pop, 100.0*pop/tt_size);
+		fprintf(stderr, "\tupdates/queries: %18.2f\n",
+			1.0*tt_stats.updates/tt_stats.queries);
+		assert(tt_stats.updates <=  /* inequality occurs when aborting search */
+			tt_stats.missing + tt_stats.shallow + tt_stats.partial);
+		assert(pop == tt_stats.updates - tt_stats.discarded -
+			tt_stats.updated - tt_stats.upgraded - tt_stats.overwritten);
+	}
+#endif
 	aborted = false;
 	return true;
 }
