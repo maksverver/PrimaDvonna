@@ -127,11 +127,14 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 		}
 	}
 	if (ai_use_tt) {
-		IF_TT_DEBUG( ++tt_stats.updates )
+		/* Replacement policy: replace existing position with a new one if its
+		   relevance is greater or equal, where relevance is defined as: */
+		int relevance = board->moves + 2*depth;
 
-		if (entry->depth > depth) {  /* discard data and keep old entry */
+		IF_TT_DEBUG( ++tt_stats.updates )
+		if (relevance < entry->relevance) {a
 			IF_TT_DEBUG( ++tt_stats.discarded )
-		} else {  /* replace entry with new data */
+		} else {
 			IF_TT_DEBUG(
 				if (entry->hash != 0) {
 					if (entry->hash != hash) ++tt_stats.overwritten;
@@ -142,11 +145,12 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 			/* FIXME: eval_intermediate() could end up calling eval_end() if
 				the current position is actually an end position. In that case,
 				we should really store depth = AI_MAX_DEPTH here! */
-			entry->hash   = hash;
-			entry->lo     = (depth == 0 || res > lo) ? res : val_min;
-			entry->hi     = (depth == 0 || res < hi) ? res : val_max;
-			entry->depth  = depth;
-			entry->killer = best_move;
+			entry->hash      = hash;
+			entry->lo        = (depth == 0 || res > lo) ? res : val_min;
+			entry->hi        = (depth == 0 || res < hi) ? res : val_max;
+			entry->depth     = depth;
+			entry->relevance = relevance;
+			entry->killer    = best_move;
 			IF_TT_DEBUG( memcpy(entry->data, data, 50) )
 		}
 	}
@@ -261,8 +265,6 @@ EXTERN bool ai_select_move( Board *board,
 		fprintf(stderr, "\t  overwritten: %20lld\n", tt_stats.overwritten);
 		fprintf(stderr, "\tpopulation:    %20lld (%5.2f%%)\n",
 			pop, 100.0*pop/tt_size);
-		fprintf(stderr, "\tupdates/queries: %18.2f\n",
-			1.0*tt_stats.updates/tt_stats.queries);
 		assert(tt_stats.updates <=  /* inequality occurs when aborting search */
 			tt_stats.missing + tt_stats.shallow + tt_stats.partial);
 		assert(pop == tt_stats.updates - tt_stats.discarded -

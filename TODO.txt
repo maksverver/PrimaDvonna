@@ -34,7 +34,8 @@ Maybe later:
  - check hash table performance:
      - how often do collisions occur?
      - how full is the table when they happen?
-     - reconsider replacement policy (current version may keep stale positions)
+ - consider using double/cuckoo hashing for transposition table?
+   should collect stats for how much work is done.
  - try to optimize time budget for moves
  - validate all code!
      - print it out, verify, add comments...

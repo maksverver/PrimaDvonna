@@ -137,3 +137,43 @@ leaving about 4 MB for the rest of the program. This seems safe because I do
 little other allocations, and although the stack grows dynamically, I do not
 use a large amount of stack space. The only recursive function is the search
 in AI.c but that is limited to depth 20.
+
+================================================================================
+
+For the transposition table, an interesting question is what happens when we
+want to store a position in the transposition table, but its designated table
+entry is already in use.
+
+The simplest solution is to always replace the old entry with the new entry.
+This prevents stale positions (whose information will never be used anymore)
+from keeping useful new data out of the table.  This was the first approach I
+implemented. The downside is that sometimes valuable data is discared, for
+example, when overwriting the search result for a large subtree with the result
+of evaluating a single leaf node.
+
+Since we store the search depth used for position in the transposition table,
+there is a simple remedy for this: look at the search depth used for the
+existing position, and if it is larger than our current search depth, we discard
+the new data and keep the old position information. This works great when
+solving a single position, but it doesn't work so well in the context of a game
+where the transposition table data is preserved across moves. This is because
+the transposition table will remain many positions which occur only in
+variations that were once possible but have since been cut off (or even have
+literally occured in the game history). Keeping these positions around is
+useless and especially harmful during the endgame, when the transposition table
+is getting filled.
+
+To get the best of both wordls (keep more detailed information, but purge stale
+positions too) I implemented a hybrid approach. For each position I define its
+relevancy as the number of moves played in the game before it was reached plus
+twice the remaining search depth. An existing position is replaced if its
+relevancy is less than or equal to the relevancy of the new position.
+
+This has the effect that for positions found from the same starting point, those
+higher up in the search tree still take precedence over those lower in the tree
+(with have shallower depth remaining and thus are cheaper to recompute).
+However, because positions that occur later in the game have higher relevancy
+than those that occur earlier, stale entries can be replaced by new entries
+occuring in later positions at the same depth or even shallower depth. This is
+the second method I implemented.
+
