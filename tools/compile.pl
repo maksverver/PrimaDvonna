@@ -3,17 +3,15 @@ use strict;
 
 my %incl = {};
 
-sub include
-{
+sub include {
     my ($fn) = @_;
     return if $incl{$fn};
     $incl{$fn} = 1;
 
-    local(*FP);
+    local *FP;
     open FP, $fn or die "$! ($fn)";
     my ($lineno, $inv) = (1, 1);
-    while(my $line=<FP>)
-    {
+    while(my $line = <FP>) {
         if($line =~ /#include "(.+?)"/) {
             include($1);
             $inv = 1;
@@ -34,10 +32,10 @@ sub include
 
 foreach my $arg (@ARGV) {
     if ($arg =~ /^-D(\w*)$/) {
-        print "#undef $1\n#define $1 1\n";
+        print "#undef $1\n#define $1 1\n"
     } elsif ($arg =~ /^-D(\w*)=(.*)/) {
-        print "#undef $1\n#define $1 $2\n";
+        print "#undef $1\n#define $1 $2\n"
     } else {
-        include $arg;
+        include $arg
     }
 }

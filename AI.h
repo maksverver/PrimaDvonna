@@ -47,7 +47,7 @@ typedef struct AI_Result {
 	Move   move;     /* selected move */
 	val_t  value;    /* value of the move at the last completed search */
 	int    depth;    /* maximum search depth completed */
-    int    eval;     /* total number of positions evaluated */
+	int    eval;     /* total number of positions evaluated */
 	double time;     /* total time used */
 	bool   aborted;  /* whether search was aborted */
 } AI_Result;

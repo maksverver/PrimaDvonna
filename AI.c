@@ -132,7 +132,7 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 		int relevance = board->moves + 2*depth;
 
 		IF_TT_DEBUG( ++tt_stats.updates )
-		if (relevance < entry->relevance) {a
+		if (relevance < entry->relevance) {
 			IF_TT_DEBUG( ++tt_stats.discarded )
 		} else {
 			IF_TT_DEBUG(
