@@ -79,47 +79,47 @@ extern Move move_pass;  /* pass move: all fields set to -1 */
 extern const int DR[6], DC[6];
 
 /* Returns the distance between two pairs of field coordinates: */
-EXTERN int distance(int r1, int c1, int r2, int c2);
+int distance(int r1, int c1, int r2, int c2);
 
 /* (Re)initialize a board structure to an empty board: */
-EXTERN void board_clear(Board *board);
+void board_clear(Board *board);
 
 #ifdef ZOBRIST
 /* Recalculates the Zobrist hash of a board from scratch and returns the result.
    The existing value of board->hash is neither used nor updated. */
-EXTERN LargeInteger zobrist_hash(const Board *board);
+LargeInteger zobrist_hash(const Board *board);
 #endif
 
 /* Do/undo moves (which must be valid, e.g. returned by generate_moves()) */
-EXTERN void board_do(Board *board, const Move *m);
-EXTERN void board_undo(Board *board, const Move *m);
+void board_do(Board *board, const Move *m);
+void board_undo(Board *board, const Move *m);
 
 /* Does an internal consistency check on the board and aborts the program if
    any check fails. Does not catch all inconsistencies! */
 #ifndef NDEBUG
-EXTERN void board_validate(const Board *board);
+void board_validate(const Board *board);
 #else /* def NDEBUG */
 #define board_validate(board)
 #endif
 
 /* Generates a list of all moves for both players and returns it length.
    This list does not include passes for either player. */
-EXTERN int generate_all_moves(const Board *board, Move moves[2*M]);
+int generate_all_moves(const Board *board, Move moves[2*M]);
 
 /* Generates a list of moves for the current player and returns its length.
    If and only if the player has no stacking moves, the result includes a pass
    move, so the result is at least 1. */
-EXTERN int generate_moves(const Board *board, Move moves[M]);
+int generate_moves(const Board *board, Move moves[M]);
 
 /* Determines if the given `board' allows the current player to play `move'.
    Note that this is a relatively costly function because it first generates
    all possible moves! (This is necessary to check if passing is allowed.) */
-EXTERN bool valid_move(const Board *board, const Move *move);
+bool valid_move(const Board *board, const Move *move);
 
 /* Calculates the score for both players: */
-EXTERN void board_scores(const Board *board, int scores[2]);
+void board_scores(const Board *board, int scores[2]);
 
 /* Calculates the score for the current player: */
-EXTERN int board_score(const Board *board);
+int board_score(const Board *board);
 
 #endif /* ndef GAME_H_INCLUDED */

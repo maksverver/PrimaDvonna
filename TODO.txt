@@ -5,7 +5,6 @@ Note for after test competition 4:
 For test competition 4:
   - better handling of 'exact' values; if these are stored in the tt, their
     depth should be considered infinite.
-  - get rid of EXTERN nonsense? (also in compile.pl!) (benchmark if it helps)
 
 For test competition 5:
   - negascout?

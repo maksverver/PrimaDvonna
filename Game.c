@@ -41,7 +41,7 @@ static void zobrist_toggle_field(Board *board, int n)
 }
 
 /* Recalculates the Zobrist hash of a board. */
-EXTERN LargeInteger zobrist_hash(const Board *board_in) {
+LargeInteger zobrist_hash(const Board *board_in) {
 	const Field *f;
 	int n;
 	Board temp;
@@ -72,7 +72,7 @@ const int DC[6] = { +1,  0, -1, -1,  0, +1 };
 
 static int max(int i, int j) { return i > j ? i : j; }
 
-EXTERN int distance(int r1, int c1, int r2, int c2)
+int distance(int r1, int c1, int r2, int c2)
 {
 	int dx = c2 - c1;
 	int dy = r2 - r1;
@@ -80,7 +80,7 @@ EXTERN int distance(int r1, int c1, int r2, int c2)
 	return max(max(abs(dx), abs(dy)), abs(dz));
 }
 
-EXTERN void board_clear(Board *board)
+void board_clear(Board *board)
 {
 	int r, c;
 	board->moves = 0;
@@ -243,7 +243,7 @@ static void unstack(Board *board, const Move *m)
 }
 
 /* Used also by IO.c: */
-EXTERN void update_neighbour_mobility(Board *board, int r1, int c1, int diff)
+void update_neighbour_mobility(Board *board, int r1, int c1, int diff)
 {
 	const int *step;
 	for (step = board_steps[1][r1][c1]; *step; ++step) {
@@ -251,7 +251,7 @@ EXTERN void update_neighbour_mobility(Board *board, int r1, int c1, int diff)
 	}
 }
 
-EXTERN void board_do(Board *board, const Move *m)
+void board_do(Board *board, const Move *m)
 {
 	if (m->r2 >= 0) {
 		stack(board, m);
@@ -268,7 +268,7 @@ EXTERN void board_do(Board *board, const Move *m)
 	}
 }
 
-EXTERN void board_undo(Board *board, const Move *m)
+void board_undo(Board *board, const Move *m)
 {
 	if (board->moves == N) {
 		zobrist_toggle_phase(board);
@@ -308,7 +308,7 @@ static void validate_mobility(const Board *board, int r1, int c1)
 	assert(n == 6);
 }
 
-EXTERN void board_validate(const Board *board)
+void board_validate(const Board *board)
 {
 	int r, c;
 
@@ -386,7 +386,7 @@ static int gen_stacks(const Board *board, Move *moves, Color player)
 	return nmove;
 }
 
-EXTERN int generate_all_moves(const Board *board, Move moves[2*M])
+int generate_all_moves(const Board *board, Move moves[2*M])
 {
 	static Move dummy_moves[2*M];
 
@@ -399,7 +399,7 @@ EXTERN int generate_all_moves(const Board *board, Move moves[2*M])
 	}
 }
 
-EXTERN int generate_moves(const Board *board, Move moves[M])
+int generate_moves(const Board *board, Move moves[M])
 {
 	static Move dummy_moves[M];
 
@@ -416,7 +416,7 @@ EXTERN int generate_moves(const Board *board, Move moves[M])
 	}
 }
 
-EXTERN void board_scores(const Board *board, int scores[2])
+void board_scores(const Board *board, int scores[2])
 {
 	int n;
 	const Field *f;
@@ -430,7 +430,7 @@ EXTERN void board_scores(const Board *board, int scores[2])
 	}
 }
 
-EXTERN bool valid_move(const Board *board, const Move *move)
+bool valid_move(const Board *board, const Move *move)
 {
 	Move moves[M];
 	int i, nmove;
@@ -442,7 +442,7 @@ EXTERN bool valid_move(const Board *board, const Move *move)
 	return false;
 }
 
-EXTERN int board_score(const Board *board)
+int board_score(const Board *board)
 {
 	int sc[2], player;
 

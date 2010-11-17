@@ -27,7 +27,7 @@ static bool is_edge_field(const Board *board, int r, int c)
 }
 
 /* Evaluate the board during the placing phase. */
-EXTERN val_t eval_placing(const Board *board)
+val_t eval_placing(const Board *board)
 {
 	int r, c, p;
 	val_t score[2] = { 0, 0 };
@@ -85,7 +85,7 @@ EXTERN val_t eval_placing(const Board *board)
 }
 
 /* Evaluate a board during the stacking phase. */
-EXTERN val_t eval_stacking(const Board *board)
+val_t eval_stacking(const Board *board)
 {
 	int n, sign;
 	const int *step;
@@ -122,7 +122,7 @@ EXTERN val_t eval_stacking(const Board *board)
 }
 
 /* Evaluate an end position. */
-EXTERN val_t eval_end(const Board *board)
+val_t eval_end(const Board *board)
 {
 	return 1000.0f*board_score(board);
 }

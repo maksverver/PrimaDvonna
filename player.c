@@ -167,7 +167,7 @@ static bool select_move(Board *board, Move *move)
 	return ok;
 }
 
-static void run_game()
+static void run_game(void)
 {
 	Color my_color;
 	Board board;
@@ -241,7 +241,7 @@ static void solve_state(const char *descr)
 	}
 }
 
-static void print_usage()
+static void print_usage(void)
 {
 	printf(
 		"Usage:\n"
@@ -315,7 +315,7 @@ static void parse_args(int argc, char *argv[])
 	}
 }
 
-static void print_memory_use()
+static void print_memory_use(void)
 {
 	char line[1024];
 	FILE *fp;

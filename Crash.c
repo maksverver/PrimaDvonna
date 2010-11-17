@@ -1,6 +1,8 @@
 #include "Crash.h"
 #include "Signal.h"
 #include <stdio.h>
+#include <unistd.h>
+#include <execinfo.h>
 extern char *strsignal(int sig);
 
 static int signals[] = {
@@ -23,15 +25,22 @@ static int signals[] = {
 static void crash_handler(int signal)
 {
 	const char *name = strsignal(signal);
+	void *ptrs[100];
+	int nptr;
 
 	if (!name) name = "Unknown";
 	fprintf(stderr, "Crash handler caught signal %d: %s!\n", signal, name);
+
+	fprintf(stderr, "Backtrace:\n");
+	nptr = backtrace(ptrs, sizeof(ptrs)/sizeof(*ptrs));
+	backtrace_symbols_fd(ptrs, nptr, STDERR_FILENO);
+	
 	fflush(stderr);
 	crash_fini();
 	raise(signal);
 }
 
-EXTERN void crash_init()
+void crash_init(void)
 {
 	signal_handler_t handler;
 	int i;
@@ -44,7 +53,7 @@ EXTERN void crash_init()
 	}
 }
 
-EXTERN void crash_fini()
+void crash_fini(void)
 {
 	signal_handler_t handler;
 	int i;

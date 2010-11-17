@@ -158,12 +158,12 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 	return res;
 }
 
-static void set_aborted()
+static void set_aborted( /* void *arg ignored */ )
 {
 	aborted = true;
 }
 
-EXTERN bool ai_select_move( Board *board,
+bool ai_select_move( Board *board,
 	const AI_Limit *limit, AI_Result *result )
 {
 	static int depth = 1;  /* iterative deepening start depth */
@@ -275,7 +275,7 @@ EXTERN bool ai_select_move( Board *board,
 	return true;
 }
 
-EXTERN val_t ai_evaluate(const Board *board)
+val_t ai_evaluate(const Board *board)
 {
 	++eval_count;
 	if (board->moves >= N) {
@@ -287,7 +287,7 @@ EXTERN val_t ai_evaluate(const Board *board)
 	}
 }
 
-EXTERN int ai_extract_pv(Board *board, Move *moves, int nmove)
+int ai_extract_pv(Board *board, Move *moves, int nmove)
 {
 	int n;
 	hash_t hash;

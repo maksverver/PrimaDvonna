@@ -20,8 +20,8 @@ typedef struct EvalWeights {
 extern EvalWeights eval_weights;
 
 /* Board evaluation functions, used by AI: */
-EXTERN val_t eval_placing(const Board *board);
-EXTERN val_t eval_stacking(const Board *board);
-EXTERN val_t eval_end(const Board *board);
+val_t eval_placing(const Board *board);
+val_t eval_stacking(const Board *board);
+val_t eval_end(const Board *board);
 
 #endif /* ndef EVAL_H_INCLUDED */

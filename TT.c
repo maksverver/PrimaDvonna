@@ -9,7 +9,7 @@ size_t tt_size;
 TTStats tt_stats;
 #endif
 
-EXTERN void tt_init(size_t size)
+void tt_init(size_t size)
 {
 	assert(size > 0);
 	assert(tt == NULL);
@@ -26,14 +26,14 @@ EXTERN void tt_init(size_t size)
 	tt_size = size;
 }
 
-EXTERN void tt_fini(void)
+void tt_fini(void)
 {
 	free(tt);
 	tt = NULL;
 	tt_size = 0;
 }
 
-EXTERN void serialize_board(const Board *board, unsigned char output[50])
+void serialize_board(const Board *board, unsigned char output[50])
 {
 	const Field *f, *g;
 
@@ -67,7 +67,7 @@ static hash_t fnv1(unsigned char *data, size_t len)  /* 64-bit FNV-1 */
 	return res;
 }
 
-EXTERN hash_t hash_board(const Board *board)
+hash_t hash_board(const Board *board)
 {
 	unsigned char data[50];
 	serialize_board(board, data);
@@ -77,7 +77,7 @@ EXTERN hash_t hash_board(const Board *board)
 
 /* This implements a FNV-1 hash of the serialized board, similar to above,
    but manually inlined for speed: */
-EXTERN hash_t hash_board(const Board *board)
+hash_t hash_board(const Board *board)
 {
 	const Field *f, *g;
 	hash_t res = FNV64_OFFSET_BASIS;
@@ -100,7 +100,7 @@ EXTERN hash_t hash_board(const Board *board)
 #endif  /* ndef ZOBRIST */
 
 #ifdef TT_DEBUG
-EXTERN size_t tt_population_count()
+size_t tt_population_count(void)
 {
 	size_t i, res = 0;
 	for (i = 0; i < tt_size; ++i) res += tt[i].hash != 0;

@@ -10,7 +10,7 @@ static void swap_moves(Move *a, Move *b)
 	*b = tmp;
 }
 
-EXTERN void shuffle_moves(Move *moves, int n)
+void shuffle_moves(Move *moves, int n)
 {
 	while (n > 1) {
 		int m = rand()%n--;
@@ -18,7 +18,7 @@ EXTERN void shuffle_moves(Move *moves, int n)
 	}
 }
 
-EXTERN void move_to_front(Move *moves, int nmove, Move killer)
+void move_to_front(Move *moves, int nmove, Move killer)
 {
 	int i;
 
@@ -102,7 +102,7 @@ static void order_evaluated(Board *board, Move *moves, int nmove)
 	}
 }
 
-EXTERN void order_moves(const Board *board, Move *moves, int nmove)
+void order_moves(const Board *board, Move *moves, int nmove)
 {
 	if (ai_use_mo == 1) return order_heuristically(board, moves, nmove);
 	if (ai_use_mo == 2) return order_evaluated((Board*)board, moves, nmove);

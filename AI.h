@@ -62,15 +62,15 @@ typedef struct AI_Result {
    importantly the selected move).
 
    This function returns false only if there are no moves to make. */
-EXTERN bool ai_select_move( Board *board,
+bool ai_select_move( Board *board,
 	const AI_Limit *limit, AI_Result *result );
 
 /* Evaluates the current board. Mainly useful for analysis/debugging. */
-EXTERN val_t ai_evaluate(const Board *board);
+val_t ai_evaluate(const Board *board);
 
 /* Attempts to extract the first `nmove' moves of the principal variation for
    the given state from the transposition table and returns how many moves
    could be extracted, which may be less than requested. */
-EXTERN int ai_extract_pv(Board *board, Move *moves, int nmove);
+int ai_extract_pv(Board *board, Move *moves, int nmove);
 
 #endif /* ndef AI_H_INCLUDED */

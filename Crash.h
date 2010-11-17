@@ -1,7 +1,7 @@
 #ifndef CRASH_H_INCLUDED
 #define CRASH_H_INCLUDED
 
-EXTERN void crash_init();
-EXTERN void crash_fini();
+void crash_init(void);
+void crash_fini(void);
 
 #endif /* CRASH_H_INCLUDED */

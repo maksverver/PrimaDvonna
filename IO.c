@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <string.h>
 
-EXTERN bool parse_move(const char *text, Move *move)
+bool parse_move(const char *text, Move *move)
 {
 	if (strcmp(text, "PASS") == 0) {
 		*move = move_pass;
@@ -30,7 +30,7 @@ EXTERN bool parse_move(const char *text, Move *move)
 	return false;
 }
 
-EXTERN const char *format_move(const Move *move)
+const char *format_move(const Move *move)
 {
 	if (move_passes(move)) {  /* pass */
 		return "PASS";
@@ -52,9 +52,9 @@ EXTERN const char *format_move(const Move *move)
 static const char *digits =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-EXTERN void update_neighbour_mobility(Board *board, int r1, int c1, int diff);
+void update_neighbour_mobility(Board *board, int r1, int c1, int diff);
 
-EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
+bool parse_state(const char *descr, Board *board, Color *next_player)
 {
 	int vals[N + 1], n, r, c;
 
@@ -134,7 +134,7 @@ EXTERN bool parse_state(const char *descr, Board *board, Color *next_player)
 	return true;
 }
 
-EXTERN const char *format_state(const Board *board)
+const char *format_state(const Board *board)
 {
 	Board init_board;
 	static char buf[N + 2];
