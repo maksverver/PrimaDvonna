@@ -2,19 +2,17 @@ Note for after test competition 4:
  - Timing code has changed yet again. check if the online judge is still 70~90ms
    behind my expected time. If not, up the time limit to e.g. 4.95 or so.
 
-For test competition 4:
+For test competition 5:
   - better handling of 'exact' values; if these are stored in the tt, their
     depth should be considered infinite.
-
-For test competition 5:
   - negascout?
   - improve setup function (borrow for Dvonner?)
 
 For test competition 6:
-  - improve evaluation function (how?)
+  - further improve evaluation function (how?)
 
 For final version:
-  - change compile.pl to #define NDEBUG so assertions are not tested anymore?
+  - add -DNDEBUG to submission.c
 
 Later:
  - see if we can override target/optimization options.
@@ -22,9 +20,13 @@ Later:
    __attribute__((target())), maybe GCC 4.3 does, too?
  - include some benchmarks and run them on the Codecup server, tweaking various
    parameters?
- - include principal variation in AI result.
 
 Maybe later:
+ - include principal variation in AI result?
+ - try to maximize personal score rather than score difference, to maximize
+   competition points in CodeCup? Tricky, because this is losing in a duel!
+   It also makes the evaluation function semi-asymmetric (in that it depends on
+   global knowledge of who we are trying to optimize for).
  - represent moves as two ints (source, destination?)
     - then we could also linearize the fields of the board. requires stable
       board representation, though!
@@ -33,9 +35,9 @@ Maybe later:
  - check hash table performance:
      - how often do collisions occur?
      - how full is the table when they happen?
- - consider using double/cuckoo hashing for transposition table?
-   should collect stats for how much work is done.
- - try to optimize time budget for moves
+ - consider using double/cuckoo hashing for transposition table, so that all
+   results can be stored? needs good benchmarking to figure out if this makes
+   sense.
  - validate all code!
      - print it out, verify, add comments...
  - consider auto-learning for evaluation parameters?
@@ -49,3 +51,4 @@ Overall:
  - improve move ordering heuristic:
     - to evaluate: take a random sample of positions, rank possible moves by
       value, and see which ones tend to be good?
+ - optimize time budgeting for moves

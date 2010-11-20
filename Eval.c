@@ -112,17 +112,25 @@ val_t eval_stacking(const Board *board)
 		}
 	}
 
-	if (game_over) return 1000.0f*score;
+	if (game_over) {
+#if 0
+		/* In a competition, it might make sense to maximize personal score,
+		   rather than score difference, because the CodeCup rewards
+		   competition points for remaining pieces too: */
+		int winner = (score > 0) ? player : (score < 0) ? (1 - player) : -1;
+		int sign   = (score > 0) ? +1 : (score < 0) ? -1 : 0;
+		int pieces = 0;
+		for (n = 0; n < W*H; ++n) {
+			if (!f->removed && f->player == winner) pieces += sign;
+		}
+		return 1000.0*pieces + 100.0*score;
+#endif
+		return 1000.0*score;
+	}
 
 	return stacks   * eval_weights.stacks
 	     + score    * eval_weights.score
 	     + moves    * eval_weights.moves
 	     + to_life  * eval_weights.to_life
 	     + to_enemy * eval_weights.to_enemy;
-}
-
-/* Evaluate an end position. */
-val_t eval_end(const Board *board)
-{
-	return 1000.0f*board_score(board);
 }
