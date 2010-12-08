@@ -13,7 +13,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define default_player_time 4.88
+#define default_player_time 4.95
 
 static int         arg_seed      = 0;
 static const char *arg_state     = NULL;
@@ -259,8 +259,10 @@ static void print_usage(void)
 		"\t--tt=<size>       set use of table (0: off)\n"
 		"\t--mo=<val>        enable move ordering "
 			"(0: off, 1: heuristic, 2: evaluated)\n"
-		"\t--killer=<val>    set killer heuristic "
+		"\t--killer=<val>    enable killer heuristic "
 			"(0: off, 1: one ply, 2: two ply)\n"
+		"\t--pvs=<val>       enable principal variation search"
+			"(0: off, 1: on)\n"
 		"\t--weights=a:..:e  set evaluation function weights\n",
 		default_player_time );
 }
@@ -299,6 +301,9 @@ static void parse_args(int argc, char *argv[])
 			continue;
 		}
 		if (sscanf(argv[pos], "--killer=%d", &ai_use_killer) == 1) {
+			continue;
+		}
+		if (sscanf(argv[pos], "--pvs=%d", &ai_use_pvs) == 1) {
 			continue;
 		}
 		if (sscanf(argv[pos], "--weights=%f:%f:%f:%f:%f",
@@ -379,8 +384,11 @@ int main(int argc, char *argv[])
 		ai_use_mo == 2 ? "evaluated" : "invalid");
 	fprintf(stderr, "Killer heuristic is %s.\n",
 		ai_use_killer == 0 ? "disabled" :
-                ai_use_killer == 1 ? "one ply" :
-                ai_use_killer == 2 ? "two ply" : "invalid");
+		ai_use_killer == 1 ? "one ply" :
+		ai_use_killer == 2 ? "two ply" : "invalid");
+	fprintf(stderr, "Principal variation search is %s.\n",
+		ai_use_pvs == 0 ? "disabled" :
+		ai_use_pvs == 1 ? "enabled" : "invalid" );
 	print_memory_use();
 
 	fprintf(stderr, "Initialization took %.3fs.\n", time_used());

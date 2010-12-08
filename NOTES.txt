@@ -73,16 +73,14 @@ the influence of chance, and the results are as follows:
 
  # won  player
  ------ ----------
-    422 players/dvonner
-    419 ./player
-    418 players/holtz
-    417 players/dDvonn
-     52 none (tied)
+      5 (tied)
+     25 ./player
+     34 players/dDvonn
+     35 players/holtz
+     45 players/dvonner
 
-The differences are negligible, which suggests that after applying some
-sensible heuristics, the setup phase is not terribly important, or all players
-happen to be of comparable strength. I tend to think the former, so it probably
-makes sense to concentrate on improving my player in the stacking phase.
+This suggests that Dvonner's setup phase is currently best! I should try
+to improve upon it.
 
 ================================================================================
 
@@ -176,4 +174,16 @@ However, because positions that occur later in the game have higher relevancy
 than those that occur earlier, stale entries can be replaced by new entries
 occuring in later positions at the same depth or even shallower depth. This is
 the second method I implemented.
+
+================================================================================
+
+After test competition 4. Timing seems to be pretty much exact now; raised limit
+to 4.95s (seems sensible to keep 50ms of wiggle room).
+
+Only one lost match, against the number two; see logfile:
+    "102-1558-55523 Maks Verver vs Abdessamad ELKASIMI: BLACK WIN"
+Or online:
+    http://www.codecup.nl/showgame.php?ga=55523
+I get disconnected very early. Maybe I should ensure the Dvonn pieces are spread
+around so this doesn't happen!
 

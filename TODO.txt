@@ -1,17 +1,20 @@
 Note for after test competition 4:
- - Timing code has changed yet again. check if the online judge is still 70~90ms
-   behind my expected time. If not, up the time limit to e.g. 4.95 or so.
+  - Review only lost match: codecup/test-comp-4/102-1558-55523
+    How does Abdessamad arrive at the winning cut-off move? Analyze in depth!
 
 For test competition 5:
-  - better handling of 'exact' values; if these are stored in the tt, their
-    depth should be considered infinite.
-  - negascout?
-  - improve setup function (borrow for Dvonner?)
+  - ensure Dvonn pieces are spread out to prevent losses like against Abdessamad
+    in the previous round.
 
 For test competition 6:
+  - better handling of 'exact' values; if these are stored in the tt, their
+    depth should be considered infinite.
+  - improve setup function (borrow from Dvonner?)
   - further improve evaluation function (how?)
+  - optimize time budgeting for moves
 
 For final version:
+  - hard-code parameters (like ai_use_pv and such)
   - add -DNDEBUG to submission.c
 
 Later:
@@ -22,7 +25,6 @@ Later:
    parameters?
 
 Maybe later:
- - include principal variation in AI result?
  - try to maximize personal score rather than score difference, to maximize
    competition points in CodeCup? Tricky, because this is losing in a duel!
    It also makes the evaluation function semi-asymmetric (in that it depends on
@@ -30,8 +32,6 @@ Maybe later:
  - represent moves as two ints (source, destination?)
     - then we could also linearize the fields of the board. requires stable
       board representation, though!
- - consider implementing NegaScout? (should work well with killer heuristic?)
- - consider implementing MTD(f)? (tricky with float values)
  - check hash table performance:
      - how often do collisions occur?
      - how full is the table when they happen?
@@ -42,7 +42,7 @@ Maybe later:
      - print it out, verify, add comments...
  - consider auto-learning for evaluation parameters?
    See: http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
-   Note: this is what Dvonner did!
+   Note: it seems this is what Dvonner did!
  - test against Rororobot on littlegolem.net
 
 Overall:

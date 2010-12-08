@@ -11,6 +11,7 @@
 extern int ai_use_tt;      /* use transposition table? (0 or 1) */
 extern int ai_use_mo;      /* use move reordering? (0, 1 or 2) */
 extern int ai_use_killer;  /* use killer heuristic? (0 or 1) */
+extern int ai_use_pvs;     /* use principal variation search? (0 or 1) */
 
 /* Limits on the search performed by the AI when selecting moves.
 

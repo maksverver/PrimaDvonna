@@ -18,6 +18,7 @@
 int ai_use_tt     = 21;  /* size as a power of 2*/
 int ai_use_mo     = 1;
 int ai_use_killer = 1;
+int ai_use_pvs    = 1;
 
 /* Global flag to abort search: */
 static volatile bool aborted = false;
@@ -28,7 +29,7 @@ static TTEntry *tt_entry(hash_t hash)
 	return &tt[(size_t)(hash ^ (hash >> 32))&(tt_size - 1)];
 }
 
-/* Implements depth-first minimax search with alpha-beta pruning.
+/* Implements depth-first minimax search with (fail soft) alpha-beta pruning.
 
    Takes the current game state in `board' and the desired maximum search depth
    `depth' and returns the value of the game position in the range [lo+1:hi-1],
@@ -81,11 +82,21 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 	}
 	if (depth == 0) {  /* evaluate intermediate position */
 		res = ai_evaluate(board);
+	} else if (board->moves == N - 1) {
+		/* Special case: the N'th move is always unique, but the next player
+		   does not change! Handle this special case here: */
+		Move moves[M];
+		int nmove = generate_moves(board, moves);
+		assert(nmove == 1);
+		board_do(board, &moves[0]);
+		res = dfs(board, depth, lo > res ? lo : res, hi, NULL);
+		board_undo(board, &moves[0]);
+		if (aborted) return 0;
+		best_move = moves[0];
 	} else {  /* evaluate interior node */
 		Move moves[M];
-		int n, nmove;
+		int n, nmove = generate_moves(board, moves);
 
-		nmove = generate_moves(board, moves);
 		if (nmove > 1) {  /* order moves */
 
 			/* At the top level, shuffle moves in a semi-random fashion: */
@@ -106,14 +117,16 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 				move_to_front(moves, nmove, best_move);
 			}
 		}
+
 		for (n = 0; n < nmove; ++n) {
-			val_t val;
+			val_t val, lb = (res > lo) ? res : lo;
 
 			board_do(board, &moves[n]);
-			if (board->moves == N) { /* after N'th move, white moves again: */
-				val = dfs(board, depth - 1, lo > res ? lo : res, hi, NULL);
-			} else { /* in all other cases, player's turns alternate: */
-				val = -dfs(board, depth - 1, -hi, -(lo > res ? lo : res), NULL);
+			if (!ai_use_pvs || n == 0 || res < lo) {
+				val = -dfs(board, depth - 1, -hi, -lb, NULL);
+			} else {
+				val = -dfs(board, depth - 1, -lb - val_eps, -lb, NULL);
+				if (val > lb) val = -dfs(board, depth - 1, -hi, -val, NULL);
 			}
 			board_undo(board, &moves[n]);
 			if (aborted) return 0;

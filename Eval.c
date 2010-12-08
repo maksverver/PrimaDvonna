@@ -4,6 +4,7 @@
 
 const val_t val_min = -1000.0f * (N + 1);
 const val_t val_max = +1000.0f * (N + 1);
+const val_t val_eps = 0.001f;
 
 struct EvalWeights eval_weights = {
 	1.00f,    /* stacks */
