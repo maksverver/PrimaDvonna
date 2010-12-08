@@ -35,7 +35,7 @@ if [ "`echo $moves | wc -w`" != 49 ]; then
 fi
 save=`mktemp tmp-XXXX.dvg`
 $dvonntool --output=dvonner $moves >$save || exit 1
-winner=`dvonner | grep 'The game ended' | egrep -o 'BLACK|WHITE'`
+winner=`dvonner $save | grep 'The game ended' | egrep -o 'BLACK|WHITE'`
 rm -f "$save"
 if [ "$winner" = WHITE ]; then echo $player1; fi
 if [ "$winner" = BLACK ]; then echo $player2; fi
