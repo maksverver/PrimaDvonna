@@ -314,7 +314,7 @@ if __name__ == '__main__':
 	op.add_option("--logfile", metavar="PATH", help="path to log file to read")
 	op.add_option("--littlegolem", metavar="GID", help="fetch game from LittleGolem.net")
 	op.add_option("--truncate", metavar="N", help="truncate history to first N moves")
-	op.add_option("--output", metavar="TYPE", help="type of output: state, plain, transcript, logfile, dvonner, text, json")
+	op.add_option("--output", metavar="TYPE", help="type of output: state, plain, transcript, logfile, dvonner, text, json, score")
 	(options, args) = op.parse_args()
 
 	assert sum(getattr(options, x) is not None
@@ -421,6 +421,13 @@ if __name__ == '__main__':
 				'"state":"' + encode(board, phase, player) + '"' +
 				'}')
 		sys.stdout.write(('[' + ','.join(parts) + ']'))
+	elif options.output == 'score':
+		score = [0, 0]
+		for x in range(W):
+			for y in range(H):
+				if board[x][y].player in (0, 1):
+					score[board[x][y].player] += board[x][y].pieces
+		print score[0], score[1]
 	else:
 		assert not "Unknown output format!"
 

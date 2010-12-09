@@ -17,6 +17,8 @@
 
 static int         arg_seed      = 0;
 static const char *arg_state     = NULL;
+static int         arg_color     = -1;
+static int         arg_analyze   = 0;
 static AI_Limit    arg_limit     = { 0, 0, 0.0 };
 
 static char *trim(char *s)
@@ -167,30 +169,19 @@ static bool select_move(Board *board, Move *move)
 	return ok;
 }
 
-static void run_game(void)
+static void run_game(Board *board, int my_colors)
 {
-	Color my_color;
-	Board board;
 	const char *move_str;
 
 	/* In player mode, use the time limit as the global time limit: */
 	time_limit = (arg_limit.time > 0) ? arg_limit.time : default_player_time;
 	arg_limit.time = 0;
-	board_clear(&board);
-	board_validate(&board);
-	move_str = read_line();
-	if (strcmp(move_str, "Start") == 0) {
-		my_color = WHITE;
-	} else {
-		parse_and_execute_move(&board, move_str);
-		my_color = BLACK;
-	}
-	for (;;) {
+	while (generate_all_moves(board, NULL) > 0) {
 		move_str = NULL;
-		if (next_player(&board) == my_color) {  /* it's my turn */
+		if (my_colors & (1 << (int)next_player(board))) {  /* it's my turn */
 			Move move;
-			fprintf(stderr, "%s\n", format_state(&board));
-			if (!select_move(&board, &move)) {
+			fprintf(stderr, "%s\n", format_state(board));
+			if (!select_move(board, &move)) {
 				fprintf(stderr, "Internal error: no move selected!\n");
 				exit(EXIT_FAILURE);
 			}
@@ -203,40 +194,34 @@ static void run_game(void)
 			move_str = read_line();
 			fprintf(stderr, "<--%s--\n", move_str);
 		}
-		parse_and_execute_move(&board, move_str);
+		parse_and_execute_move(board, move_str);
 	}
 }
 
-static void solve_state(const char *descr)
+static void analyze(Board *board, Color next_player)
 {
-	Color next_player;
 	AI_Result result;
-	Board board;
 	Move pv[AI_MAX_DEPTH];
 	int n, npv;
 
-	if (!parse_state(descr, &board, &next_player)) {
-		fprintf(stderr, "Couldn't parse game description: `%s'!\n", descr);
-		exit(EXIT_FAILURE);
-	}
-	board_validate(&board);
-	fprintf(stderr, "Intermediate value: "VAL_FMT"\n", ai_evaluate(&board));
+	fprintf(stderr, "Intermediate value: "VAL_FMT"\n", ai_evaluate(board));
 	if (next_player == NONE) {
 		fprintf(stderr, "Game already finished!\n");
 	} else {
-		if (!ai_select_move(&board, &arg_limit, &result)) {
+		if (!ai_select_move(board, &arg_limit, &result)) {
 			fprintf(stderr, "Internal error: no move selected!\n");
 			exit(EXIT_FAILURE);
 		}
-		board_validate(&board);
-		npv = ai_extract_pv(&board, pv, AI_MAX_DEPTH);
+		board_validate(board);
+		npv = ai_extract_pv(board, pv, AI_MAX_DEPTH);
 		fprintf(stderr, "Principal variation:");
 		for (n = 0; n < npv; ++n) {
 			fprintf(stderr, " %s", format_move(&pv[n]));
 		}
 		fprintf(stderr, "\n");
-		board_do(&board, &result.move);
-		fprintf(stderr, "New state: %s\n", format_state(&board));
+		board_do(board, &result.move);
+		fprintf(stderr, "New state: %s\n", format_state(board));
+		board_undo(board, &result.move);
 		printf("%s\n", format_move(&result.move));
 	}
 }
@@ -250,7 +235,10 @@ static void print_usage(void)
 		"\t--help            display this help message and exit\n"
 		"\t--seed=<int>      "
 	"initialize RNG with given seed (default: random)\n"
-		"\t--state=<descr>   solve given state\n"
+		"\t--state=<descr>   initialize board to given state\n"
+		"\t--color=<num>     color to play "
+			"(0: none, 1: white, 2: black, 3: both)\n"
+		"\t--analyze         analyze this position only\n"
 		"\t--depth=<depth>   stop after searching on given depth \n"
 		"\t--eval=<count>    "
 	"stop after evaluating given number of positions\n"
@@ -285,27 +273,18 @@ static void parse_args(int argc, char *argv[])
 			arg_state = argv[pos] + 8;
 			continue;
 		}
-		if (sscanf(argv[pos], "--depth=%d", &arg_limit.depth) == 1) {
+		if (sscanf(argv[pos], "--color=%d", &arg_color) == 1) continue;
+		if (strcmp(argv[pos], "--analyze") == 0) {
+			arg_analyze = 1;
 			continue;
 		}
-		if (sscanf(argv[pos], "--eval=%d", &arg_limit.eval) == 1) {
-			continue;
-		}
-		if (sscanf(argv[pos], "--time=%lf", &arg_limit.time) == 1) {
-			continue;
-		}
-		if (sscanf(argv[pos], "--tt=%d", &ai_use_tt) == 1) {
-			continue;
-		}
-		if (sscanf(argv[pos], "--mo=%d", &ai_use_mo) == 1) {
-			continue;
-		}
-		if (sscanf(argv[pos], "--killer=%d", &ai_use_killer) == 1) {
-			continue;
-		}
-		if (sscanf(argv[pos], "--pvs=%d", &ai_use_pvs) == 1) {
-			continue;
-		}
+		if (sscanf(argv[pos], "--depth=%d", &arg_limit.depth) == 1) continue;
+		if (sscanf(argv[pos], "--eval=%d", &arg_limit.eval) == 1) continue;
+		if (sscanf(argv[pos], "--time=%lf", &arg_limit.time) == 1) continue;
+		if (sscanf(argv[pos], "--tt=%d", &ai_use_tt) == 1) continue;
+		if (sscanf(argv[pos], "--mo=%d", &ai_use_mo) == 1) continue;
+		if (sscanf(argv[pos], "--killer=%d", &ai_use_killer) == 1) continue;
+		if (sscanf(argv[pos], "--pvs=%d", &ai_use_pvs) == 1) continue;
 		if (sscanf(argv[pos], "--weights=%f:%f:%f:%f:%f",
 			&eval_weights.stacks, &eval_weights.score, &eval_weights.moves,
 			&eval_weights.to_life, &eval_weights.to_enemy) == 5) {
@@ -346,6 +325,9 @@ static void print_memory_use(void)
 
 int main(int argc, char *argv[])
 {
+	Board board;
+	Color next_player;
+
 	/* Initialize timer, as early as possible! */
 	time_restart();
 
@@ -393,9 +375,32 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr, "Initialization took %.3fs.\n", time_used());
 
+	/* Set-up initial game state */
+	board_clear(&board);
+	next_player = WHITE;
+	if (arg_state) {
+		if (!parse_state(arg_state, &board, &next_player)) {
+			fprintf(stderr, "Couldn't parse state: `%s'!\n", arg_state);
+			exit(EXIT_FAILURE);
+		}
+	}
+	board_validate(&board);
+	
 	/* Run main program: */
-	if (arg_state) solve_state(arg_state);
-	else run_game();
+	if (arg_analyze) {
+		analyze(&board, next_player);
+	} else {
+		if (arg_color < 0) {
+			const char *move_str = read_line();
+			if (strcmp(move_str, "Start") == 0) {
+				arg_color = 1 << next_player;
+			} else {
+				parse_and_execute_move(&board, move_str);
+				arg_color = 1 << (1 - next_player);
+			}
+		}
+		run_game(&board, arg_color);
+	}
 
 	/* Clean up: */
 	if (ai_use_tt) tt_fini();
