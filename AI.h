@@ -59,8 +59,8 @@ typedef struct AI_Result {
    `limit' is non-NULL, it specifies the time/depth/eval limits on the search,
    as described as above.
 
-   If `result' is not NULL, it is used to store the results of the search (most
-   importantly the selected move).
+   The result of the search (most importantly the selected move) is stored in
+   `result'.
 
    This function returns false only if there are no moves to make. */
 bool ai_select_move( Board *board,

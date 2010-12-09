@@ -2,10 +2,6 @@ Note for after test competition 4:
   - Review only lost match: codecup/test-comp-4/102-1558-55523
     How does Abdessamad arrive at the winning cut-off move? Analyze in depth!
 
-For test competition 5:
-  - ensure Dvonn pieces are spread out to prevent losses like against Abdessamad
-    in the previous round.
-
 For test competition 6:
   - better handling of 'exact' values; if these are stored in the tt, their
     depth should be considered infinite.

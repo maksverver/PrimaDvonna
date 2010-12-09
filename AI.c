@@ -29,6 +29,13 @@ static TTEntry *tt_entry(hash_t hash)
 	return &tt[(size_t)(hash ^ (hash >> 32))&(tt_size - 1)];
 }
 
+static void reset_rng()
+{
+	static int rng_seed = 0;
+	while (rng_seed == 0) rng_seed = rand();
+	srand(rng_seed);
+}
+
 /* Implements depth-first minimax search with (fail soft) alpha-beta pruning.
 
    Takes the current game state in `board' and the desired maximum search depth
@@ -101,9 +108,7 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 
 			/* At the top level, shuffle moves in a semi-random fashion: */
 			if (return_best) {
-				static int rng_seed = 0;
-				while (rng_seed == 0) rng_seed = rand();
-				srand(rng_seed);
+				reset_rng();
 				shuffle_moves(moves, nmove);
 			}
 
@@ -182,10 +187,10 @@ bool ai_select_move( Board *board,
 	static int depth = 1;  /* iterative deepening start depth */
 
 	signal_handler_t new_handler, old_handler;
-	double start = time_used();
-	bool alarm_set = false, signal_handler_set = false;
 	Move moves[M];
 	int nmove = generate_moves(board, moves);
+	double start = time_used();
+	bool alarm_set = false, signal_handler_set = false;
 
 	/* Check if we have any moves to make: */
 	if (nmove == 0) {
@@ -193,6 +198,37 @@ bool ai_select_move( Board *board,
 		return false;
 	}
 	if (nmove == 1) fprintf(stderr, "one move available!\n");
+
+	/* Special handling for placing of neutral Dvonn stones: */
+	if (board->moves < D) {
+		result->move    = move_null;
+		result->value   = 0;
+		result->depth   = 0;
+		result->eval    = 0;
+		result->time    = 0;
+		result->aborted = false;
+		reset_rng();
+		shuffle_moves(moves, nmove);
+		if (board->moves == 0) {
+			/* Place first Dvonn randomly */
+			result->move = moves[0];
+		} else {
+			/* Place second/third Dvonn to minimize distance to Dvonns: */
+			int n, val, best_val = -1;
+			for (n = 0; n < nmove; ++n) {
+				board_do(board, &moves[n]);
+				val = eval_dvonn_spread(board);
+				board_undo(board, &moves[n]);
+				if (best_val == -1 || val < best_val) {
+					result->move = moves[n];
+					best_val = val;
+				}
+			}
+			result->depth = 1;
+			result->eval  = nmove;
+		}
+		return true;
+	}
 
 	/* Killer heuristic is most effective when the transposition table
 	   contains the information from one ply ago, instead of two plies: */
@@ -209,10 +245,8 @@ bool ai_select_move( Board *board,
 		double used = time_used() - start;
 
 		if (aborted) {
-			if (result) {
-				result->aborted = true;
-				result->time = used;
-			}
+			result->aborted = true;
+			result->time = used;
 			fprintf(stderr, "WARNING: aborted after %.3fs!\n", used);
 			--depth;
 			break;
@@ -221,14 +255,12 @@ bool ai_select_move( Board *board,
 		assert(!move_is_null(&move));
 
 		/* Update results so far: */
-		if (result) {
-			result->move    = move;
-			result->depth   = depth;
-			result->value   = value;
-			result->eval    = eval_count;
-			result->time    = used;
-			result->aborted = false;
-		}
+		result->move    = move;
+		result->depth   = depth;
+		result->value   = value;
+		result->eval    = eval_count;
+		result->time    = used;
+		result->aborted = false;
 
 		/* Report intermediate result: */
 		if (board->moves >= N) {

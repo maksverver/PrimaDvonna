@@ -13,6 +13,34 @@ struct EvalWeights eval_weights = {
 	0.20f,    /* to_life */
 	0.20f };  /* to_enemy */
 
+int eval_dvonn_spread(const Board *board)
+{
+	int r, c, d, dr[D], dc[D], nd = 0, res = 0;
+	for (r = 0; r < H; ++r) {
+		for (c = 0; c < W; ++c) {
+			if (board->fields[r][c].dvonns) {
+				assert(nd < D);
+				dr[nd] = r;
+				dc[nd] = c;
+				++nd;
+			}
+		}
+	}
+	for (r = 0; r < H; ++r) {
+		for (c = 0; c < W; ++c) {
+			if (!board->fields[r][c].removed) {
+				int min_dist = -1;
+				for (d = 0; d < nd; ++d) {
+					int dist = distance(r, c, dr[d], dc[d]);
+					if (min_dist == -1 || dist < min_dist) min_dist = dist;
+				}
+				res += min_dist * min_dist;
+			}
+		}
+	}
+	return res;
+}
+
 /* Returns whether the given field lies on the edge of the board: */
 static bool is_edge_field(const Board *board, int r, int c)
 {

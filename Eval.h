@@ -19,6 +19,10 @@ typedef struct EvalWeights {
 
 extern EvalWeights eval_weights;
 
+/* Returns how well the Dvonns are spread over the board. This is measured as
+   the sum of the squared distances of each field to the nearest Dvonn stone. */
+int eval_dvonn_spread(const Board *board);
+
 /* Board evaluation functions, used by AI: */
 val_t eval_placing(const Board *board);
 val_t eval_stacking(const Board *board);
