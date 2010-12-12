@@ -36,7 +36,9 @@ format_game() {
 scrape_game() {
 	GA=$1
 
-	if ! curl -s -o "$TMP" "http://www.codecup.nl/showgame.php?ga=$GA"; then
+	if ! curl -s "http://www.codecup.nl/showgame.php?ga=$GA" | \
+		iconv -f iso-8859-1 -t utf-8 > "$TMP"
+	then
 		echo "Could not fetch page for game ${GA}!"
 		return 1
 	fi
