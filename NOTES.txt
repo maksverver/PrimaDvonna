@@ -187,3 +187,23 @@ Or online:
 I get disconnected very early. Maybe I should ensure the Dvonn pieces are spread
 around so this doesn't happen!
 
+================================================================================
+
+After test competition 5. All games won.
+
+Tested to ensure principal variation search is useful:
+
+No Player                         Points  Won Tied Lost Fail Avg Time Max Time
+-- ------------------------------ ------ ---- ---- ---- ---- -------- --------
+ 1 ./player-tc5 (--pvs=1)          31097  250   15  235    0   2.830s   3.651s
+ 2 ./player-tc5 --pvs=0            29626  235   15  250    0   2.826s   3.710s
+-- ------------------------------ ------ ---- ---- ---- ---- -------- --------
+   Score difference: 0.24
+
+So looks like it is, though the benefit is small.
+
+Also evaluated some variations for calculating the final game score, basing the
+score mostly on the winner or the controlled player's number of pieces (because
+these are counted in the CodeCup too!) but testing against the previous
+submission as well as several weaker opponents does not show this to be an
+improvement.

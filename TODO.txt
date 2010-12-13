@@ -1,13 +1,11 @@
-Note for after test competition 4:
-  - Review only lost match: codecup/testcomp-4/102-1558-55523
-    How does Abdessamad arrive at the winning cut-off move? Analyze in depth!
+To evaluate after competition 5:
+  - which players have the best setup functions?
+  - which players score the most points?
 
 For test competition 6:
-  - better handling of 'exact' values; if these are stored in the tt, their
-    depth should be considered infinite.
   - improve setup function (borrow from Dvonner?)
   - further improve evaluation function (how?)
-  - optimize time budgeting for moves
+  - optimize time budgeting for moves (how?)
 
 For final version:
   - hard-code parameters (like ai_use_pv and such)
@@ -21,10 +19,8 @@ Later:
    parameters?
 
 Maybe later:
- - try to maximize personal score rather than score difference, to maximize
-   competition points in CodeCup? Tricky, because this is losing in a duel!
-   It also makes the evaluation function semi-asymmetric (in that it depends on
-   global knowledge of who we are trying to optimize for).
+ - better handling of 'exact' values; if these are stored in the tt, their
+   depth should be considered infinite.
  - represent moves as two ints (source, destination?)
     - then we could also linearize the fields of the board. requires stable
       board representation, though!
@@ -34,12 +30,12 @@ Maybe later:
  - consider using double/cuckoo hashing for transposition table, so that all
    results can be stored? needs good benchmarking to figure out if this makes
    sense.
+ - consider using MTD(f)?
  - validate all code!
      - print it out, verify, add comments...
  - consider auto-learning for evaluation parameters?
    See: http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
    Note: it seems this is what Dvonner did!
- - test against Rororobot on littlegolem.net
 
 Overall:
  - improve placement phase evaluation function
