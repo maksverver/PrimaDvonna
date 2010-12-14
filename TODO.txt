@@ -1,15 +1,13 @@
-To evaluate after competition 5:
-  - which players have the best setup functions?
-  - which players score the most points?
-
 For test competition 6:
   - improve setup function (borrow from Dvonner?)
   - further improve evaluation function (how?)
   - optimize time budgeting for moves (how?)
 
 For final version:
-  - hard-code parameters (like ai_use_pv and such)
-  - add -DNDEBUG to submission.c
+  - performance optimizations:
+    - linearize board
+    - hard-code parameters (like ai_use_pv and such)
+    - Makefile: add -DNDEBUG to submission.c
 
 Later:
  - see if we can override target/optimization options.

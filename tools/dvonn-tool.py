@@ -86,6 +86,14 @@ def field_str(x, y):
 	'Returns the fields coordinates (x,y) as a standard string.'
 	return chr(ord('A') + x) + chr(ord('1') + y)
 
+def scores(board):
+	res = [0, 0]
+	for x in range(W):
+		for y in range(H):
+			if board[x][y].player in (0, 1):
+				res[board[x][y].player] += board[x][y].pieces
+	return res
+
 def game_phase(moves, complete = False):
 	'Returns the current game phase for the given move history.'
 	if isinstance(moves, list): moves = len(moves)
@@ -179,9 +187,11 @@ def parse_logfile(data):
 			moves.append(parse_move(token))
 	return {}, moves
 
-def format_logfile(metadata, moves):
-	# N.B. metadata is ignored!
+def format_logfile(metadata, moves, scores, complete):
+	# N.B. only part of metadata is preserved!
 	res = ""
+	if 'White' in metadata: res += '# Player 1: ' + metadata['White'] + "\n" 
+	if 'Black' in metadata: res += '# Player 2: ' + metadata['Black'] + "\n"
 	line = ""
 	for i, move in enumerate(moves):
 		if line != "": line += " "
@@ -190,6 +200,12 @@ def format_logfile(metadata, moves):
 			res += line + "\n"
 			line = ""
 	if line != "": res += line + "\n"
+	res += "# Score: " + str(scores[0]) + " - " + str(scores[1]) + "."
+	if complete:
+		if scores[0] == scores[1]:  res += " It's a tie!"
+		elif scores[0] > scores[1]: res += " Player 1 won!"
+		else:                       res += " Player 2 won!"
+	res += '\n'
 	return res
 
 def format_dvonner(metadata, moves):
@@ -314,7 +330,7 @@ if __name__ == '__main__':
 	op.add_option("--logfile", metavar="PATH", help="path to log file to read")
 	op.add_option("--littlegolem", metavar="GID", help="fetch game from LittleGolem.net")
 	op.add_option("--truncate", metavar="N", help="truncate history to first N moves")
-	op.add_option("--output", metavar="TYPE", help="type of output: state, plain, transcript, logfile, dvonner, text, json, score")
+	op.add_option("--output", metavar="TYPE", help="type of output: state, plain, transcript, logfile, dvonner, text, json, scores, winner")
 	(options, args) = op.parse_args()
 
 	assert sum(getattr(options, x) is not None
@@ -323,7 +339,7 @@ if __name__ == '__main__':
 	# Initialize game data. These fields should be kept consistent:
 	board = [ [ Field(x, y) for y in range(H) ] for x in range(W) ]
 	phase, player = PLACEMENT, WHITE
-	metadata = {}                     # only for transcript
+	metadata = {}                     # only for transcript (and log output, but not input)
 	moves, resigned = [], False       # only for log/transcript
 
 	if options.state:
@@ -409,9 +425,9 @@ if __name__ == '__main__':
 	elif options.output == 'transcript':
 		print format_transcript(metadata, moves, phase == COMPLETE)
 	elif options.output == 'logfile':
-		sys.stdout.write(format_logfile({}, moves))
+		sys.stdout.write(format_logfile(metadata, moves, scores(board), phase == COMPLETE))
 	elif options.output == 'dvonner':
-		sys.stdout.write(format_dvonner({}, moves))
+		sys.stdout.write(format_dvonner(metadata, moves))
 	elif options.output == 'json':
 		parts = []
 		for move, (board, phase, player) in zip(moves, history):
@@ -421,13 +437,14 @@ if __name__ == '__main__':
 				'"state":"' + encode(board, phase, player) + '"' +
 				'}')
 		sys.stdout.write(('[' + ','.join(parts) + ']'))
-	elif options.output == 'score':
-		score = [0, 0]
-		for x in range(W):
-			for y in range(H):
-				if board[x][y].player in (0, 1):
-					score[board[x][y].player] += board[x][y].pieces
-		print score[0], score[1]
+	elif options.output == 'scores':
+		sc = scores(board)
+		print sc[0], sc[1]
+	elif options.output == 'winner':
+		sc = scores(board)
+		if sc[0] > sc[1]:   print metadata['White']
+		elif sc[1] > sc[0]: print metadata['Black']
+		else:               print '-'
 	else:
 		assert not "Unknown output format!"
 

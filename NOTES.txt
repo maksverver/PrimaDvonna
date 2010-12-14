@@ -207,3 +207,42 @@ score mostly on the winner or the controlled player's number of pieces (because
 these are counted in the CodeCup too!) but testing against the previous
 submission as well as several weaker opponents does not show this to be an
 improvement.
+
+Evaluated set-up functions by running my player four times from the starting
+position and seeing who wins. Using only games from the second phase of test
+competition 5, the results are as follows (grouped per permutation group):
+
+        Using my player:               Using Dvonner:
+
+     22 Szymon Wylezol               5 Bauke Conijn
+     25 Bauke Conijn                 5 Joakim Mjärdner
+     29 Joakim Mjärdner              8 - (tie)
+     35 John Christian David         9 Szymon Wylezol
+     38 - (tie)                     11 John Christian David
+     46 Marcel Vlastuin             12 Marcel Vlastuin
+
+     47 Jorik Mandemaker            13 Leon Schoorl
+     60 Louis Bliss                 13 Louis Bliss
+     68 Leon Schoorl                15 Jorik Mandemaker
+
+     68 Rahim Hajibagheran          17 Rahim Hajibagheran
+     86 saeedeh sadeghi             22 saeedeh sadeghi
+     96 imanOmojtaba imanOmojtaba   23 imanOmojtaba imanOmojtaba
+     99 Thijs Marinussen            23 Thijs Marinussen
+
+    100 Tomek Czajka                24 Maks Verver
+    102 Laurent van den Bos         26 Pieter Bootsma
+    105 Koos van der Linden         27 Koos van der Linden
+    106 Pieter Bootsma              27 Mohammad Shokri
+    115 Bas Nieuwenhuizen           28 Abdessamad ELKASIMI
+    115 Christian Kauth             28 Laurent van den Bos
+    119 Mohammad Shokri             31 Christian Kauth
+    121 Valentin Hirschi            31 Tomek Czajka
+    122 Abdessamad ELKASIMI         32 Bas Nieuwenhuizen
+    124 Maks Verver                 32 Valentin Hirschi
+
+So in either case I'm in the best group, but I'm not sure exactly how I compare
+against e.g. Tomek, since I'm on top first while he is last, and later I am at
+the bottom while he is near the top!  Maybe the conclusion should be that my
+current setup works best for the type of follow-up play I do (and Dvonner seems
+to do better from other starting positions).
