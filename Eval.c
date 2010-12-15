@@ -103,7 +103,7 @@ val_t eval_placing(const Board *board)
 				}
 
 				if (min_dist_to_dvonn == 1) score[f->player] += 15;
-				if (is_edge_field(board,r, c)) score[f->player] += 2;
+				if (is_edge_field(board,r, c)) score[f->player] += 1;
 				score[f->player] -= tot_dist_to_dvonn;
 				if (neighbours < 2) score[f->player] -= 5*(2 - neighbours);
 			}

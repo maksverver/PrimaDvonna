@@ -1,6 +1,6 @@
 For test competition 6:
-  - improve setup function (borrow from Dvonner?)
-  - further improve evaluation function (how?)
+  - further improve evaluation function:
+     - incorporate distance to Dvonns with exponential decay
   - optimize time budgeting for moves (how?)
 
 For final version:

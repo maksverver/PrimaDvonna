@@ -132,11 +132,12 @@ static bool select_move(Board *board, Move *move)
 	AI_Limit limit = arg_limit;
 
 	if (board->moves < N) {
-		/* Placement phase: just greedily pick best move. */
-		limit.depth = 1;
+		/* Placement phase. */
+		limit.eval  = 1000;
+		limit.depth = N - board->moves;
+		limit.time  = 0;
 		ok = ai_select_move(board, &limit, &result);
 	} else {
-#if 1
 		/* Stacking phase: divide remaining time over est. moves to play: */
 		if (!limit.time && !limit.depth && !limit.eval)
 		{
@@ -155,15 +156,6 @@ static bool select_move(Board *board, Move *move)
 			fprintf(stderr, "%.3fs+%.3fs\n", time_used(), limit.time);
 		}
 		ok = ai_select_move(board, &limit, &result);
-#else  /* Dvonner mode: */
-		assert(limit.eval > 0 && !limit.time && !limit.depth);
-		for (;;) {
-			limit.depth = depth;
-			ok = ai_select_move(board, &limit, &result);
-			if (!ok || result.eval >= limit.eval || depth == 20) break;
-			++depth;
-		}
-#endif
 	}
 	if (ok) *move = result.move;
 	return ok;
