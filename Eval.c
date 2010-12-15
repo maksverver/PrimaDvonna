@@ -58,20 +58,39 @@ static bool is_edge_field(const Board *board, int r, int c)
 /* Evaluate the board during the placing phase. */
 val_t eval_placing(const Board *board)
 {
-	int r, c, p;
+	int r, c, player = next_player(board);;
 	val_t score[2] = { 0, 0 };
+	int edge_stones[2] = { 0, 0 }, edge_value;
 	int dvonn_r[D], dvonn_c[D], d = 0;
 
-	/* Find location of Dvonn stones. */
 	for (r = 0; r < H; ++r) {
 		for (c = 0; c < W; ++c) {
-			if (board->fields[r][c].dvonns > 0) {
+			const Field *f = &board->fields[r][c];
+
+			/* Find Dvonn stones: */
+			if (f->dvonns > 0) {
 				dvonn_r[d] = r;
 				dvonn_c[d] = c;
 				++d;
 			}
+
+			/* Count edge stones: */
+			if (f->player >= 0 && is_edge_field(board, r, c)) {
+				++edge_stones[f->player];
+			}
 		}
 	}
+
+	/* Determine value of edge fields: */
+	if (edge_stones[player] >= 6) {
+		edge_value = 0;  /* over six edge fields occupied; don't need more */
+	} else if (edge_stones[player] >= edge_stones[1 - player] - 3) {
+		edge_value = 1;  /* at most three stones behind opponent */
+	} else {
+		/* four or more stones behind; boost value of edge fields! */
+		edge_value = edge_stones[1 - player] - edge_stones[player] - 3;
+	}
+
 	/* Can't evaluate before all Dvonn stones are placed: */
 	if (d < D) return 0;
 
@@ -109,8 +128,7 @@ val_t eval_placing(const Board *board)
 			}
 		}
 	}
-	p = next_player(board);
-	return score[p] - score[1 - p];
+	return score[player] - score[1 - player];
 }
 
 /* Evaluate a board during the stacking phase. */

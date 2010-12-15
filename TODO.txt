@@ -1,9 +1,9 @@
 For test competition 6:
   - further improve evaluation function:
      - incorporate distance to Dvonns with exponential decay
-  - optimize time budgeting for moves (how?)
 
 For final version:
+  - optimize time budgeting for moves (how?)
   - performance optimizations:
     - linearize board
     - hard-code parameters (like ai_use_pv and such)
@@ -13,8 +13,6 @@ Later:
  - see if we can override target/optimization options.
    GCC 4.4 supports #pragma GCC target/optimization and
    __attribute__((target())), maybe GCC 4.3 does, too?
- - include some benchmarks and run them on the Codecup server, tweaking various
-   parameters?
 
 Maybe later:
  - better handling of 'exact' values; if these are stored in the tt, their

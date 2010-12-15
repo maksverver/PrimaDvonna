@@ -23,8 +23,10 @@ extern EvalWeights eval_weights;
    the sum of the squared distances of each field to the nearest Dvonn stone. */
 int eval_dvonn_spread(const Board *board);
 
-/* Board evaluation functions, used by AI: */
+/* Evaluate board position in placement phase (called by AI).*/
 val_t eval_placing(const Board *board);
+
+/* Evaluate board position in stacking phase (called by AI).*/
 val_t eval_stacking(const Board *board);
 
 #endif /* ndef EVAL_H_INCLUDED */
