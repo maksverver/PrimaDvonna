@@ -81,7 +81,9 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 				if (entry->lo == entry->hi) return entry->lo;
 				if (entry->lo >= hi) return entry->lo;
 				if (entry->hi <= lo) return entry->hi;
-				res = entry->lo;
+				if (entry->lo > lo) lo = entry->lo;  /* dubious! */
+				if (entry->hi < hi) hi = entry->hi;  /* dubious! */
+				/* res = entry->lo; */
 				IF_TT_DEBUG( ++tt_stats.partial )
 			}
 			best_move = entry->killer;
@@ -163,10 +165,15 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 			/* FIXME: eval_intermediate() could end up calling eval_end() if
 				the current position is actually an end position. In that case,
 				we should really store depth = AI_MAX_DEPTH here! */
-			entry->hash      = hash;
-			entry->lo        = (depth == 0 || res > lo) ? res : val_min;
-			entry->hi        = (depth == 0 || res < hi) ? res : val_max;
-			entry->depth     = depth;
+			if (entry->hash != hash || entry->depth != depth)
+			{
+				entry->hash  = hash;
+				entry->lo    = val_min;
+				entry->hi    = val_max;
+				entry->depth = depth;
+			}
+			if ((depth == 0 || res > lo) && res > entry->lo) entry->lo = res;
+			if ((depth == 0 || res < hi) && res < entry->hi) entry->hi = res;
 			entry->relevance = relevance;
 			entry->killer    = best_move;
 			IF_TT_DEBUG( memcpy(entry->data, data, 50) )
@@ -199,14 +206,16 @@ bool ai_select_move( Board *board,
 	}
 	if (nmove == 1) fprintf(stderr, "one move available!\n");
 
+	/* Initialize result */
+	result->move    = move_null;
+	result->value   = 0;
+	result->depth   = 0;
+	result->eval    = 0;
+	result->time    = 0;
+	result->aborted = false;
+
 	/* Special handling for placing of neutral Dvonn stones: */
 	if (board->moves < D) {
-		result->move    = move_null;
-		result->value   = 0;
-		result->depth   = 0;
-		result->eval    = 0;
-		result->time    = 0;
-		result->aborted = false;
 		reset_rng();
 		shuffle_moves(moves, nmove);
 		if (board->moves == 0) {
@@ -242,7 +251,7 @@ bool ai_select_move( Board *board,
 		/* DFS for best value and move: */
 		Move move = move_null;
 		val_t value = dfs(board, depth, val_min, val_max, &move);
-		double used = time_used() - start;
+		double used = used = time_used() - start;
 
 		if (aborted) {
 			result->aborted = true;

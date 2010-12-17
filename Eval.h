@@ -4,17 +4,17 @@
 #include "Game.h"
 
 /* Type of values used to evaluate game positions: */
-#define VAL_FMT "%f"
-typedef float val_t;
+#define VAL_FMT "%d"
+typedef int val_t;
 
 extern const val_t val_min, val_max, val_eps;
 
 typedef struct EvalWeights {
-	float stacks;    /* controlled stacks (mobile or not) */
-	float score;     /* pieces in controlld stacks (mobile or not) */
-	float moves;     /* moves including for immobile stacks */
-	float to_life;   /* moves from mobile stacks to Dvonn stones */
-	float to_enemy;  /* moves from mobile stacks to enemy stones */
+	int stacks;    /* controlled stacks (mobile or not) */
+	int score;     /* pieces in controlld stacks (mobile or not) */
+	int moves;     /* moves including for immobile stacks */
+	int to_life;   /* moves from mobile stacks to Dvonn stones */
+	int to_enemy;  /* moves from mobile stacks to enemy stones */
 } EvalWeights;
 
 extern EvalWeights eval_weights;

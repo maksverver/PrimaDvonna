@@ -2,16 +2,17 @@
 #include <math.h>
 #include <assert.h>
 
-const val_t val_min = -1000.0f * (N + 1);
-const val_t val_max = +1000.0f * (N + 1);
-const val_t val_eps = 0.001f;
+const val_t val_min = -1000000000;
+const val_t val_max = +1000000000;
+const val_t val_eps =           1;
+const val_t val_big =     1000000;
 
 struct EvalWeights eval_weights = {
-	1.00f,    /* stacks */
-	0.02f,    /* score */
-	0.30f,    /* moves */
-	0.20f,    /* to_life */
-	0.20f };  /* to_enemy */
+	100,    /* stacks */
+	  2,    /* score */
+	 30,    /* moves */
+	 20,    /* to_life */
+	 20 };  /* to_enemy */
 
 int eval_dvonn_spread(const Board *board)
 {
@@ -159,7 +160,7 @@ val_t eval_stacking(const Board *board)
 		}
 	}
 
-	if (game_over) return (val_t)1000*score;
+	if (game_over) return val_big*score;
 
 	return stacks   * eval_weights.stacks
 	     + score    * eval_weights.score
