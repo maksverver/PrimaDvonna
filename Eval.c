@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #ifndef FIXED_PARAMS
+/* TODO! update these fields, and update code to use them! */
 struct EvalWeights eval_weights = {
 	EVAL_DEFAULT_WEIGHT_STACKS,
 	EVAL_DEFAULT_WEIGHT_MOVES,
@@ -93,42 +94,50 @@ val_t eval_placing(const Board *board)
 /* Evaluate a board during the stacking phase. */
 val_t eval_stacking(const Board *board, bool *exact)
 {
+	int n, m;
 	const int *step;
 	const Field *f, *g;
 	int player = next_player(board);
 	bool game_over = true;
-	int n, score = 0, stacks = 0, moves = 0, to_life = 0, to_enemy = 0;
+	int field_value[N];
+	int score[2] = { 0, 0 };
+	val_t value[2] = { 0, 0 };
 
-#define EVAL_FIELD(X) \
-	do {                                                          \
-		score X f->pieces;                                        \
-		stacks X 1;                                               \
-		for (step = board_steps[f->pieces][n]; *step; ++step) {   \
-			g = f + *step;                                        \
-			if (g->removed) continue;                             \
-			if (f->mobile) {                                      \
-				game_over = false;                                \
-				if (g->dvonns) to_life X 1;                       \
-				if ((f->player ^ g->player) > 0) to_enemy X 1;    \
-			}                                                     \
-			moves X 1;                                            \
-		}                                                         \
-	} while (0)
+	/* Determine value of fields: */
+	for (n = 0; n < N; ++n) {
+		field_value[n] = 80;
+	}
+	for (n = 0; n < N; ++n) {
+		if (board->fields[n].dvonns) {
+			for (m = 0; m < N; ++m) {
+				field_value[m] += 40 >> 2*distance(n, m);
+			}
+		}
+	}
 
 	for (n = 0; n < N; ++n) {
 		f = &board->fields[n];
 		if (f->removed || f->player < 0) continue;
-		if (player == f->player) EVAL_FIELD(+=); else EVAL_FIELD(-=);
+		value[f->player] += field_value[n];
+		score[f->player] += f->pieces;
+		for (step = board_steps[f->pieces][n]; *step; ++step) {
+			g = f + *step;
+			if (g->removed) continue;
+			if (f->mobile) {
+				game_over = false;
+				if (g->dvonns) value[f->player] += 20;
+				if ((f->player ^ g->player) > 0) value[f->player] += 20;
+			}
+			value[f->player] += field_value[n + *step]/4;
+		}
 	}
 
-	if (game_over) return val_big*score;
+	if (game_over) return val_big*(val_t)(score[player] - score[1 - player]);
 
 	*exact = false;
-
-	return stacks   * EVAL_WEIGHT_STACKS
-	     + moves    * EVAL_WEIGHT_MOVES
-	     + to_life  * EVAL_WEIGHT_TO_LIFE
-	     + to_enemy * EVAL_WEIGHT_TO_ENEMY;
-
-#undef EVAL_FIELD
+	/*
+	value[0] += score[0]*0.02;
+	value[1] += score[1]*0.02;
+	*/
+	return value[player] - value[1 - player];
 }
