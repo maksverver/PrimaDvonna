@@ -14,6 +14,10 @@ struct EvalWeights eval_weights = {
 	 20,    /* to_life */
 	 20 };  /* to_enemy */
 
+/* Minimum and summed distance to Dvonn stones. Used in eval_placing(). */
+static int min_dist_to_dvonn[H][W];
+static int tot_dist_to_dvonn[H][W];
+
 int eval_dvonn_spread(const Board *board)
 {
 	int r, c, d, dr[D], dc[D], nd = 0, res = 0;
@@ -56,44 +60,42 @@ static bool is_edge_field(const Board *board, int r, int c)
 	return false;
 }
 
-/* Evaluate the board during the placing phase. */
-val_t eval_placing(const Board *board)
+void eval_update_dvonns(const Board *board)
 {
-	int r, c, player = next_player(board);;
-	val_t score[2] = { 0, 0 };
-	int edge_stones[2] = { 0, 0 }, edge_value;
-	int dvonn_r[D], dvonn_c[D], d = 0;
+	int r1, c1, r2, c2, dist;
 
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			const Field *f = &board->fields[r][c];
-
-			/* Find Dvonn stones: */
-			if (f->dvonns > 0) {
-				dvonn_r[d] = r;
-				dvonn_c[d] = c;
-				++d;
-			}
-
-			/* Count edge stones: */
-			if (f->player >= 0 && is_edge_field(board, r, c)) {
-				++edge_stones[f->player];
-			}
+	for (r1 = 0; r1 < H; ++r1) {
+		for (c1 = 0; c1 < W; ++c1) {
+			min_dist_to_dvonn[r1][c1] = H+W;
+			tot_dist_to_dvonn[r1][c1] = 0;
 		}
 	}
 
-	/* Determine value of edge fields: */
-	if (edge_stones[player] >= 6) {
-		edge_value = 0;  /* over six edge fields occupied; don't need more */
-	} else if (edge_stones[player] >= edge_stones[1 - player] - 3) {
-		edge_value = 1;  /* at most three stones behind opponent */
-	} else {
-		/* four or more stones behind; boost value of edge fields! */
-		edge_value = edge_stones[1 - player] - edge_stones[player] - 3;
+	for (r1 = 0; r1 < H; ++r1) {
+		for (c1 = 0; c1 < W; ++c1) {
+			if (board->fields[r1][c1].dvonns > 0) {
+				for (r2 = 0; r2 < H; ++r2) {
+					for (c2 = 0; c2 < W; ++c2) {
+						dist = distance(r1, c1, r2, c2);
+						if (!board->fields[r2][c2].removed) {
+							tot_dist_to_dvonn[r2][c2] += dist;
+							if (dist < min_dist_to_dvonn[r2][c2]) {
+								min_dist_to_dvonn[r2][c2] = dist;
+							}
+						}
+					}
+				}
+			}
+		}
 	}
+}
 
-	/* Can't evaluate before all Dvonn stones are placed: */
-	if (d < D) return 0;
+/* Evaluate the board during the placing phase. */
+val_t eval_placing(const Board *board)
+{
+	int r, c, d, player = next_player(board);;
+	val_t score[2] = { 0, 0 };
+	int edge_pieces[2] = { 0, 0 };
 
 	/* Scan board for player's stones and value them: */
 	for (r = 0; r < H; ++r) {
@@ -101,16 +103,7 @@ val_t eval_placing(const Board *board)
 			const Field *f = &board->fields[r][c];
 
 			if (f->pieces > 0 && f->player >= 0) {
-				int min_dist_to_dvonn = val_max;
-				int tot_dist_to_dvonn = 0;
 				int neighbours = 0;
-
-				/* Count distance to dvonns: */
-				for (d = 0; d < D; ++d) {
-					int dist = distance(r, c, dvonn_r[d], dvonn_c[d]);
-					tot_dist_to_dvonn += dist;
-					if (dist < min_dist_to_dvonn) min_dist_to_dvonn = dist;
-				}
 
 				/* Count how many neighboring fields exist that are not occupied
 				   by a friendly piece: */
@@ -122,13 +115,22 @@ val_t eval_placing(const Board *board)
 					}
 				}
 
-				if (min_dist_to_dvonn == 1) score[f->player] += 15;
-				if (is_edge_field(board,r, c)) score[f->player] += 1;
-				score[f->player] -= tot_dist_to_dvonn;
+				if (min_dist_to_dvonn[r][c] == 1) score[f->player] += 10;
+				if (is_edge_field(board,r, c)) edge_pieces[f->player] += 1;
+				score[f->player] -= tot_dist_to_dvonn[r][c];
 				if (neighbours < 2) score[f->player] -= 5*(2 - neighbours);
 			}
 		}
 	}
+
+	/* Add penalty when one player occupied too few edge fields: */
+	if (edge_pieces[1] - edge_pieces[0] > 5) {
+		score[0] -= edge_pieces[1] - edge_pieces[0] - 5;
+	}
+	if (edge_pieces[1] - edge_pieces[0] > 5) {
+		score[0] -= edge_pieces[1] - edge_pieces[0] - 5;
+	}
+
 	return score[player] - score[1 - player];
 }
 

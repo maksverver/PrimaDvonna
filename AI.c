@@ -239,6 +239,9 @@ bool ai_select_move( Board *board,
 		return true;
 	}
 
+	/* Update position of Dvonns, used to evaluate during stacking phase. */
+	if (board->moves < N) eval_update_dvonns(board);
+
 	/* Killer heuristic is most effective when the transposition table
 	   contains the information from one ply ago, instead of two plies: */
 	if (ai_use_tt && ai_use_killer == 1 && depth > 2) --depth;

@@ -1,6 +1,7 @@
 For test competition 6:
   - further improve evaluation function:
-     - incorporate distance to Dvonns with exponential decay
+     - tune existing weights
+     - maybe incorporate distance to Dvonns with exponential decay?
 
 For final version:
   - optimize time budgeting for moves (how?)

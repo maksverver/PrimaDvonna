@@ -19,6 +19,11 @@ typedef struct EvalWeights {
 
 extern EvalWeights eval_weights;
 
+/* Resets the position of the Dvonn stones according to the state in `board'.
+   This must be called before every invocation of eval_placing() where the
+   positions of the Dvonn stones has changed. (Called by AI as needed.) */
+void eval_update_dvonns(const Board *board);
+
 /* Returns how well the Dvonns are spread over the board. This is measured as
    the sum of the squared distances of each field to the nearest Dvonn stone. */
 int eval_dvonn_spread(const Board *board);
