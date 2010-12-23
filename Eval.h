@@ -28,10 +28,13 @@ void eval_update_dvonns(const Board *board);
    the sum of the squared distances of each field to the nearest Dvonn stone. */
 int eval_dvonn_spread(const Board *board);
 
-/* Evaluate board position in placement phase (called by AI).*/
+/* Evaluate board position in placement phase (called by AI). */
 val_t eval_placing(const Board *board);
 
-/* Evaluate board position in stacking phase (called by AI).*/
-val_t eval_stacking(const Board *board);
+/* Evaluate board position in stacking phase (called by AI).
+
+   If the `board' does not desribe an end-game position, *exact is set to false;
+   otherwise, it is left unchanged. */
+val_t eval_stacking(const Board *board, bool *exact);
 
 #endif /* ndef EVAL_H_INCLUDED */

@@ -135,7 +135,7 @@ val_t eval_placing(const Board *board)
 }
 
 /* Evaluate a board during the stacking phase. */
-val_t eval_stacking(const Board *board)
+val_t eval_stacking(const Board *board, bool *exact)
 {
 	int n, sign;
 	const int *step;
@@ -163,6 +163,8 @@ val_t eval_stacking(const Board *board)
 	}
 
 	if (game_over) return val_big*score;
+
+	*exact = false;
 
 	return stacks   * eval_weights.stacks
 	     + score    * eval_weights.score

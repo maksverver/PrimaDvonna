@@ -1,23 +1,22 @@
 For test competition 6:
   - further improve evaluation function:
-     - tune existing weights
+     - tune existing weights:
+        => remove 'score'?
+        => decrease value eval_weights.moves to 25
+        => increase value eval_weights.to_enemy to 25?
      - maybe incorporate distance to Dvonns with exponential decay?
 
 For final version:
   - optimize time budgeting for moves (how?)
   - performance optimizations:
-    - linearize board
+    - linearize board?
     - hard-code parameters (like ai_use_pv and such)
     - Makefile: add -DNDEBUG to submission.c
-
-Later:
  - see if we can override target/optimization options.
    GCC 4.4 supports #pragma GCC target/optimization and
    __attribute__((target())), maybe GCC 4.3 does, too?
 
 Maybe later:
- - better handling of 'exact' values; if these are stored in the tt, their
-   depth should be considered infinite.
  - represent moves as two ints (source, destination?)
     - then we could also linearize the fields of the board. requires stable
       board representation, though!

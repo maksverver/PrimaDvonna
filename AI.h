@@ -5,7 +5,7 @@
 #include "Eval.h"
 
 /* Maximum search depth: */
-#define AI_MAX_DEPTH 20
+#define AI_MAX_DEPTH 32
 
 /* Search algorithm parameters: */
 extern int ai_use_tt;      /* use transposition table? (0 or 1) */
@@ -51,6 +51,7 @@ typedef struct AI_Result {
 	int    eval;     /* total number of positions evaluated */
 	double time;     /* total time used */
 	bool   aborted;  /* whether search was aborted */
+	bool   exact;    /* whether the entire game tree was searched */
 } AI_Result;
 
 /* Selects the next best move to make.

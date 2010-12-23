@@ -5,13 +5,14 @@
 
 typedef unsigned long long hash_t;
 
-/* Transposition table entry: */
+/* Transposition table entry.
+   (See dfs() in AI.c for the interpretation of these fields.) */
 typedef struct TTEntry {
-	hash_t hash;
-	val_t  lo, hi;
-	short  depth;
-	short  relevance;
-	Move   killer;
+	hash_t hash;         /* full hash code of board (0 for empty entries) */
+	val_t  lo, hi;       /* game value is be between lo and hi (inclusive) */
+	short  depth;        /* search depth used to determine value */
+	short  relevance;    /* used by replacement policy (see dfs() in AI.c) */
+	Move   killer;       /* best known move for this position */
 #ifdef TT_DEBUG
 	unsigned char data[50];
 #endif
