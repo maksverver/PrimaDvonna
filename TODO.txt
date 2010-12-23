@@ -1,15 +1,14 @@
 For test competition 6:
   - further improve evaluation function:
      - tune existing weights:
-        => remove 'score'?
-        => decrease value eval_weights.moves to 25
-        => increase value eval_weights.to_enemy to 25?
      - maybe incorporate distance to Dvonns with exponential decay?
+       (see fancy-eval branch. any other ideas?)
+  - performance optimizations:
+    - linearize board
 
 For final version:
   - optimize time budgeting for moves (how?)
   - performance optimizations:
-    - linearize board?
     - hard-code parameters (like ai_use_pv and such)
     - Makefile: add -DNDEBUG to submission.c
  - see if we can override target/optimization options.

@@ -9,8 +9,7 @@ const val_t val_big =     1000000;
 
 struct EvalWeights eval_weights = {
 	100,    /* stacks */
-	  2,    /* score */
-	 30,    /* moves */
+	 25,    /* moves */
 	 20,    /* to_life */
 	 20 };  /* to_enemy */
 
@@ -167,7 +166,6 @@ val_t eval_stacking(const Board *board, bool *exact)
 	*exact = false;
 
 	return stacks   * eval_weights.stacks
-	     + score    * eval_weights.score
 	     + moves    * eval_weights.moves
 	     + to_life  * eval_weights.to_life
 	     + to_enemy * eval_weights.to_enemy;

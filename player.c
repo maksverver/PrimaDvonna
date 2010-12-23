@@ -243,7 +243,7 @@ static void print_usage(void)
 			"(0: off, 1: one ply, 2: two ply)\n"
 		"\t--pvs=<val>       enable principal variation search"
 			"(0: off, 1: on)\n"
-		"\t--weights=a:..:e  set evaluation function weights\n",
+		"\t--weights=a:..:d  set evaluation function weights\n",
 		default_player_time );
 }
 
@@ -277,9 +277,9 @@ static void parse_args(int argc, char *argv[])
 		if (sscanf(argv[pos], "--mo=%d", &ai_use_mo) == 1) continue;
 		if (sscanf(argv[pos], "--killer=%d", &ai_use_killer) == 1) continue;
 		if (sscanf(argv[pos], "--pvs=%d", &ai_use_pvs) == 1) continue;
-		if (sscanf(argv[pos], "--weights=" VAL_FMT":"VAL_FMT":"VAL_FMT":"VAL_FMT":"VAL_FMT,
-			&eval_weights.stacks, &eval_weights.score, &eval_weights.moves,
-			&eval_weights.to_life, &eval_weights.to_enemy) == 5) {
+		if (sscanf(argv[pos], "--weights=" VAL_FMT":"VAL_FMT":"VAL_FMT":"VAL_FMT,
+			&eval_weights.stacks, &eval_weights.moves,
+			&eval_weights.to_life, &eval_weights.to_enemy) == 4) {
 			continue;
 		}
 		break;

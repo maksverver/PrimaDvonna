@@ -11,7 +11,6 @@ extern const val_t val_min, val_max, val_eps;
 
 typedef struct EvalWeights {
 	int stacks;    /* controlled stacks (mobile or not) */
-	int score;     /* pieces in controlld stacks (mobile or not) */
 	int moves;     /* moves including for immobile stacks */
 	int to_life;   /* moves from mobile stacks to Dvonn stones */
 	int to_enemy;  /* moves from mobile stacks to enemy stones */
