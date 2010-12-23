@@ -2,6 +2,27 @@
 #include <assert.h>
 #include <string.h>
 
+static const int field_row[49] = {
+	     0,  0,  0,  0,  0,  0,  0,  0,  0,
+	   1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	 2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
+	   3,  3,  3,  3,  3,  3,  3,  3,  3,  3,
+	     4,  4,  4,  4,  4,  4,  4,  4,  4 };
+
+static const int field_col[49] = {
+	     0,  1,  2,  3,  4,  5,  6,  7,  8,
+	   0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
+	 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10,
+	   1,  2,  3,  4,  5,  6,  7,  8,  9, 10,
+	     2,  3,  4,  5,  6,  7,  8,  9, 10 };
+
+static const int field_index[5][11] = {
+	{  0,  1,  2,  3,  4,  5,  6,  7,  8, -1, -1 },
+	{  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, -1 },
+	{ 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29 },
+	{ -1, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39 },
+	{ -1, -1, 40, 41, 42, 43, 44, 45, 46, 47, 48 } };
+
 bool parse_move(const char *text, Move *move)
 {
 	if (strcmp(text, "PASS") == 0) {
@@ -12,18 +33,14 @@ bool parse_move(const char *text, Move *move)
 	     text[1] >= '1' && text[1] <= '5' )
 	{
 		if (text[2] == '\0') {
-			move->r1 = text[1] - '1';
-			move->c1 = text[0] - 'A';
-			move->r2 = -1;
-			move->c2 = -1;
+			move->src = field_index[text[1] - '1'][text[0] - 'A'];
+			move->dst = -1;
 			return true;
 		}
 		if ( text[2] >= 'A' && text[2] <= 'K' &&
 		     text[3] >= '1' && text[3] <= '5' && text[4] == '\0' ) {
-			move->c1 = text[0] - 'A';
-			move->r1 = text[1] - '1';
-			move->c2 = text[2] - 'A';
-			move->r2 = text[3] - '1';
+			move->src = field_index[text[1] - '1'][text[0] - 'A'];
+			move->dst = field_index[text[3] - '1'][text[2] - 'A'];
 			return true;
 		}
 	}
@@ -38,11 +55,11 @@ const char *format_move(const Move *move)
 		static char buf[5];
 		char *p = buf;
 
-		*p++ = 'A' + move->c1;
-		*p++ = '1' + move->r1;
+		*p++ = 'A' + field_col[move->src];
+		*p++ = '1' + field_row[move->src];
 		if (move_stacks(move)) {
-			*p++ = 'A' + move->c2;
-			*p++ = '1' + move->r2;
+			*p++ = 'A' + field_col[move->dst];
+			*p++ = '1' + field_row[move->dst];
 		}
 		*p++ = '\0';
 		return buf;
@@ -52,11 +69,11 @@ const char *format_move(const Move *move)
 static const char *digits =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-void update_neighbour_mobility(Board *board, int r1, int c1, int diff);
+extern void update_neighbour_mobility(Board *board, int n, int diff);
 
 bool parse_state(const char *descr, Board *board, Color *next_player)
 {
-	int vals[N + 1], n, r, c;
+	int vals[N + 1], n;
 
 	/* Decode base-62 encoded values: */
 	if (strlen(descr) != N + 1) return false;
@@ -83,39 +100,30 @@ bool parse_state(const char *descr, Board *board, Color *next_player)
 		break;
 	}
 
-	/* The next N values rae used to initialize the fields of the board;
+	/* The next N values are used to initialize the fields of the board;
 	   board->moves is initialized to something sensible based on the number
 	   of occupied (when placing) or empty (when stacking) fields. */
-	n = 1;
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			Field *f = &board->fields[r][c];
-
-			if (!f->removed) {
-				assert(n < N + 1);
-				if (vals[n] == 0) {
-					if (board->moves >= N) {
-						f->removed = N;
-						f->pieces = 1;
-						f->player = 0;
-						++board->moves;
-					}
-				} else if (vals[n] == 1) {
-					f->dvonns = 1;
-					f->pieces = 1;
-					if (board->moves < N) ++board->moves;
-				} else {
-					f->player = (vals[n] + 2)%2;
-					f->dvonns = (vals[n] + 2)/2%2;
-					f->pieces = (vals[n] + 2)/4;
-					if (board->moves < N) ++board->moves;
-				}
-				if (vals[n] != 0) update_neighbour_mobility(board, r, c, -1);
-				++n;
+	for (n = 0; n < N; ++n) {
+		Field *f = &board->fields[n];
+		if (vals[n + 1] == 0) {
+			if (board->moves >= N) {
+				f->removed = N;
+				f->pieces = 1;
+				f->player = 0;
+				++board->moves;
 			}
+		} else if (vals[n + 1] == 1) {
+			f->dvonns = 1;
+			f->pieces = 1;
+			if (board->moves < N) ++board->moves;
+		} else {
+			f->player = (vals[n + 1] + 2)%2;
+			f->dvonns = (vals[n + 1] + 2)/2%2;
+			f->pieces = (vals[n + 1] + 2)/4;
+			if (board->moves < N) ++board->moves;
 		}
+		if (vals[n + 1] != 0) update_neighbour_mobility(board, n, -1);
 	}
-	assert(n == N + 1);
 
 	/* Because of the disconnection rule, fewer moves may have been played in
 	   the stacking phase than the number of empty fields suggest. If an odd
@@ -136,37 +144,27 @@ bool parse_state(const char *descr, Board *board, Color *next_player)
 
 const char *format_state(const Board *board)
 {
-	Board init_board;
 	static char buf[N + 2];
-	int r, c, n;
+	int n;
 
-	board_clear(&init_board);
 	if (board->moves < N) {  /* placement phase */
 		buf[0] = digits[board->moves%2];
 	} else {  /* movement phase */
 		buf[0] = digits[2 + (board->moves - N)%2];
 	}
-	n = 1;
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			if (!init_board.fields[r][c].removed) {
-				const Field *f = &board->fields[r][c];
+	for (n = 0; n < N; ++n) {
+		const Field *f = &board->fields[n];
 
-				assert(n < N + 1);
-				if (f->pieces > 15) {  /* stack too high for this encoding! */
-					buf[n] = '*';
-				} else if (f->removed || !f->pieces) {
-					buf[n] = digits[0];
-				} else if (f->player == NONE) {
-					buf[n] = digits[1];
-				} else {
-					buf[n] = digits[4*f->pieces + (f->dvonns?2:0) + f->player - 2];
-				}
-				++n;
-			}
+		if (f->pieces > 15) {  /* stack too high for this encoding! */
+			buf[n + 1] = '*';
+		} else if (f->removed || !f->pieces) {
+			buf[n + 1] = digits[0];
+		} else if (f->player == NONE) {
+			buf[n + 1] = digits[1];
+		} else {
+			buf[n + 1] = digits[4*f->pieces + (f->dvonns?2:0) + f->player - 2];
 		}
 	}
-	assert(n == N + 1);
-	buf[n] = '\0';
+	buf[N + 1] = '\0';
 	return buf;
 }

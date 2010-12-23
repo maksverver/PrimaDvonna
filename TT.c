@@ -35,18 +35,17 @@ void tt_fini(void)
 
 void serialize_board(const Board *board, unsigned char output[50])
 {
-	const Field *f, *g;
+	int n;
 
 	*output++ = (board->moves < N ? 0 : 2) + board->moves%2;
-	for (f = &board->fields[0][0], g = f + H*W; f != g; ++f) {
-		if (f->removed >= 0) {
-			if (!f->removed && f->pieces) {
-				int val = 4*f->pieces + 2*f->player;
-				if (f->dvonns) ++val;
-				*output++ = val;
-			} else {
-				*output++ = 0;
-			}
+	for (n = 0; n < N; ++n) {
+		const Field *f = &board->fields[n];
+		if (!f->removed && f->pieces) {
+			int val = 4*f->pieces + 2*f->player;
+			if (f->dvonns) ++val;
+			*output++ = val;
+		} else {
+			*output++ = 0;
 		}
 	}
 }
@@ -79,19 +78,18 @@ hash_t hash_board(const Board *board)
    but manually inlined for speed: */
 hash_t hash_board(const Board *board)
 {
-	const Field *f, *g;
+	int n;
 	hash_t res = FNV64_OFFSET_BASIS;
 
 	res *= FNV64_PRIME;
 	res ^= (board->moves < N ? 0 : 2) + board->moves%2;
-	for (f = &board->fields[0][0], g = f + H*W; f != g; ++f) {
-		if (f->removed >= 0) {
-			res *= FNV64_PRIME;
-			if (!f->removed && f->pieces) {
-				int val = 4*f->pieces + 2*f->player;
-				if (f->dvonns) ++val;
-				res ^= val;
-			}
+	for (n = 0; n < N; ++n) {
+		const Field *f = &board->fields[n];
+		res *= FNV64_PRIME;
+		if (!f->removed && f->pieces) {
+			int val = 4*f->pieces + 2*f->player;
+			if (f->dvonns) ++val;
+			res ^= val;
 		}
 	}
 	return res;

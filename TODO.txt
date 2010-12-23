@@ -3,8 +3,7 @@ For test competition 6:
      - tune existing weights:
      - maybe incorporate distance to Dvonns with exponential decay?
        (see fancy-eval branch. any other ideas?)
-  - performance optimizations:
-    - linearize board
+  - adding assert(lo < hi) at the top of dfs() fails; why??
 
 For final version:
   - optimize time budgeting for moves (how?)

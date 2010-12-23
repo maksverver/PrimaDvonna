@@ -111,17 +111,10 @@ static int est_moves_left(const Board *board, Color player)
 
 static int max_moves_left(const Board *board)
 {
-	int r, c, stacks = 0;
+	int n, stacks = 0;
 
-	if (board->moves < N) {
-		return N + (N - 1) - board->moves;
-	}
-
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			if (!board->fields[r][c].removed) ++stacks;
-		}
-	}
+	if (board->moves < N) return N + (N - 1) - board->moves;
+	for (n = 0; n < N; ++n) if (!board->fields[n].removed) ++stacks;
 	return stacks - 1;
 }
 
@@ -261,7 +254,7 @@ static void parse_args(int argc, char *argv[])
 			print_usage();
 			exit(EXIT_SUCCESS);
 		}
-		if (memcmp(argv[pos], "--state=", 8) == 0) {
+		if (strncmp(argv[pos], "--state=", 8) == 0) {
 			arg_state = argv[pos] + 8;
 			continue;
 		}

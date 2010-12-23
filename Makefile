@@ -1,5 +1,5 @@
-CFLAGS=-g -O2 -m32 -Wall -Wextra -DxTT_DEBUG -DZOBRIST
-LDFLAGS=-m32
+CFLAGS=-g -O2 -m64  -Wall -Wextra -DxTT_DEBUG -DZOBRIST
+LDFLAGS=-m64 
 LDLIBS=-lm
 SRCS=AI.c Crash.c Eval.c Game.c Game-steps.c IO.c MO.c Time.c TT.c player.c
 OBJS=AI.o Crash.o Eval.o Game.o Game-steps.o IO.o MO.o Time.o TT.o player.o
