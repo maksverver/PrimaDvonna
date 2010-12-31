@@ -32,7 +32,7 @@ do
 	fi
 	
 	if [ -n "$state" ]; then
-		move=`"$player" $player_params --state="$state" | tr 12345A-Z edcbaa-z`
+		move=`"$player" $player_params --analyze --state="$state" | tr 12345A-Z edcbaa-z`
 		curl -L -s -b cookies.txt -F sendgame="$gid" -F sendmove="$move" "$game_url" >/dev/null
 	fi
 done
