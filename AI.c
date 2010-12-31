@@ -85,6 +85,8 @@ static val_t dfs( Board *board, int depth, val_t lo, val_t hi,
 	Move best_move = move_null;
 	bool exact = true;
 
+	assert(lo < hi);
+
 	if (ai_use_tt) { /* look up in transposition table: */
 		hash = hash_board(board);
 		IF_TT_DEBUG( serialize_board(board, data) )
@@ -161,7 +163,7 @@ static val_t dfs( Board *board, int depth, val_t lo, val_t hi,
 				val = -dfs(board, depth - 1, -hi, -lb, NULL, &exact);
 			} else {
 				val = -dfs(board, depth - 1, -lb - val_eps, -lb, NULL, &exact);
-				if (val > lb) {
+				if (val > lb && val < hi) {
 					val = -dfs(board, depth - 1, -hi, -val, NULL, &exact);
 				}
 			}
