@@ -273,3 +273,16 @@ Games lost by Tomek:
 
 Interesting is that Bas van den Aardweg and Christian Nilson beat both Tomek
 and me, so they might be doing something right! Need to investigate.
+
+================================================================================
+
+Friday 21 January -- Last day optimizations!
+
+Can't override GCC 4.3's compilation target, which is too bad. The difference
+between "-O2 -march=i386" and "-O2 -march=pentium4" seems to be about 5%, and
+with -O3 even around 6%. GCC 4.4 supports __attribute__((target())) to override
+the target in the source code, but since I can't find anything equivalent for
+GCC 4.3, I'll leave this out.
+
+Hardcoding parameters (most notably evaluation depth) doesn't improve
+performance notably. (But I'll leave it in now I've coded it, I guess.)

@@ -228,7 +228,10 @@ static void print_usage(void)
 		"\t--eval=<count>    "
 	"stop after evaluating given number of positions\n"
 		"\t--time=<time>     "
-	"maximum time per game/state (default when playing: %.2fs)\n"
+	"maximum time per game/state (default when playing: %.2fs)\n",
+		default_player_time );
+#ifndef FIXED_PARAMS
+	printf(
 		"\t--tt=<size>       set use of table (0: off)\n"
 		"\t--mo=<val>        enable move ordering "
 			"(0: off, 1: heuristic, 2: evaluated)\n"
@@ -236,8 +239,8 @@ static void print_usage(void)
 			"(0: off, 1: one ply, 2: two ply)\n"
 		"\t--pvs=<val>       enable principal variation search"
 			"(0: off, 1: on)\n"
-		"\t--weights=a:..:d  set evaluation function weights\n",
-		default_player_time );
+		"\t--weights=a:..:d  set evaluation function weights\n" );
+#endif /* ndef FIXED_PARAMS */
 }
 
 static void parse_args(int argc, char *argv[])
@@ -266,6 +269,7 @@ static void parse_args(int argc, char *argv[])
 		if (sscanf(argv[pos], "--depth=%d", &arg_limit.depth) == 1) continue;
 		if (sscanf(argv[pos], "--eval=%d", &arg_limit.eval) == 1) continue;
 		if (sscanf(argv[pos], "--time=%lf", &arg_limit.time) == 1) continue;
+#ifndef FIXED_PARAMS
 		if (sscanf(argv[pos], "--tt=%d", &ai_use_tt) == 1) continue;
 		if (sscanf(argv[pos], "--mo=%d", &ai_use_mo) == 1) continue;
 		if (sscanf(argv[pos], "--killer=%d", &ai_use_killer) == 1) continue;
@@ -275,6 +279,7 @@ static void parse_args(int argc, char *argv[])
 			&eval_weights.to_life, &eval_weights.to_enemy) == 4) {
 			continue;
 		}
+#endif /* ndef FIXED_PARAMS */
 		break;
 	}
 	if (pos < argc) {
@@ -341,7 +346,9 @@ int main(int argc, char *argv[])
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);
 	} else {
 		fprintf(stderr, "Transposition table is disabled.\n");
+#ifndef FIXED_PARAMS
 		ai_use_killer = 0;  /* implicit */
+#endif
 	}
 
 	/* Print other parameters: */

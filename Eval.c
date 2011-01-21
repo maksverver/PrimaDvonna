@@ -2,16 +2,13 @@
 #include <math.h>
 #include <assert.h>
 
-const val_t val_min = -1000000000;
-const val_t val_max = +1000000000;
-const val_t val_eps =           1;
-const val_t val_big =     1000000;
-
+#ifndef FIXED_PARAMS
 struct EvalWeights eval_weights = {
-	100,    /* stacks */
-	 25,    /* moves */
-	 20,    /* to_life */
-	 20 };  /* to_enemy */
+	EVAL_DEFAULT_WEIGHT_STACKS,
+	EVAL_DEFAULT_WEIGHT_MOVES,
+	EVAL_DEFAULT_WEIGHT_TO_LIFE,
+	EVAL_DEFAULT_WEIGHT_TO_ENEMY };
+#endif
 
 /* Minimum and summed distance to Dvonn stones. Used in eval_placing(). */
 static int min_dist_to_dvonn[N];
@@ -131,8 +128,8 @@ val_t eval_stacking(const Board *board, bool *exact)
 
 	*exact = false;
 
-	return stacks   * eval_weights.stacks
-	     + moves    * eval_weights.moves
-	     + to_life  * eval_weights.to_life
-	     + to_enemy * eval_weights.to_enemy;
+	return stacks   * EVAL_WEIGHT_STACKS
+	     + moves    * EVAL_WEIGHT_MOVES
+	     + to_life  * EVAL_WEIGHT_TO_LIFE
+	     + to_enemy * EVAL_WEIGHT_TO_ENEMY;
 }

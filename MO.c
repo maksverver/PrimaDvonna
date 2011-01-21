@@ -1,7 +1,6 @@
 #include "MO.h"
+#include "AI.h"
 #include "Eval.h"
-
-extern int ai_use_mo;
 
 static void swap_moves(Move *a, Move *b)
 {

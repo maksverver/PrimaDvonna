@@ -14,11 +14,12 @@
 #define IF_TT_DEBUG(x)
 #endif
 
-/* Search algorithm parameters: (defaults set here perform best) */
-int ai_use_tt     = 21;  /* size as a power of 2*/
-int ai_use_mo     = 1;
-int ai_use_killer = 1;
-int ai_use_pvs    = 1;
+#ifndef FIXED_PARAMS
+int ai_use_tt     = AI_DEFAULT_TT;
+int ai_use_mo     = AI_DEFAULT_MO;
+int ai_use_killer = AI_DEFAULT_KILLER;
+int ai_use_pvs    = AI_DEFAULT_PVS;
+#endif
 
 /* Global flag to abort search: */
 static volatile bool aborted = false;

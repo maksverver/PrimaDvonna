@@ -8,10 +8,22 @@
 #define AI_MAX_DEPTH 32
 
 /* Search algorithm parameters: */
-extern int ai_use_tt;      /* use transposition table? (0 or 1) */
+#define AI_DEFAULT_TT       21
+#define AI_DEFAULT_MO       1
+#define AI_DEFAULT_KILLER   1
+#define AI_DEFAULT_PVS      1
+
+#ifdef FIXED_PARAMS
+#define ai_use_tt     AI_DEFAULT_TT
+#define ai_use_mo     AI_DEFAULT_MO
+#define ai_use_killer AI_DEFAULT_KILLER
+#define ai_use_pvs    AI_DEFAULT_PVS
+#else  /* ndef FIXED_PARAMS */
+extern int ai_use_tt;      /* size as a power of 2, or 0 to disable */
 extern int ai_use_mo;      /* use move reordering? (0, 1 or 2) */
 extern int ai_use_killer;  /* use killer heuristic? (0 or 1) */
 extern int ai_use_pvs;     /* use principal variation search? (0 or 1) */
+#endif
 
 /* Limits on the search performed by the AI when selecting moves.
 

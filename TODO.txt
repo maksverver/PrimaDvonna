@@ -1,16 +1,22 @@
 For final version:
   - evalate lost games (see NOTES.txt)
-  - fancy-eval branch (which includes distance to Dvonns in evaluation function)
-    - rebase to master, to benefit from linearized board and bugs fixed
-    - try to get it to outperform mainline player
-  - mainline: implement MTD(f)
-  - mainline: optimize time budgeting for moves (how?)
-  - mainline: performance optimizations:
-    - Optional hard-code parameters (like ai_use_pv and weights?)
-    - Makefile: add -DNDEBUG to submission.c
-  - see if we can override target/optimization options.
-    GCC 4.4 supports #pragma GCC target/optimization and
-    __attribute__((target())), maybe GCC 4.3 does, too?
+  - evaluation optimizations:
+    - fancy-eval branch (which includes distance to Dvonns in evaluation function)
+      - rebase to master, to benefit from linearized board and bugs fixed
+      - try to get it to outperform mainline player
+    - better setup?
+       - against Tomek Czajka I get a lot of stones that are only near my own
+         stones. this sucks! does it? clustering seems to work well in practice!
+    - to test: does simpler setup work better in the real world because of
+               time saved?
+  - search optimization:
+     - implement MTD(f)
+     - optimize time budgeting for moves (how?)
+  - implementation optimizations:
+      - benchmark & optimize (do this last)
+
+Before submission:
+  benchmark against previous submission + Dvonner + player3
 
 Maybe later:
  - check hash table performance:

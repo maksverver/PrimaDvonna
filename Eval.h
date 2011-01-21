@@ -7,7 +7,24 @@
 #define VAL_FMT "%d"
 typedef int val_t;
 
-extern const val_t val_min, val_max, val_eps;
+#define val_min ((val_t)-1000000000)
+#define val_max ((val_t)+1000000000)
+#define val_eps ((val_t)          1)
+#define val_big ((val_t)    1000000)
+
+#define EVAL_DEFAULT_WEIGHT_STACKS     100
+#define EVAL_DEFAULT_WEIGHT_MOVES       25
+#define EVAL_DEFAULT_WEIGHT_TO_LIFE     20
+#define EVAL_DEFAULT_WEIGHT_TO_ENEMY    20
+
+#ifdef FIXED_PARAMS
+
+#define EVAL_WEIGHT_STACKS   EVAL_DEFAULT_WEIGHT_STACKS
+#define EVAL_WEIGHT_MOVES    EVAL_DEFAULT_WEIGHT_MOVES
+#define EVAL_WEIGHT_TO_LIFE  EVAL_DEFAULT_WEIGHT_TO_LIFE
+#define EVAL_WEIGHT_TO_ENEMY EVAL_DEFAULT_WEIGHT_TO_ENEMY
+
+#else /* ndef FIXED_PARAMS */
 
 typedef struct EvalWeights {
 	int stacks;    /* controlled stacks (mobile or not) */
@@ -17,6 +34,13 @@ typedef struct EvalWeights {
 } EvalWeights;
 
 extern EvalWeights eval_weights;
+
+#define EVAL_WEIGHT_STACKS   eval_weights.stacks
+#define EVAL_WEIGHT_MOVES    eval_weights.moves
+#define EVAL_WEIGHT_TO_LIFE  eval_weights.to_life
+#define EVAL_WEIGHT_TO_ENEMY eval_weights.to_enemy
+
+#endif
 
 /* Resets the position of the Dvonn stones according to the state in `board'.
    This must be called before every invocation of eval_placing() where the
