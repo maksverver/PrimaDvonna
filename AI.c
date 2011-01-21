@@ -233,8 +233,9 @@ bool ai_select_move( Board *board,
 	signal_handler_t new_handler, old_handler;
 	Move moves[M];
 	int nmove = generate_moves(board, moves);
-	double ratio = 0.2;
 	double start = time_used();
+	double prev_used = 0.0;
+	double ratio = 5.0;
 	bool alarm_set = false, signal_handler_set = false;
 
 	/* Check if we have any moves to make: */
@@ -324,6 +325,8 @@ bool ai_select_move( Board *board,
 			fprintf(stderr, "[%d:%d] %d\n", lo, hi, value);
 		}
 		used = time_used() - start;
+		if (prev_used > 0) ratio = used/prev_used;
+		prev_used = used;
 		if (aborted) {
 			result->aborted = true;
 			result->time = used;
@@ -345,9 +348,9 @@ bool ai_select_move( Board *board,
 
 		/* Report intermediate result: */
 		if (board->moves >= N) {
-			fprintf(stderr, "m:%s d:%d v:"VAL_FMT"%s e:%d u:%.3fs\n",
+			fprintf(stderr, "m:%s d:%d v:"VAL_FMT"%s e:%d u:%.3fs r:%.1f\n",
 				format_move(&move), depth, value, exact ? " (exact)" : "",
-				eval_count, used);
+				eval_count, used, ratio);
 		}
 
 		if (limit && limit->time > 0 && used > limit->time) {
@@ -363,9 +366,9 @@ bool ai_select_move( Board *board,
 			if (limit->eval > 0 && eval_count >= limit->eval) break;
 			if (limit->depth > 0 && depth >= limit->depth) break;
 			if (limit->time > 0) {
-				double max_time = limit->time* ( (ai_use_deepening < 2)
-					? ((depth%2 == 0) ? ratio/2 : 2*ratio) : ratio*ratio );
-				if (used >= max_time) break;
+				double end = used*( (ai_use_deepening < 2)
+					? ((depth%2 == 0) ? 2*ratio : ratio/2) : ratio*ratio );
+				if (end >= limit->time) break;
 				if (!alarm_set++) {
 					set_alarm(limit->time - used, set_aborted, NULL);
 				}

@@ -109,6 +109,7 @@ static int est_moves_left(const Board *board, Color player)
 }
 #endif
 
+#if 0
 static int max_moves_left(const Board *board)
 {
 	int n, stacks = 0;
@@ -116,6 +117,19 @@ static int max_moves_left(const Board *board)
 	if (board->moves < N) return N + (N - 1) - board->moves;
 	for (n = 0; n < N; ++n) if (!board->fields[n].removed) ++stacks;
 	return stacks - 1;
+}
+#endif
+
+/* Conservative estimate of number of moves left in the game: */
+static int max_moves_left(const Board *board)
+{
+	int n, res = 0;
+
+	if (board->moves < N) return N + (N - 1) - board->moves;
+	for (n = 0; n < N; ++n) {
+		if (!board->fields[n].removed && board->fields[n].pieces <= 5) ++res;
+	}
+	return res;
 }
 
 static bool select_move(Board *board, Move *move)
@@ -143,9 +157,13 @@ static bool select_move(Board *board, Move *move)
 			if (d > 12) d = 12;
 			if (d <  3) d =  3;
 #endif
-			int d = (max_moves_left(board) - 16)/2;
-			if (d < 3) d = 3;
+			int d = max_moves_left(board)/2 - 10;
+			if (d < 2) d = 2;
 			limit.time = time_left()/d;
+			/*
+			limit.time = time_left()/2;
+			if (limit.time > time_limit/10) limit.time = time_limit/10;
+			*/
 			fprintf(stderr, "%.3fs+%.3fs\n", time_used(), limit.time);
 		}
 		ok = ai_select_move(board, &limit, &result);
