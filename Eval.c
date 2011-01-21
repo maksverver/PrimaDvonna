@@ -93,35 +93,32 @@ val_t eval_placing(const Board *board)
 /* Evaluate a board during the stacking phase. */
 val_t eval_stacking(const Board *board, bool *exact)
 {
-	int n, sign;
 	const int *step;
 	const Field *f, *g;
 	int player = next_player(board);
 	bool game_over = true;
-	int stacks = 0, score = 0, moves = 0, to_life = 0, to_enemy = 0;
+	int n, score = 0, stacks = 0, moves = 0, to_life = 0, to_enemy = 0;
+
+#define EVAL_FIELD(X) \
+	do {                                                          \
+		score X f->pieces;                                        \
+		stacks X 1;                                               \
+		for (step = board_steps[f->pieces][n]; *step; ++step) {   \
+			g = f + *step;                                        \
+			if (g->removed) continue;                             \
+			if (f->mobile) {                                      \
+				game_over = false;                                \
+				if (g->dvonns) to_life X 1;                       \
+				if ((f->player ^ g->player) > 0) to_enemy X 1;    \
+			}                                                     \
+			moves X 1;                                            \
+		}                                                         \
+	} while (0)
 
 	for (n = 0; n < N; ++n) {
 		f = &board->fields[n];
 		if (f->removed || f->player < 0) continue;
-		if (f->player == player) {
-			sign = +1;
-			++stacks;
-			score += f->pieces;
-		} else {
-			sign = -1;
-			--stacks;
-			score -= f->pieces;
-		}
-		for (step = board_steps[f->pieces][n]; *step; ++step) {
-			g = f + *step;
-			if (g->removed) continue;
-			if (f->mobile) {
-				game_over = false;
-				if (g->dvonns) to_life += sign;
-				if ((f->player ^ g->player) > 0) to_enemy += sign;
-			}
-			moves += sign;
-		}
+		if (player == f->player) EVAL_FIELD(+=); else EVAL_FIELD(-=);
 	}
 
 	if (game_over) return val_big*score;
@@ -132,4 +129,6 @@ val_t eval_stacking(const Board *board, bool *exact)
 	     + moves    * EVAL_WEIGHT_MOVES
 	     + to_life  * EVAL_WEIGHT_TO_LIFE
 	     + to_enemy * EVAL_WEIGHT_TO_ENEMY;
+
+#undef EVAL_FIELD
 }
