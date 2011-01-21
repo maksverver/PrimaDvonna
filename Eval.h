@@ -10,7 +10,7 @@ typedef int val_t;
 #define val_min ((val_t)-1000000000)
 #define val_max ((val_t)+1000000000)
 #define val_eps ((val_t)          1)
-#define val_big ((val_t)    1000000)
+#define val_big ((val_t)   10000000)
 
 #define EVAL_DEFAULT_WEIGHT_STACKS     100
 #define EVAL_DEFAULT_WEIGHT_MOVES       25
