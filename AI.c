@@ -15,10 +15,12 @@
 #endif
 
 #ifndef FIXED_PARAMS
-int ai_use_tt     = AI_DEFAULT_TT;
-int ai_use_mo     = AI_DEFAULT_MO;
-int ai_use_killer = AI_DEFAULT_KILLER;
-int ai_use_pvs    = AI_DEFAULT_PVS;
+int ai_use_tt         = AI_DEFAULT_TT;
+int ai_use_mo         = AI_DEFAULT_MO;
+int ai_use_killer     = AI_DEFAULT_KILLER;
+int ai_use_pvs        = AI_DEFAULT_PVS;
+int ai_use_mtdf       = AI_DEFAULT_MTDF;
+int ai_use_deepening  = AI_DEFAULT_DEEPENING;
 #endif
 
 /* Global flag to abort search: */
@@ -231,6 +233,7 @@ bool ai_select_move( Board *board,
 	signal_handler_t new_handler, old_handler;
 	Move moves[M];
 	int nmove = generate_moves(board, moves);
+	double ratio = 0.2;
 	double start = time_used();
 	bool alarm_set = false, signal_handler_set = false;
 
@@ -284,15 +287,43 @@ bool ai_select_move( Board *board,
 
 	if (limit->depth > 0 && limit->depth < depth) depth = limit->depth;
 
+	/* Round to least multiple of deepening increment: */
+	if (depth%ai_use_deepening > 0) {
+		if (depth < ai_use_deepening) {
+			depth = ai_use_deepening;
+		} else {
+			depth += ai_use_deepening - depth%ai_use_deepening;
+		}
+	}
+
 	eval_count = 0;
 	aborted = false;
 	for (;;) {
 		/* DFS for best value and move: */
 		Move move = move_null;
 		bool exact = true;
-		val_t value = dfs(board, depth, val_min, val_max, &move, &exact);
-		double used = used = time_used() - start;
+		val_t value;
+		double used;
 
+		if (!ai_use_mtdf)
+		{
+			value = dfs(board, depth, val_min, val_max, &move, &exact);
+		}
+		else
+		{
+			val_t lo = val_min, hi = val_max;
+			value = result->value;
+			while (lo < hi)
+			{
+				val_t beta = value;
+				if (beta == lo) ++beta;
+				value = dfs(board, depth, beta - 1, beta, &move, &exact);
+				fprintf(stderr, "[%d:%d] %d\n", lo, hi, value);
+				if (value < beta) hi = value; else lo = value;
+			}
+			fprintf(stderr, "[%d:%d] %d\n", lo, hi, value);
+		}
+		used = time_used() - start;
 		if (aborted) {
 			result->aborted = true;
 			result->time = used;
@@ -332,7 +363,9 @@ bool ai_select_move( Board *board,
 			if (limit->eval > 0 && eval_count >= limit->eval) break;
 			if (limit->depth > 0 && depth >= limit->depth) break;
 			if (limit->time > 0) {
-				if (used >= ((depth%2 == 0) ? 0.1 : 0.4)*limit->time) break;
+				double max_time = limit->time* ( (ai_use_deepening < 2)
+					? ((depth%2 == 0) ? ratio/2 : 2*ratio) : ratio*ratio );
+				if (used >= max_time) break;
 				if (!alarm_set++) {
 					set_alarm(limit->time - used, set_aborted, NULL);
 				}
@@ -342,7 +375,14 @@ bool ai_select_move( Board *board,
 			signal_handler_init(&new_handler, set_aborted);
 			signal_swap_handlers(SIGINT, &new_handler, &old_handler);
 		}
-		++depth;
+		if (!ai_use_mtdf)
+		{
+			++depth;
+		}
+		else
+		{
+			depth = depth + ai_use_deepening;
+		}
 	}
 	if (alarm_set) clear_alarm();
 	if (signal_handler_set) signal_swap_handlers(SIGINT, &old_handler, NULL);

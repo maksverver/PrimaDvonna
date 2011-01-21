@@ -6,7 +6,7 @@ For final version:
       - try to get it to outperform mainline player
     - better setup?
        - against Tomek Czajka I get a lot of stones that are only near my own
-         stones. this sucks! does it? clustering seems to work well in practice!
+         stones. this sucks! or doesn't it?
     - to test: does simpler setup work better in the real world because of
                time saved?
   - search optimization:
