@@ -349,8 +349,7 @@ static int gen_stacks(const Board *board, Move *moves, Color player)
 
 	for (n = 0; n < N; ++n) {
 		f = &board->fields[n];
-		if (!f->removed && f->mobile && f->player >= 0 &&
-			(player == NONE || f->player == player))
+		if (!f->removed && f->mobile && f->player == player)
 		{
 			for (step = board_steps[f->pieces][n]; *step; ++step) {
 				if (!f[*step].removed) {
@@ -372,7 +371,10 @@ int generate_all_moves(const Board *board, Move moves[2*M])
 	if (board->moves < N) {
 		return gen_places(board, moves);
 	} else {
-		return gen_stacks(board, moves, NONE);
+		/* This makes two passes over the board, which is less than optimal!
+		   Fortunately, generate_all_moves() is not performance-critical. */
+		int n = gen_stacks(board, moves, WHITE);
+		return n + gen_stacks(board, moves + n, BLACK);
 	}
 }
 
