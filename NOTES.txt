@@ -246,3 +246,30 @@ against e.g. Tomek, since I'm on top first while he is last, and later I am at
 the bottom while he is near the top!  Maybe the conclusion should be that my
 current setup works best for the type of follow-up play I do (and Dvonner seems
 to do better from other starting positions).
+
+================================================================================
+
+After test competion 6. Top players are getting closer. I lost a few matches,
+one (out of four) against Tomek Czajka.
+
+Games lost by me:
+    104-1662-58383 Maks Verver vs Bas van den Aardweg: BLACK WIN.txt
+    104-1663-58408 Christian Nilsson vs Maks Verver: WHITE WIN.txt
+    104-1664-58432 Tomek Czajka vs Maks Verver: WHITE WIN.txt
+
+Games lost by Tomek:
+    104-1634-57550 Tomek Czajka vs Maks Verver: BLACK WIN.txt
+    104-1641-57858 Tomek Czajka vs Bas van den Aardweg: BLACK WIN.txt
+    104-1655-58217 Tomek Czajka vs Christian Kauth: BLACK WIN.txt
+    104-1658-58289 Tomek Czajka vs Sandor Pandur: BLACK WIN.txt
+    104-1634-57549 Maks Verver vs Tomek Czajka: WHITE WIN.txt
+    104-1639-57773 Leon Schoorl vs Tomek Czajka: WHITE WIN.txt
+    104-1640-57817 Abdessamad ELKASIMI vs Tomek Czajka: WHITE WIN.txt
+    104-1655-58218 Christian Kauth vs Tomek Czajka: WHITE WIN.txt
+    104-1659-58314 Leon Schoorl vs Tomek Czajka: WHITE WIN.txt
+    104-1662-58387 Abdessamad ELKASIMI vs Tomek Czajka: WHITE WIN.txt
+    104-1663-58409 Bas van den Aardweg vs Tomek Czajka: WHITE WIN.txt
+    104-1664-58431 Maks Verver vs Tomek Czajka: WHITE WIN.txt
+
+Interesting is that Bas van den Aardweg and Christian Nilson beat both Tomek
+and me, so they might be doing something right! Need to investigate.

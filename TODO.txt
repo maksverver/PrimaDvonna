@@ -1,4 +1,5 @@
 For final version:
+  - evalate lost games (see NOTES.txt)
   - fancy-eval branch (which includes distance to Dvonns in evaluation function)
     - rebase to master, to benefit from linearized board and bugs fixed
     - try to get it to outperform mainline player
