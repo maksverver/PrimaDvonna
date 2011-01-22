@@ -76,7 +76,10 @@ val_t eval_placing(const Board *board)
 			for (step = board_steps[1][n]; *step; ++step) {
 				if (f[*step].player != f->player) ++neighbours;
 			}
-			if (min_dist_to_dvonn[n] == 1) score[f->player] += 10;
+			switch (min_dist_to_dvonn[n]) {
+				case 1: score[f->player] += 10; break;
+				case 2: score[f->player] +=  5; break;
+			}
 			if (board_neighbours[n] != (1<<6) - 1) edge_pieces[f->player] += 1;
 			score[f->player] -= tot_dist_to_dvonn[n];
 			if (neighbours < 2) score[f->player] -= 5*(2 - neighbours);
