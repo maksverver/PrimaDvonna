@@ -109,20 +109,27 @@ static int est_moves_left(const Board *board, Color player)
 }
 #endif
 
+#if 0
 static int max_moves_left(const Board *board)
 {
-	int r, c, stacks = 0;
+	int n, stacks = 0;
 
-	if (board->moves < N) {
-		return N + (N - 1) - board->moves;
-	}
-
-	for (r = 0; r < H; ++r) {
-		for (c = 0; c < W; ++c) {
-			if (!board->fields[r][c].removed) ++stacks;
-		}
-	}
+	if (board->moves < N) return N + (N - 1) - board->moves;
+	for (n = 0; n < N; ++n) if (!board->fields[n].removed) ++stacks;
 	return stacks - 1;
+}
+#endif
+
+/* Conservative estimate of number of moves left in the game: */
+static int max_moves_left(const Board *board)
+{
+	int n, res = 0;
+
+	if (board->moves < N) return N + (N - 1) - board->moves;
+	for (n = 0; n < N; ++n) {
+		if (!board->fields[n].removed && board->fields[n].pieces <= 5) ++res;
+	}
+	return res;
 }
 
 static bool select_move(Board *board, Move *move)
@@ -150,9 +157,13 @@ static bool select_move(Board *board, Move *move)
 			if (d > 12) d = 12;
 			if (d <  3) d =  3;
 #endif
-			int d = (max_moves_left(board) - 16)/2;
-			if (d < 3) d = 3;
+			int d = max_moves_left(board)/2 - 10;
+			if (d < 2) d = 2;
 			limit.time = time_left()/d;
+			/*
+			limit.time = time_left()/2;
+			if (limit.time > time_limit/10) limit.time = time_limit/10;
+			*/
 			fprintf(stderr, "%.3fs+%.3fs\n", time_used(), limit.time);
 		}
 		ok = ai_select_move(board, &limit, &result);
@@ -235,7 +246,10 @@ static void print_usage(void)
 		"\t--eval=<count>    "
 	"stop after evaluating given number of positions\n"
 		"\t--time=<time>     "
-	"maximum time per game/state (default when playing: %.2fs)\n"
+	"maximum time per game/state (default when playing: %.2fs)\n",
+		default_player_time );
+#ifndef FIXED_PARAMS
+	printf(
 		"\t--tt=<size>       set use of table (0: off)\n"
 		"\t--mo=<val>        enable move ordering "
 			"(0: off, 1: heuristic, 2: evaluated)\n"
@@ -243,8 +257,12 @@ static void print_usage(void)
 			"(0: off, 1: one ply, 2: two ply)\n"
 		"\t--pvs=<val>       enable principal variation search"
 			"(0: off, 1: on)\n"
-		"\t--weights=a:..:e  set evaluation function weights\n",
-		default_player_time );
+		"\t--mtdf=<val>      enable MTD(f)"
+			"(0: off, 1: on)\n"
+		"\t--deep=<val>      iterative deepening increment (1 or 2)\n"
+		"\t--weights=a:..:d  set evaluation function weights\n"
+		"\t--wfields=a:b:c   set additional field distance weights \n" );
+#endif /* ndef FIXED_PARAMS */
 }
 
 static void parse_args(int argc, char *argv[])
@@ -261,7 +279,7 @@ static void parse_args(int argc, char *argv[])
 			print_usage();
 			exit(EXIT_SUCCESS);
 		}
-		if (memcmp(argv[pos], "--state=", 8) == 0) {
+		if (strncmp(argv[pos], "--state=", 8) == 0) {
 			arg_state = argv[pos] + 8;
 			continue;
 		}
@@ -273,15 +291,24 @@ static void parse_args(int argc, char *argv[])
 		if (sscanf(argv[pos], "--depth=%d", &arg_limit.depth) == 1) continue;
 		if (sscanf(argv[pos], "--eval=%d", &arg_limit.eval) == 1) continue;
 		if (sscanf(argv[pos], "--time=%lf", &arg_limit.time) == 1) continue;
+#ifndef FIXED_PARAMS
 		if (sscanf(argv[pos], "--tt=%d", &ai_use_tt) == 1) continue;
 		if (sscanf(argv[pos], "--mo=%d", &ai_use_mo) == 1) continue;
 		if (sscanf(argv[pos], "--killer=%d", &ai_use_killer) == 1) continue;
 		if (sscanf(argv[pos], "--pvs=%d", &ai_use_pvs) == 1) continue;
-		if (sscanf(argv[pos], "--weights=" VAL_FMT":"VAL_FMT":"VAL_FMT":"VAL_FMT":"VAL_FMT,
-			&eval_weights.stacks, &eval_weights.score, &eval_weights.moves,
-			&eval_weights.to_life, &eval_weights.to_enemy) == 5) {
+		if (sscanf(argv[pos], "--mtdf=%d", &ai_use_mtdf) == 1) continue;
+		if (sscanf(argv[pos], "--deep=%d", &ai_use_deepening) == 1) continue;
+		if (sscanf(argv[pos], "--weights=" VAL_FMT":"VAL_FMT":"VAL_FMT":"VAL_FMT,
+			&eval_weights.stacks, &eval_weights.moves,
+			&eval_weights.to_life, &eval_weights.to_enemy) == 4) {
 			continue;
 		}
+		if (sscanf(argv[pos], "--wfields=" VAL_FMT":"VAL_FMT":"VAL_FMT,
+			&eval_weights.field_base, &eval_weights.field_bonus,
+			&eval_weights.field_shift) == 3) {
+			continue;
+		}
+#endif /* ndef FIXED_PARAMS */
 		break;
 	}
 	if (pos < argc) {
@@ -348,7 +375,9 @@ int main(int argc, char *argv[])
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);
 	} else {
 		fprintf(stderr, "Transposition table is disabled.\n");
+#ifndef FIXED_PARAMS
 		ai_use_killer = 0;  /* implicit */
+#endif
 	}
 
 	/* Print other parameters: */
@@ -363,6 +392,11 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "Principal variation search is %s.\n",
 		ai_use_pvs == 0 ? "disabled" :
 		ai_use_pvs == 1 ? "enabled" : "invalid" );
+	fprintf(stderr, "MTD(f) is %s.\n",
+		ai_use_mtdf == 0 ? "disabled" :
+		ai_use_mtdf == 1 ? "enabled" : "invalid" );
+	fprintf(stderr, "Iterative deepening increments with %d.\n",
+		ai_use_deepening );
 	print_memory_use();
 
 	fprintf(stderr, "Initialization took %.3fs.\n", time_used());

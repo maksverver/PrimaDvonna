@@ -3,7 +3,9 @@
 #include <assert.h>
 
 TTEntry *tt;
+#ifndef FIXED_PARAMS
 size_t tt_size;
+#endif
 
 #ifdef TT_DEBUG
 TTStats tt_stats;
@@ -23,30 +25,35 @@ void tt_init(size_t size)
 			size /= 2;
 		}
 	}
+#ifndef FIXED_PARAMS
 	tt_size = size;
+#else
+	if (tt_size != size) abort();
+#endif
 }
 
 void tt_fini(void)
 {
 	free(tt);
 	tt = NULL;
+#ifndef FIXED_PARAMS
 	tt_size = 0;
+#endif
 }
 
 void serialize_board(const Board *board, unsigned char output[50])
 {
-	const Field *f, *g;
+	int n;
 
 	*output++ = (board->moves < N ? 0 : 2) + board->moves%2;
-	for (f = &board->fields[0][0], g = f + H*W; f != g; ++f) {
-		if (f->removed >= 0) {
-			if (!f->removed && f->pieces) {
-				int val = 4*f->pieces + 2*f->player;
-				if (f->dvonns) ++val;
-				*output++ = val;
-			} else {
-				*output++ = 0;
-			}
+	for (n = 0; n < N; ++n) {
+		const Field *f = &board->fields[n];
+		if (!f->removed && f->pieces) {
+			int val = 4*f->pieces + 2*f->player;
+			if (f->dvonns) ++val;
+			*output++ = val;
+		} else {
+			*output++ = 0;
 		}
 	}
 }
@@ -79,19 +86,18 @@ hash_t hash_board(const Board *board)
    but manually inlined for speed: */
 hash_t hash_board(const Board *board)
 {
-	const Field *f, *g;
+	int n;
 	hash_t res = FNV64_OFFSET_BASIS;
 
 	res *= FNV64_PRIME;
 	res ^= (board->moves < N ? 0 : 2) + board->moves%2;
-	for (f = &board->fields[0][0], g = f + H*W; f != g; ++f) {
-		if (f->removed >= 0) {
-			res *= FNV64_PRIME;
-			if (!f->removed && f->pieces) {
-				int val = 4*f->pieces + 2*f->player;
-				if (f->dvonns) ++val;
-				res ^= val;
-			}
+	for (n = 0; n < N; ++n) {
+		const Field *f = &board->fields[n];
+		res *= FNV64_PRIME;
+		if (!f->removed && f->pieces) {
+			int val = 4*f->pieces + 2*f->player;
+			if (f->dvonns) ++val;
+			res ^= val;
 		}
 	}
 	return res;

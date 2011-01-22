@@ -436,7 +436,7 @@ func main() {
 				fmt.Println()
 				fmt.Printf("%34s", "")
 				for i := range players {
-					fmt.Printf(" %4d   ", i+1)
+					fmt.Printf(" %4d  ", i+1)
 				}
 				fmt.Println()
 				fmt.Printf("%34s", "")

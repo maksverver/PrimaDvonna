@@ -1,7 +1,6 @@
 #include "MO.h"
+#include "AI.h"
 #include "Eval.h"
-
-extern int ai_use_mo;
 
 static void swap_moves(Move *a, Move *b)
 {
@@ -53,9 +52,7 @@ static void order_heuristically(const Board *board, Move *moves, int nmove)
 		Eventually, k == j. */
 	i = moves, j = moves + nmove;
 	for (k = i; k < j; ) {
-		int discr =
-			board->fields[k->r1][k->c1].player ^
-			board->fields[k->r2][k->c2].player;
+		int discr = board->fields[k->src].player ^ board->fields[k->dst].player;
 		if (discr > 0) swap_moves(i++, k++);           /* good: move to front */
 		else if (discr == 0) swap_moves(k, --j);         /* bad: move to back */
 		else ++k;                              /* medium: leave in the middle */

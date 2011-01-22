@@ -14,11 +14,14 @@
 #define IF_TT_DEBUG(x)
 #endif
 
-/* Search algorithm parameters: (defaults set here perform best) */
-int ai_use_tt     = 21;  /* size as a power of 2*/
-int ai_use_mo     = 1;
-int ai_use_killer = 1;
-int ai_use_pvs    = 1;
+#ifndef FIXED_PARAMS
+int ai_use_tt         = AI_DEFAULT_TT;
+int ai_use_mo         = AI_DEFAULT_MO;
+int ai_use_killer     = AI_DEFAULT_KILLER;
+int ai_use_pvs        = AI_DEFAULT_PVS;
+int ai_use_mtdf       = AI_DEFAULT_MTDF;
+int ai_use_deepening  = AI_DEFAULT_DEEPENING;
+#endif
 
 /* Global flag to abort search: */
 static volatile bool aborted = false;
@@ -26,7 +29,20 @@ static int eval_count = 0;
 
 static TTEntry *tt_entry(hash_t hash)
 {
-	return &tt[(size_t)(hash ^ (hash >> 32))&(tt_size - 1)];
+	TTEntry *entry = &tt[(size_t)(hash ^ (hash >> 32))&(tt_size - 1)];
+#ifdef PROBING
+	int max_tries = 16;
+	while (entry->hash && entry->hash != hash) {
+		if (--max_tries > 0) {
+			/* N.B. this is technically undefined behaviour: */
+                        entry -= hash&15;
+			if (entry < tt) entry += tt_size;
+			break;
+		}
+		if (++entry == &tt[tt_size]) entry = tt;
+	}
+#endif
+	return entry;
 }
 
 static void reset_rng()
@@ -34,6 +50,22 @@ static void reset_rng()
 	static int rng_seed = 0;
 	while (rng_seed == 0) rng_seed = rand();
 	srand(rng_seed);
+}
+
+static val_t evaluate(const Board *board, bool *exact)
+{
+	++eval_count;
+	if (board->moves >= N) {
+		return eval_stacking(board, exact);
+	} else {
+		*exact = false;
+		if (board->moves > D) {
+			return eval_placing(board);
+		} else {  /* board->moves <= D */
+			*exact = false;
+			return 0;
+		}
+	}
 }
 
 /* Implements depth-first minimax search with (fail soft) alpha-beta pruning.
@@ -45,7 +77,11 @@ static void reset_rng()
 
    If `return_best' is not NULL, then the best move is assigned to *return_best.
 
-   Note that it tries to return as tight a bound as possible without evaluating
+   If the game value is not exact (that is, some mid-game positions were
+   evaluated to determine it) then *return_exact is set to false. If the value
+   is exact (only end-game positions were evaluated) it is left unchanged.
+
+   This function tries to return as tight a bound as possible without evaluating
    more positions than stricly necessary. This enables re-using transposition
    table entries as often as possible.
 
@@ -55,13 +91,17 @@ static void reset_rng()
    means that all calls to dfs() should be followed by checking `aborted' before
    using the return value.
 */
-static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
+static val_t dfs( Board *board, int depth, val_t lo, val_t hi,
+                  Move *return_best, bool *return_exact)
 {
 	hash_t hash = (hash_t)-1;
 	IF_TT_DEBUG( unsigned char data[50] )
 	TTEntry *entry = NULL;
 	val_t res = val_min;
 	Move best_move = move_null;
+	bool exact = true;
+
+	assert(lo < hi);
 
 	if (ai_use_tt) { /* look up in transposition table: */
 		hash = hash_board(board);
@@ -72,25 +112,31 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 		if (entry->hash == hash) {
 			/* detect hash collisions */
 			IF_TT_DEBUG( assert(memcmp(entry->data, data, 50) == 0) )
-			IF_TT_DEBUG( if (entry->depth != depth) ++tt_stats.shallow )
+			IF_TT_DEBUG( if ( entry->depth <= AI_MAX_DEPTH &&
+			                  entry->depth != depth ) ++tt_stats.shallow )
 			/* We could use >= depth here too, but that leads to search
 			   instability, which might better be avoided. */
-			if (entry->depth == depth &&
-				(!return_best || valid_move(board, &entry->killer))) {
-				if (return_best) *return_best = entry->killer;
-				if (entry->lo == entry->hi) return entry->lo;
-				if (entry->lo >= hi) return entry->lo;
-				if (entry->hi <= lo) return entry->hi;
-				if (entry->lo > lo) lo = entry->lo;  /* dubious! */
-				if (entry->hi < hi) hi = entry->hi;  /* dubious! */
-				/* res = entry->lo; */
+			if ((entry->depth == depth || entry->depth > AI_MAX_DEPTH) &&
+			    (!return_best || valid_move(board, &entry->killer)))
+			{
+				if (entry->lo == entry->hi || entry->lo >= hi) {
+					if (return_best) *return_best = entry->killer;
+					if (entry->depth <= AI_MAX_DEPTH) *return_exact = false;
+					return entry->lo;
+				} else if (entry->hi <= lo) {
+					if (return_best) *return_best = entry->killer;
+					if (entry->depth <= AI_MAX_DEPTH) *return_exact = false;
+					return entry->hi;
+				}
+				if (entry->lo > lo) lo = entry->lo;  /* dubious? */
+				if (entry->hi < hi) hi = entry->hi;  /* dubious? */
 				IF_TT_DEBUG( ++tt_stats.partial )
 			}
 			best_move = entry->killer;
 		}
 	}
 	if (depth == 0) {  /* evaluate intermediate position */
-		res = ai_evaluate(board);
+		res = evaluate(board, &exact);
 	} else if (board->moves == N - 1) {
 		/* Special case: the N'th move is always unique, but the next player
 		   does not change! Handle this special case here: */
@@ -98,7 +144,7 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 		int nmove = generate_moves(board, moves);
 		assert(nmove == 1);
 		board_do(board, &moves[0]);
-		res = dfs(board, depth, lo > res ? lo : res, hi, NULL);
+		res = dfs(board, depth, lo > res ? lo : res, hi, NULL, &exact);
 		board_undo(board, &moves[0]);
 		if (aborted) return 0;
 		best_move = moves[0];
@@ -130,10 +176,12 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 
 			board_do(board, &moves[n]);
 			if (!ai_use_pvs || n == 0 || res < lo) {
-				val = -dfs(board, depth - 1, -hi, -lb, NULL);
+				val = -dfs(board, depth - 1, -hi, -lb, NULL, &exact);
 			} else {
-				val = -dfs(board, depth - 1, -lb - val_eps, -lb, NULL);
-				if (val > lb) val = -dfs(board, depth - 1, -hi, -val, NULL);
+				val = -dfs(board, depth - 1, -lb - val_eps, -lb, NULL, &exact);
+				if (val > lb && val < hi) {
+					val = -dfs(board, depth - 1, -hi, -val, NULL, &exact);
+				}
 			}
 			board_undo(board, &moves[n]);
 			if (aborted) return 0;
@@ -149,7 +197,8 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 	if (ai_use_tt) {
 		/* Replacement policy: replace existing position with a new one if its
 		   relevance is greater or equal, where relevance is defined as: */
-		int relevance = board->moves + 2*depth;
+		int eff_depth = exact ? AI_MAX_DEPTH + 1 : depth;
+		int relevance = board->moves + 2*eff_depth;
 
 		IF_TT_DEBUG( ++tt_stats.updates )
 		if (relevance < entry->relevance) {
@@ -165,12 +214,12 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 			/* FIXME: eval_intermediate() could end up calling eval_end() if
 				the current position is actually an end position. In that case,
 				we should really store depth = AI_MAX_DEPTH here! */
-			if (entry->hash != hash || entry->depth != depth)
+			if (entry->hash != hash || entry->depth != eff_depth)
 			{
 				entry->hash  = hash;
 				entry->lo    = val_min;
 				entry->hi    = val_max;
-				entry->depth = depth;
+				entry->depth = eff_depth;
 			}
 			if ((depth == 0 || res > lo) && res > entry->lo) entry->lo = res;
 			if ((depth == 0 || res < hi) && res < entry->hi) entry->hi = res;
@@ -179,6 +228,7 @@ static val_t dfs(Board *board, int depth, val_t lo, val_t hi, Move *return_best)
 			IF_TT_DEBUG( memcpy(entry->data, data, 50) )
 		}
 	}
+	if (!exact) *return_exact = false;
 	if (return_best) *return_best = best_move;
 	return res;
 }
@@ -197,6 +247,8 @@ bool ai_select_move( Board *board,
 	Move moves[M];
 	int nmove = generate_moves(board, moves);
 	double start = time_used();
+	double prev_used = 0.0;
+	double ratio = 5.0;
 	bool alarm_set = false, signal_handler_set = false;
 
 	/* Check if we have any moves to make: */
@@ -213,6 +265,7 @@ bool ai_select_move( Board *board,
 	result->eval    = 0;
 	result->time    = 0;
 	result->aborted = false;
+	result->exact   = false;
 
 	/* Special handling for placing of neutral Dvonn stones: */
 	if (board->moves < D) {
@@ -239,23 +292,51 @@ bool ai_select_move( Board *board,
 		return true;
 	}
 
-	/* Update position of Dvonns, used to evaluate during stacking phase. */
-	if (board->moves < N) eval_update_dvonns(board);
-
 	/* Killer heuristic is most effective when the transposition table
 	   contains the information from one ply ago, instead of two plies: */
 	if (ai_use_tt && ai_use_killer == 1 && depth > 2) --depth;
 
 	if (limit->depth > 0 && limit->depth < depth) depth = limit->depth;
 
+	/* Round to least multiple of deepening increment: */
+	if (depth%ai_use_deepening > 0) {
+		if (depth < ai_use_deepening) {
+			depth = ai_use_deepening;
+		} else {
+			depth += ai_use_deepening - depth%ai_use_deepening;
+		}
+	}
+
 	eval_count = 0;
 	aborted = false;
 	for (;;) {
 		/* DFS for best value and move: */
 		Move move = move_null;
-		val_t value = dfs(board, depth, val_min, val_max, &move);
-		double used = used = time_used() - start;
+		bool exact = true;
+		val_t value;
+		double used;
 
+		if (!ai_use_mtdf)
+		{
+			value = dfs(board, depth, val_min, val_max, &move, &exact);
+		}
+		else
+		{
+			val_t lo = val_min, hi = val_max;
+			value = result->value;
+			while (lo < hi)
+			{
+				val_t beta = value;
+				if (beta == lo) ++beta;
+				value = dfs(board, depth, beta - 1, beta, &move, &exact);
+				fprintf(stderr, "[%d:%d] %d\n", lo, hi, value);
+				if (value < beta) hi = value; else lo = value;
+			}
+			fprintf(stderr, "[%d:%d] %d\n", lo, hi, value);
+		}
+		used = time_used() - start;
+		if (prev_used > 0) ratio = used/prev_used;
+		prev_used = used;
 		if (aborted) {
 			result->aborted = true;
 			result->time = used;
@@ -273,11 +354,13 @@ bool ai_select_move( Board *board,
 		result->eval    = eval_count;
 		result->time    = used;
 		result->aborted = false;
+		result->exact   = exact;
 
 		/* Report intermediate result: */
 		if (board->moves >= N) {
-			fprintf(stderr, "m:%s d:%d v:"VAL_FMT" e:%d u:%.3fs\n",
-				format_move(&move), depth, value, eval_count, used);
+			fprintf(stderr, "m:%s d:%d v:"VAL_FMT"%s e:%d u:%.3fs r:%.1f\n",
+				format_move(&move), depth, value, exact ? " (exact)" : "",
+				eval_count, used, ratio);
 		}
 
 		if (limit && limit->time > 0 && used > limit->time) {
@@ -288,12 +371,14 @@ bool ai_select_move( Board *board,
 		}
 
 		/* Determine whether to search again with increased depth: */
-		if (depth == AI_MAX_DEPTH || nmove == 1) break;
+		if (exact || depth == AI_MAX_DEPTH || nmove == 1) break;
 		if (limit) {
 			if (limit->eval > 0 && eval_count >= limit->eval) break;
 			if (limit->depth > 0 && depth >= limit->depth) break;
 			if (limit->time > 0) {
-				if (used >= ((depth%2 == 0) ? 0.1 : 0.4)*limit->time) break;
+				double end = used*( (ai_use_deepening < 2)
+					? ((depth%2 == 0) ? 2*ratio : ratio/2) : ratio*ratio );
+				if (end >= limit->time) break;
 				if (!alarm_set++) {
 					set_alarm(limit->time - used, set_aborted, NULL);
 				}
@@ -303,7 +388,14 @@ bool ai_select_move( Board *board,
 			signal_handler_init(&new_handler, set_aborted);
 			signal_swap_handlers(SIGINT, &new_handler, &old_handler);
 		}
-		++depth;
+		if (!ai_use_mtdf)
+		{
+			++depth;
+		}
+		else
+		{
+			depth = depth + ai_use_deepening;
+		}
 	}
 	if (alarm_set) clear_alarm();
 	if (signal_handler_set) signal_swap_handlers(SIGINT, &old_handler, NULL);
@@ -334,14 +426,8 @@ bool ai_select_move( Board *board,
 
 val_t ai_evaluate(const Board *board)
 {
-	++eval_count;
-	if (board->moves >= N) {
-		return eval_stacking(board);
-	} else if (board->moves > D) {
-		return eval_placing(board);
-	} else {  /* board->moves <= D */
-		return 0;
-	}
+	bool dummy;
+	return evaluate(board, &dummy);
 }
 
 int ai_extract_pv(Board *board, Move *moves, int nmove)

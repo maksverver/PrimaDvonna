@@ -4,8 +4,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define W    11             /* board width */
-#define H     5             /* board height */
 #define N    49             /* maximum number of accessible fields */
 #define D     3             /* nubmer of Dvonn pieces */
 #define M ((N-D)/2*6)       /* maximum number of moves (for one player) */
@@ -34,18 +32,28 @@ typedef union LargeInteger
 typedef struct Board
 {
 	int   moves;          /* number of moves played on this board */
-	Field fields[H][W];   /* fields of the board */
+	Field fields[N];      /* fields of the board */
 #ifdef ZOBRIST
 	LargeInteger hash;    /* hash code for the board */
 #endif
+	long long dvonns;     /* bitmask of positions of Dvonns */
 } Board;
 
 /* Index of possible moves which can be made with stacks of different heights
-   at different positions. board_steps[height][row][column] points to a
-   zero-terminated array of integers, where each integer is an offset relative
-   to the current field. e.g. If *board_steps[3][r][c] == 7, then there is a
-   step of size 3 to field (&board->fields[r][c] + 7). */
-extern const int *board_steps[50][5][11];
+   at different positions. board_steps[height][field] points to a zero-
+   terminated array of integers, where each integer is an offset relative to
+   the current field. e.g. If *board_steps[3][11] == 7, then there is a
+   step of size 3 to field 18. */
+extern const int *board_steps[50][N];
+
+/* Minimum distance (using single-step moves) between pairs of fields. */
+extern const char board_distance[N][N];
+#define distance(f, g) (board_distance[(f)][(g)])
+
+/* For each field, gives a bitmask of the six directions (in counter-clockwise
+   order) indicating whether there is an adjacent field in that direction; if
+   it is less than (1<<6)-1 = 63 then the field is on the edge of the board. */
+extern const char board_neighbours[N];
 
 /* This macro determines which color plays next: */
 #define next_player(b) ((b)->moves < N ? ((b)->moves&1) : ((b)->moves - N)&1)
@@ -53,11 +61,11 @@ extern const int *board_steps[50][5][11];
 /* The structure below describes a single move.
    There are three types of moves: placing, stacking and passing.
 
-   (r1,c1) is the source field when stacking, or the destination field when
-   placing, or (-1, -1) when passing. Similarly, (r2,c2) is the destination
-   field when stacking, or (-1, -1) when placing or passing. */
+   `src' is the source field when stacking, or the destination field when
+   placing, or -1 when passing. Similarly, `dst' is the destination field
+   when stacking, or -1 when placing or passing. */
 typedef struct Move {
-	signed char r1, c1, r2, c2;
+	signed short src, dst;
 } Move;
 
 /* Union of a move and an integer. Used for quick comparisons of moves. */
@@ -68,18 +76,15 @@ typedef union MoveInt {
 
 extern Move move_null;  /* null move: all fields set to 0 */
 extern Move move_pass;  /* pass move: all fields set to -1 */
-#define move_places(m) ((m)->r1 >= 0 && (m)->r2 < 0)
-#define move_stacks(m) ((m)->r2 >= 0)
-#define move_passes(m) ((m)->r1 < 0)
+#define move_places(m) ((m)->src >= 0 && (m)->dst < 0)
+#define move_stacks(m) ((m)->dst >= 0)
+#define move_passes(m) ((m)->src < 0)
 #define move_is_null(m) (((union MoveInt)*(m)).i == 0)
 #define move_compare(a, b) (((union MoveInt)*(a)).i - ((union MoveInt)*(b)).i)
 
 /* The six cardinal directions on the board. These are ordered anti-clockwise
    starting to right. (Order matters for functions like may_be_bridge()!) */
 extern const int DR[6], DC[6];
-
-/* Returns the distance between two pairs of field coordinates: */
-int distance(int r1, int c1, int r2, int c2);
 
 /* (Re)initialize a board structure to an empty board: */
 void board_clear(Board *board);

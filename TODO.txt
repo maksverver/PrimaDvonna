@@ -1,43 +1,5 @@
-For test competition 6:
-  - further improve evaluation function:
-     - tune existing weights
-     - maybe incorporate distance to Dvonns with exponential decay?
-
-For final version:
-  - optimize time budgeting for moves (how?)
-  - performance optimizations:
-    - linearize board
-    - hard-code parameters (like ai_use_pv and such)
-    - Makefile: add -DNDEBUG to submission.c
-
-Later:
- - see if we can override target/optimization options.
-   GCC 4.4 supports #pragma GCC target/optimization and
-   __attribute__((target())), maybe GCC 4.3 does, too?
-
 Maybe later:
- - better handling of 'exact' values; if these are stored in the tt, their
-   depth should be considered infinite.
- - represent moves as two ints (source, destination?)
-    - then we could also linearize the fields of the board. requires stable
-      board representation, though!
- - check hash table performance:
-     - how often do collisions occur?
-     - how full is the table when they happen?
- - consider using double/cuckoo hashing for transposition table, so that all
-   results can be stored? needs good benchmarking to figure out if this makes
-   sense.
- - consider using MTD(f)?
- - validate all code!
-     - print it out, verify, add comments...
+ - validate all code: add comments, print it out, verify...
  - consider auto-learning for evaluation parameters?
    See: http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
    Note: it seems this is what Dvonner did!
-
-Overall:
- - improve placement phase evaluation function
- - improve stacking phase evaluation function
- - improve move ordering heuristic:
-    - to evaluate: take a random sample of positions, rank possible moves by
-      value, and see which ones tend to be good?
- - optimize time budgeting for moves
