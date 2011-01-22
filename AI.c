@@ -29,7 +29,18 @@ static int eval_count = 0;
 
 static TTEntry *tt_entry(hash_t hash)
 {
-	return &tt[(size_t)(hash ^ (hash >> 32))&(tt_size - 1)];
+	TTEntry *entry = &tt[(size_t)(hash ^ (hash >> 32))&(tt_size - 1)];
+#ifdef PROBING
+	int max_tries = 16;
+	while (entry->hash && entry->hash != hash) {
+		if (--max_tries > 0) {
+			entry -= hash&15;
+			break;
+		}
+		if (++entry == &tt[tt_size]) entry = tt;
+	}
+#endif
+	return entry;
 }
 
 static void reset_rng()
