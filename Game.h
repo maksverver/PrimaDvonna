@@ -36,6 +36,7 @@ typedef struct Board
 #ifdef ZOBRIST
 	LargeInteger hash;    /* hash code for the board */
 #endif
+	long long dvonns;     /* bitmask of positions of Dvonns */
 } Board;
 
 /* Index of possible moves which can be made with stacks of different heights

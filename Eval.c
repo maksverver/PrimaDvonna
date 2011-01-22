@@ -11,10 +11,6 @@ struct EvalWeights eval_weights = {
 	EVAL_DEFAULT_WEIGHT_TO_ENEMY };
 #endif
 
-/* Minimum and summed distance to Dvonn stones. Used in eval_placing(). */
-static int min_dist_to_dvonn[N];
-static int tot_dist_to_dvonn[N];
-
 int eval_dvonn_spread(const Board *board)
 {
 	int f, d, df[D], nd = 0, res = 0;
@@ -32,34 +28,38 @@ int eval_dvonn_spread(const Board *board)
 	return res;
 }
 
-void eval_update_dvonns(const Board *board)
+/* Evaluate the board during the placing phase. */
+val_t eval_placing(const Board *board)
 {
-	int f, g, dist;
+	static long long prev_dvonns = -1LL;
+	static int min_dist_to_dvonn[N];
+	static int tot_dist_to_dvonn[N];
 
-	for (f = 0; f < N; ++f) {
-		min_dist_to_dvonn[f] = N;
-		tot_dist_to_dvonn[f] = 0;
-	}
+	int n, player = next_player(board);
+	val_t score[2] = { 0, 0 };
+	int edge_pieces[2] = { 0, 0 };
 
-	for (f = 0; f < N; ++f) {
-		if (board->fields[f].dvonns > 0) {
-			for (g = 0; g < N; ++g) {
-				dist = distance(f, g);
-				tot_dist_to_dvonn[g] += dist;
-				if (dist < min_dist_to_dvonn[g]) {
-					min_dist_to_dvonn[g] = dist;
+	if (board->dvonns != prev_dvonns) {
+		/* Must reculculate distance to Dvonn stones: */
+		int m, dist;
+
+		for (n = 0; n < N; ++n) {
+			min_dist_to_dvonn[n] = N;
+			tot_dist_to_dvonn[n] = 0;
+		}
+
+		for (n = 0; n < N; ++n) {
+			if (board->fields[n].dvonns > 0) {
+				for (m = 0; m < N; ++m) {
+					dist = distance(n, m);
+					tot_dist_to_dvonn[m] += dist;
+					if (dist < min_dist_to_dvonn[m]) {
+						min_dist_to_dvonn[m] = dist;
+					}
 				}
 			}
 		}
 	}
-}
-
-/* Evaluate the board during the placing phase. */
-val_t eval_placing(const Board *board)
-{
-	int n, player = next_player(board);
-	val_t score[2] = { 0, 0 };
-	int edge_pieces[2] = { 0, 0 };
 
 	/* Scan board for player's stones and value them: */
 	for (n = 0; n < N; ++n) {
@@ -94,22 +94,27 @@ val_t eval_placing(const Board *board)
 /* Evaluate a board during the stacking phase. */
 val_t eval_stacking(const Board *board, bool *exact)
 {
+	static val_t field_value[N];
+	static long long prev_dvonns = -1LL;
+
 	int n, m;
 	const int *step;
 	const Field *f, *g;
 	int player = next_player(board);
 	bool game_over = true;
-	val_t field_value[N];
 	val_t score = 0, stacks = 0, moves = 0, to_life = 0, to_enemy = 0;
 
-	/* Determine value of fields: */
-	for (n = 0; n < N; ++n) field_value[n] = 80;
-	for (n = 0; n < N; ++n) {
-		if (board->fields[n].dvonns) {
-			for (m = 0; m < N; ++m) {
-				field_value[m] += 40 >> 2*distance(n, m);
+	if (board->dvonns != prev_dvonns) {
+		/* Recalculate value of fields: */
+		for (n = 0; n < N; ++n) field_value[n] = 80;
+		for (n = 0; n < N; ++n) {
+			if (board->fields[n].dvonns) {
+				for (m = 0; m < N; ++m) {
+					field_value[m] += 40 >> 2*distance(n, m);
+				}
 			}
 		}
+		prev_dvonns = board->dvonns;
 	}
 
 #define EVAL_FIELD(X) \
