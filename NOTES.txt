@@ -296,3 +296,12 @@ worried performance might be affected, so I'll probably keep it disabled.
 
 The "fancy" evaluation function (that weighs fields by distance to Dvonns)
 seems to be paying off, but only against itself, which is weird. :-/
+
+================================================================================
+
+With a CodeCup or bust attitude (and after some preliminary testing) I ended up
+submitting a program based on the experimental fancy-evaluation branch, and with
+largely untested time distribution code; linear probing in the hashtable didn't
+make the cut. It was 4:50 AM when I finally submitted my program, and although
+I couldn't sleep until much later, losing some sleep was worth it: my program
+won the CodeCup without losing a single game!  \o/

@@ -1,19 +1,5 @@
-For final version:
-  - merge improved-setup & fancy-eval into master
-  - compile SUBMISSION and benchmark vs player-tc6 + Dvonner + player3
-  - submit!
-
 Maybe later:
- - validate all code!
-     - print it out, verify, add comments...
+ - validate all code: add comments, print it out, verify...
  - consider auto-learning for evaluation parameters?
    See: http://www.littlegolem.net/jsp/forum/topic2.jsp?forum=30&topic=19
    Note: it seems this is what Dvonner did!
-
-Overall:
- - improve placement phase evaluation function
- - improve stacking phase evaluation function
- - improve move ordering heuristic:
-    - to evaluate: take a random sample of positions, rank possible moves by
-      value, and see which ones tend to be good?
- - optimize time budgeting for moves
