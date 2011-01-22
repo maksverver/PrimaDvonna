@@ -78,6 +78,7 @@ void board_clear(Board *board)
 		f->removed = 0;
 		f->mobile  = 6;
 	}
+	board->dvonns = 0;
 	zobrist_init(board);
 }
 
@@ -88,6 +89,7 @@ static void place(Board *board, const Move *m)
 	f->pieces = 1;
 	if (board->moves < D) {
 		f->dvonns = 1;
+		board->dvonns |= (1LL<<n);
 	} else {
 		f->player = board->moves & 1;
 	}
@@ -98,6 +100,7 @@ static void unplace(Board *board, const Move *m)
 {
 	int n = m->src;
 	Field *f = &board->fields[n];
+	if (f->dvonns) board->dvonns &= ~(1LL<<n);
 	zobrist_toggle_field(board, n);
 	f->player = NONE;
 	f->pieces = 0;
@@ -177,7 +180,10 @@ static void stack(Board *board, const Move *m)
 
 	zobrist_toggle_field(board, n1);
 	zobrist_toggle_field(board, n2);
-
+	if (f->dvonns) {
+		board->dvonns &= ~(1LL<<n1);
+		if (!g->dvonns) board->dvonns |= (1LL<<n2);
+	}
 	tmp_player = f->player;
 	f->player = g->player;
 	g->player = tmp_player;
@@ -229,6 +235,10 @@ static void unstack(Board *board, const Move *m)
 	g->pieces -= f->pieces;
 	g->dvonns -= f->dvonns;
 	zobrist_toggle_field(board, n2);
+	if (f->dvonns) {
+		board->dvonns |= (1LL<<n1);
+		if (!g->dvonns) board->dvonns &= ~(1LL<<n2);
+	}
 }
 
 /* Used also by IO.c: */
@@ -295,6 +305,7 @@ static void validate_mobility(const Board *board, int n)
 void board_validate(const Board *board)
 {
 	int n;
+	long long dvonns = 0;
 
 	for (n = 0; n < N; ++n) {
 		const Field *f = &board->fields[n];
@@ -313,10 +324,12 @@ void board_validate(const Board *board)
 			assert(f->removed < board->moves);
 		}
 		if (!f->removed) validate_mobility(board, n);
+		if (!f->removed && f->dvonns) dvonns |= (1LL<<n);
 	}
 #ifdef ZOBRIST
 	assert(zobrist_hash(board).ull == board->hash.ull);
 #endif
+	assert(dvonns == board->dvonns);
 
 	/* Size checks don't really belong here, but I need to check somewhere: */
 	assert(sizeof(Move) == sizeof(int));
