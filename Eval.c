@@ -8,7 +8,10 @@ struct EvalWeights eval_weights = {
 	EVAL_DEFAULT_WEIGHT_STACKS,
 	EVAL_DEFAULT_WEIGHT_MOVES,
 	EVAL_DEFAULT_WEIGHT_TO_LIFE,
-	EVAL_DEFAULT_WEIGHT_TO_ENEMY };
+	EVAL_DEFAULT_WEIGHT_TO_ENEMY,
+	EVAL_DEFAULT_WEIGHT_FIELD_BASE,
+	EVAL_DEFAULT_WEIGHT_FIELD_BONUS,
+	EVAL_DEFAULT_WEIGHT_FIELD_SHIFT };
 #endif
 
 int eval_dvonn_spread(const Board *board)
@@ -106,11 +109,12 @@ val_t eval_stacking(const Board *board, bool *exact)
 
 	if (board->dvonns != prev_dvonns) {
 		/* Recalculate value of fields: */
-		for (n = 0; n < N; ++n) field_value[n] = 80;
+		for (n = 0; n < N; ++n) field_value[n] = EVAL_WEIGHT_FIELD_BASE;
 		for (n = 0; n < N; ++n) {
 			if (board->fields[n].dvonns) {
 				for (m = 0; m < N; ++m) {
-					field_value[m] += 40 >> 2*distance(n, m);
+					field_value[m] += EVAL_WEIGHT_FIELD_BONUS >>
+						(EVAL_WEIGHT_FIELD_SHIFT*distance(n, m));
 				}
 			}
 		}

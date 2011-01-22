@@ -16,29 +16,41 @@ typedef int val_t;
 #define EVAL_DEFAULT_WEIGHT_MOVES       25
 #define EVAL_DEFAULT_WEIGHT_TO_LIFE     20
 #define EVAL_DEFAULT_WEIGHT_TO_ENEMY    20
+#define EVAL_DEFAULT_WEIGHT_FIELD_BASE  80
+#define EVAL_DEFAULT_WEIGHT_FIELD_BONUS 40
+#define EVAL_DEFAULT_WEIGHT_FIELD_SHIFT  4
 
 #ifdef FIXED_PARAMS
 
-#define EVAL_WEIGHT_STACKS   EVAL_DEFAULT_WEIGHT_STACKS
-#define EVAL_WEIGHT_MOVES    EVAL_DEFAULT_WEIGHT_MOVES
-#define EVAL_WEIGHT_TO_LIFE  EVAL_DEFAULT_WEIGHT_TO_LIFE
-#define EVAL_WEIGHT_TO_ENEMY EVAL_DEFAULT_WEIGHT_TO_ENEMY
+#define EVAL_WEIGHT_STACKS       EVAL_DEFAULT_WEIGHT_STACKS
+#define EVAL_WEIGHT_MOVES        EVAL_DEFAULT_WEIGHT_MOVES
+#define EVAL_WEIGHT_TO_LIFE      EVAL_DEFAULT_WEIGHT_TO_LIFE
+#define EVAL_WEIGHT_TO_ENEMY     EVAL_DEFAULT_WEIGHT_TO_ENEMY
+#define EVAL_WEIGHT_FIELD_BASE   EVAL_DEFAULT_WEIGHT_FIELD_BASE
+#define EVAL_WEIGHT_FIELD_BONUS  EVAL_DEFAULT_WEIGHT_FIELD_BONUS
+#define EVAL_WEIGHT_FIELD_SHIFT  EVAL_DEFAULT_WEIGHT_FIELD_SHIFT
 
 #else /* ndef FIXED_PARAMS */
 
 typedef struct EvalWeights {
-	int stacks;    /* controlled stacks (mobile or not) */
-	int moves;     /* moves including for immobile stacks */
-	int to_life;   /* moves from mobile stacks to Dvonn stones */
-	int to_enemy;  /* moves from mobile stacks to enemy stones */
+	val_t stacks;    /* controlled stacks (mobile or not) */
+	val_t moves;     /* moves including for immobile stacks */
+	val_t to_life;   /* moves from mobile stacks to Dvonn stones */
+	val_t to_enemy;  /* moves from mobile stacks to enemy stones */
+	val_t field_base;   /* base value of fields */
+	val_t field_bonus;  /* additional Dvonn-distance-dependent bonus */
+	val_t field_shift;  /* by how much to shift bonus dependent on distance */
 } EvalWeights;
 
 extern EvalWeights eval_weights;
 
-#define EVAL_WEIGHT_STACKS   eval_weights.stacks
-#define EVAL_WEIGHT_MOVES    eval_weights.moves
-#define EVAL_WEIGHT_TO_LIFE  eval_weights.to_life
-#define EVAL_WEIGHT_TO_ENEMY eval_weights.to_enemy
+#define EVAL_WEIGHT_STACKS       eval_weights.stacks
+#define EVAL_WEIGHT_MOVES        eval_weights.moves
+#define EVAL_WEIGHT_TO_LIFE      eval_weights.to_life
+#define EVAL_WEIGHT_TO_ENEMY     eval_weights.to_enemy
+#define EVAL_WEIGHT_FIELD_BASE   eval_weights.field_base
+#define EVAL_WEIGHT_FIELD_BONUS  eval_weights.field_bonus
+#define EVAL_WEIGHT_FIELD_SHIFT  eval_weights.field_shift
 
 #endif
 

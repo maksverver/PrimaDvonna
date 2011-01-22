@@ -1,19 +1,9 @@
 For final version:
   - evaluation optimizations:
-    - fancy-eval branch (which includes distance to Dvonns in evaluation function)
-      - try to get it to outperform mainline player
-    - better setup?
-       - against Tomek Czajka I get a lot of stones that are only near my own
-         stones. this sucks! or doesn't it?
-    - to test: does simpler setup work better in the real world because of
-               time saved?
-  - search optimization:
-     - optimize time budgeting for moves (how?)
-  - implementation optimizations:
-      - benchmark & optimize (do this last)
-
-Before submission:
-  benchmark against previous submission + Dvonner + player3
+    - fine-tune fancy-eval branch
+  - merge improved-setup & fancy-eval into master
+  - compile SUBMISSION and benchmark vs player-tc6 + Dvonner + player3
+  - submit!
 
 Maybe later:
  - check hash table performance:

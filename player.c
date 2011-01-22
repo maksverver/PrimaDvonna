@@ -260,7 +260,8 @@ static void print_usage(void)
 		"\t--mtdf=<val>      enable MTD(f)"
 			"(0: off, 1: on)\n"
 		"\t--deep=<val>      iterative deepening increment (1 or 2)\n"
-		"\t--weights=a:..:d  set evaluation function weights\n" );
+		"\t--weights=a:..:d  set evaluation function weights\n"
+		"\t--wfields=a:b:c   set additional field distance weights \n" );
 #endif /* ndef FIXED_PARAMS */
 }
 
@@ -300,6 +301,11 @@ static void parse_args(int argc, char *argv[])
 		if (sscanf(argv[pos], "--weights=" VAL_FMT":"VAL_FMT":"VAL_FMT":"VAL_FMT,
 			&eval_weights.stacks, &eval_weights.moves,
 			&eval_weights.to_life, &eval_weights.to_enemy) == 4) {
+			continue;
+		}
+		if (sscanf(argv[pos], "--wfields=" VAL_FMT":"VAL_FMT":"VAL_FMT,
+			&eval_weights.field_base, &eval_weights.field_bonus,
+			&eval_weights.field_shift) == 3) {
 			continue;
 		}
 #endif /* ndef FIXED_PARAMS */
