@@ -3,7 +3,9 @@
 #include <assert.h>
 
 TTEntry *tt;
+#ifndef FIXED_PARAMS
 size_t tt_size;
+#endif
 
 #ifdef TT_DEBUG
 TTStats tt_stats;
@@ -23,14 +25,20 @@ void tt_init(size_t size)
 			size /= 2;
 		}
 	}
+#ifndef FIXED_PARAMS
 	tt_size = size;
+#else
+	if (tt_size != size) abort();
+#endif
 }
 
 void tt_fini(void)
 {
 	free(tt);
 	tt = NULL;
+#ifndef FIXED_PARAMS
 	tt_size = 0;
+#endif
 }
 
 void serialize_board(const Board *board, unsigned char output[50])

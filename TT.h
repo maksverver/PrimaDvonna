@@ -36,7 +36,11 @@ TTStats tt_stats;
 
 /* Transposition table: */
 extern TTEntry *tt;
+#ifdef FIXED_PARAMS
+#define tt_size ((size_t)1 << ai_use_tt)
+#else
 extern size_t tt_size;
+#endif
 
 /* Allocates a transposition table with `size' entries. */
 void tt_init(size_t size);

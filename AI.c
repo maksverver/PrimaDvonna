@@ -34,7 +34,9 @@ static TTEntry *tt_entry(hash_t hash)
 	int max_tries = 16;
 	while (entry->hash && entry->hash != hash) {
 		if (--max_tries > 0) {
-			entry -= hash&15;
+			/* N.B. this is technically undefined behaviour: */
+                        entry -= hash&15;
+			if (entry < tt) entry += tt_size;
 			break;
 		}
 		if (++entry == &tt[tt_size]) entry = tt;

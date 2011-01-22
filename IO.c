@@ -122,7 +122,7 @@ bool parse_state(const char *descr, Board *board, Color *next_player)
 			f->pieces = (vals[n + 1] + 2)/4;
 			if (board->moves < N) ++board->moves;
 		}
-		if (f->dvonns) board->dvonns |= (1<<n);
+		if (f->dvonns) board->dvonns |= (1LL<<n);
 		if (vals[n + 1] != 0) update_neighbour_mobility(board, n, -1);
 	}
 
