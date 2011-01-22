@@ -289,4 +289,10 @@ performance notably. (But I'll leave it in now I've coded it, I guess.)
 
 I seem to do about 300,000 evaluations per second on the TopCoder servers, so
 a maximum of around 1,500,000 entries, which would be nearly 70% of my hash
-table!
+table! In practice, it tends to be closer to 50%, but it's still tricky.
+
+"Improved" hashtable does seem to give a small performance boost, but I'm
+worried performance might be affected, so I'll probably keep it disabled.
+
+The "fancy" evaluation function (that weighs fields by distance to Dvonns)
+seems to be paying off, but only against itself, which is weird. :-/

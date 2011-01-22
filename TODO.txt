@@ -1,17 +1,9 @@
 For final version:
-  - evaluation optimizations:
-    - fine-tune fancy-eval branch
   - merge improved-setup & fancy-eval into master
   - compile SUBMISSION and benchmark vs player-tc6 + Dvonner + player3
   - submit!
 
 Maybe later:
- - check hash table performance:
-     - how often do collisions occur?
-     - how full is the table when they happen?
- - consider using double/cuckoo hashing for transposition table, so that all
-   results can be stored? needs good benchmarking to figure out if this makes
-   sense.
  - validate all code!
      - print it out, verify, add comments...
  - consider auto-learning for evaluation parameters?
