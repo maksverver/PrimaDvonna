@@ -202,25 +202,26 @@ static void print_usage(void)
 		"\t--seed=<int>      "
 	"initialize RNG with given seed (default: random)\n"
 		"\t--state=<descr>   initialize board to given state\n"
-		"\t--color=<num>     color to play "
+		"\t--color=<num>     colors to play "
 			"(0: none, 1: white, 2: black, 3: both)\n"
 		"\t--analyze         analyze this position only\n"
 		"\t--depth=<depth>   stop after searching on given depth \n"
 		"\t--eval=<count>    "
 	"stop after evaluating given number of positions\n"
 		"\t--time=<time>     "
-	"maximum time per game/state (default when playing: %.2fs)\n",
+	"maximum time to use (default when playing: %.2fs)\n",
 		default_player_time );
 #ifndef FIXED_PARAMS
 	printf(
-		"\t--tt=<size>       set use of table (0: off)\n"
-		"\t--mo=<val>        enable move ordering "
+		"\t--tt=<size>       transposition table size "
+			"(0: off, 10..28: power of 2)\n"
+		"\t--mo=<val>        move ordering "
 			"(0: off, 1: heuristic, 2: evaluated)\n"
-		"\t--killer=<val>    enable killer heuristic "
+		"\t--killer=<val>    killer heuristic "
 			"(0: off, 1: one ply, 2: two ply)\n"
-		"\t--pvs=<val>       enable principal variation search"
+		"\t--pvs=<val>       principal variation search "
 			"(0: off, 1: on)\n"
-		"\t--mtdf=<val>      enable MTD(f)"
+		"\t--mtdf=<val>      MTD(f) "
 			"(0: off, 1: on)\n"
 		"\t--deep=<val>      iterative deepening increment (1 or 2)\n"
 		"\t--weights=a:..:d  set evaluation function weights\n"
@@ -333,6 +334,8 @@ int main(int argc, char *argv[])
 
 	/* Initialize transposition table: */
 	if (ai_use_tt > 0) {
+		if (ai_use_tt < 10) ai_use_tt = 10;
+		if (ai_use_tt > 28) ai_use_tt = 28;
 		tt_init(1<<ai_use_tt);  /* 2 M entries = 48 MB at 24 bytes per entry */
 		fprintf(stderr, "%.3f MB transposition table is enabled.\n",
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);

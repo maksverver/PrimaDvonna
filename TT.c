@@ -20,8 +20,8 @@ void tt_init(size_t size)
 	while (tt == NULL && size >= 1024) {
 		tt = calloc(size, sizeof(TTEntry));
 		if (tt == NULL) {
-			fprintf(stderr, "Faild to allocate %ld bytes for the "
-				"transposition table!\n", (long)(size*sizeof(TTEntry)));
+			fprintf(stderr, "Failed to allocate %lld bytes for the "
+				"transposition table!\n", (long long)(size*sizeof(TTEntry)));
 			size /= 2;
 		}
 	}
