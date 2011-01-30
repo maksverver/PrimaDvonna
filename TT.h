@@ -3,8 +3,6 @@
 #include "Game.h"
 #include "AI.h"
 
-typedef unsigned long long hash_t;
-
 /* Transposition table entry.
    (See dfs() in AI.c for the interpretation of these fields.) */
 typedef struct TTEntry {
@@ -52,7 +50,7 @@ void tt_fini(void);
 void serialize_board(const Board *board, unsigned char output[50]);
 
 #ifdef ZOBRIST
-#define hash_board(board) ((hash_t)((board)->hash.ull))
+#define hash_board(board) ((board)->hash)
 #else
 /* Computes a hash code for the given board. */
 hash_t hash_board(const Board *board);

@@ -11,19 +11,19 @@
 /* Initializes the hash for an empty board. */
 static void zobrist_init(Board *board)
 {
-	board->hash.ull = zobrist_init_key;
+	board->hash = zobrist_init_key;
 }
 
 /* Updates the hash to reflect changing the next player to move. */
 static void zobrist_toggle_player(Board *board)
 {
-	board->hash.ull ^= zobrist_player_key;
+	board->hash ^= zobrist_player_key;
 }
 
 /* Updates the hash to reflect changing the game phase. */
 static void zobrist_toggle_phase(Board *board)
 {
-	board->hash.ull ^= zobrist_phase_key;
+	board->hash ^= zobrist_phase_key;
 }
 
 /* Updates the hash to reflect adding/removing the contents of the n-th field,
@@ -35,13 +35,14 @@ static void zobrist_toggle_field(Board *board, int n)
 {
 	const Field *f = &board->fields[n];
 	unsigned key = (4*f->pieces + 2*f->player + (bool)f->dvonns)*N + n;
-	/* Key is always positive here, which is why this works: */
-	board->hash.ui[0] ^= zobrist_field_key[key];
-	board->hash.ui[1] ^= zobrist_field_key[key - 1];
+	/* N.B. Key is always positive here, which is why this works: */
+	board->hash ^=
+		(hash_t)zobrist_field_key[key - 1] << 32 | zobrist_field_key[key];
 }
 
 /* Recalculates the Zobrist hash of a board. */
-LargeInteger zobrist_hash(const Board *board_in) {
+unsigned long long zobrist_hash(const Board *board_in)
+{
 	const Field *f;
 	int n;
 	Board temp;
@@ -327,15 +328,12 @@ void board_validate(const Board *board)
 		if (!f->removed && f->dvonns) dvonns |= (1LL<<n);
 	}
 #ifdef ZOBRIST
-	assert(zobrist_hash(board).ull == board->hash.ull);
+	assert(zobrist_hash(board) == board->hash);
 #endif
 	assert(dvonns == board->dvonns);
 
 	/* Size checks don't really belong here, but I need to check somewhere: */
 	assert(sizeof(Move) == sizeof(int));
-#ifdef ZOBRIST
-	assert(sizeof(board->hash.ui) == sizeof(board->hash.ull));
-#endif
 }
 #endif /* NDEBUG */
 

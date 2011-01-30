@@ -10,35 +10,29 @@
 
 typedef enum Color { WHITE = 0, BLACK = 1, NONE = -1 } Color;
 
+/* Type used for hash codes: 64-bit unsigned integers. */
+typedef unsigned long long hash_t;
+
 /* A description of the contents of a game field.
    See board_validate() for the invariants that apply to this struct's data. */
 typedef struct Field
 {
-	signed char   player;      /* controlling player's color */
-	unsigned char pieces;      /* number of pieces on this field */
-	unsigned char dvonns;      /* number of dvonn pieces on this field */
-	signed char   removed;     /* move on which field was removed */
-	signed char   mobile;      /* number of open neighbouring directions */
+	signed char   player;       /* controlling player's color */
+	unsigned char pieces;       /* number of pieces on this field */
+	unsigned char dvonns;       /* number of dvonn pieces on this field */
+	signed char   removed;      /* move on which field was removed */
+	signed char   mobile;       /* number of open neighbouring directions */
 } Field;
 
-#ifdef ZOBRIST
-typedef union LargeInteger
-{
-	unsigned int ui[2];
-	unsigned long long ull;
-} LargeInteger;
-#endif
-
-/* A description of the complete game state.
-   The next player to move is implied by the number of moves played. */
+/* A description of the complete game state. */
 typedef struct Board
 {
-	int   moves;          /* number of moves played on this board */
-	Field fields[N];      /* fields of the board */
+	int            moves;       /* number of moves played so far */
+	Field          fields[N];   /* fields of the board */
 #ifdef ZOBRIST
-	LargeInteger hash;    /* hash code for the board */
+	hash_t         hash;        /* hash code for the board */
 #endif
-	long long dvonns;     /* bitmask of positions of Dvonns */
+	long long      dvonns;      /* bitmask of positions of Dvonns */
 } Board;
 
 /* Index of possible moves which can be made with stacks of different heights
@@ -57,7 +51,9 @@ extern const char board_distance[N][N];
    it is less than (1<<6)-1 = 63 then the field is on the edge of the board. */
 extern const char board_neighbours[N];
 
-/* This macro determines which color plays next: */
+/* This macro determines which color plays next, which is derived from the
+    number of moves played so far. (Note that at the end of the placement phase
+    white plays twice in succession!) */
 #define next_player(b) ((b)->moves < N ? ((b)->moves&1) : ((b)->moves - N)&1)
 
 /* The structure below describes a single move.
@@ -84,17 +80,13 @@ extern Move move_pass;  /* pass move: all fields set to -1 */
 #define move_is_null(m) (((union MoveInt)*(m)).i == 0)
 #define move_compare(a, b) (((union MoveInt)*(a)).i - ((union MoveInt)*(b)).i)
 
-/* The six cardinal directions on the board. These are ordered anti-clockwise
-   starting to right. (Order matters for functions like may_be_bridge()!) */
-extern const int DR[6], DC[6];
-
 /* (Re)initialize a board structure to an empty board: */
 void board_clear(Board *board);
 
 #ifdef ZOBRIST
 /* Recalculates the Zobrist hash of a board from scratch and returns the result.
    The existing value of board->hash is neither used nor updated. */
-LargeInteger zobrist_hash(const Board *board);
+unsigned long long zobrist_hash(const Board *board);
 #endif
 
 /* Do/undo moves (which must be valid, e.g. returned by generate_moves()) */
