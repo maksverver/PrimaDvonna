@@ -25,8 +25,11 @@ int ai_use_deepening  = AI_DEFAULT_DEEPENING;
 
 /* Global flag to abort search: */
 static volatile bool aborted = false;
+
+/* Number of states evaluated since last call to ai_select_move(): */
 static int eval_count = 0;
 
+/* Returns the transposition table entry for the given hash code. */
 static TTEntry *tt_entry(hash_t hash)
 {
 	TTEntry *entry = &tt[(size_t)(hash ^ (hash >> 32))&(tt_size - 1)];
@@ -45,6 +48,10 @@ static TTEntry *tt_entry(hash_t hash)
 	return entry;
 }
 
+/* Resets the random number generator, using a fixed (but randomly chosen) seed.
+   This is a hack used to guarantee that functions like ai_select_move() are
+   deterministic, but unpredictable, so that the games played by the AI vary
+   a bit (even if the opponent's moves do not). */
 static void reset_rng()
 {
 	static int rng_seed = 0;
@@ -52,16 +59,19 @@ static void reset_rng()
 	srand(rng_seed);
 }
 
+/* Evaluates the current board by calling the appropriate function depending
+   on the game phase. If the game value is exact, *exact is set to true;
+   otherwise, it is left unmodified. */
 static val_t evaluate(const Board *board, bool *exact)
 {
 	++eval_count;
-	if (board->moves >= N) {
+	if (board->moves >= N) {  /* stacking phase */
 		return eval_stacking(board, exact);
-	} else {
+	} else {  /* placement phase */
 		*exact = false;
-		if (board->moves > D) {
+		if (board->moves > D) {  /* some player's pieces placed */
 			return eval_placing(board);
-		} else {  /* board->moves <= D */
+		} else {  /* only Dvonn pieces placed; too early to evaluate */
 			*exact = false;
 			return 0;
 		}
@@ -211,9 +221,6 @@ static val_t dfs( Board *board, int depth, val_t lo, val_t hi,
 					else ++tt_stats.upgraded;
 				} )
 
-			/* FIXME: eval_intermediate() could end up calling eval_end() if
-				the current position is actually an end position. In that case,
-				we should really store depth = AI_MAX_DEPTH here! */
 			if (entry->hash != hash || entry->depth != eff_depth)
 			{
 				entry->hash  = hash;
@@ -233,7 +240,8 @@ static val_t dfs( Board *board, int depth, val_t lo, val_t hi,
 	return res;
 }
 
-static void set_aborted( /* void *arg ignored */ )
+/* Callback handler for the timeout alarm. */
+static void set_aborted()
 {
 	aborted = true;
 }

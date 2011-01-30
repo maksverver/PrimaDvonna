@@ -3,7 +3,6 @@
 #include <assert.h>
 
 #ifndef FIXED_PARAMS
-/* TODO! add (3?) extra fields for distance-to-Dvonn weighting */
 struct EvalWeights eval_weights = {
 	EVAL_DEFAULT_WEIGHT_STACKS,
 	EVAL_DEFAULT_WEIGHT_MOVES,
@@ -147,7 +146,7 @@ val_t eval_stacking(const Board *board, bool *exact)
 		if (player == f->player) EVAL_FIELD(+=); else EVAL_FIELD(-=);
 	}
 
-	if (game_over) return val_big*score;
+	if (game_over) return 1000000*score;
 	*exact = false;
 	return stacks   * EVAL_WEIGHT_STACKS
 	     + moves    * EVAL_WEIGHT_MOVES

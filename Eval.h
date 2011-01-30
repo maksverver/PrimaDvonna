@@ -10,7 +10,6 @@ typedef int val_t;
 #define val_min ((val_t)-1000000000)
 #define val_max ((val_t)+1000000000)
 #define val_eps ((val_t)          1)
-#define val_big ((val_t)   10000000)
 
 #define EVAL_DEFAULT_WEIGHT_STACKS     100
 #define EVAL_DEFAULT_WEIGHT_MOVES       25
@@ -55,7 +54,8 @@ extern EvalWeights eval_weights;
 #endif
 
 /* Returns how well the Dvonns are spread over the board. This is measured as
-   the sum of the squared distances of each field to the nearest Dvonn stone. */
+   the sum of the squared distances of each field to the nearest Dvonn stone.
+   (Used by AI to spread out Dvonn stones early in the placement phase.) */
 int eval_dvonn_spread(const Board *board);
 
 /* Evaluate board position in placement phase (called by AI). */

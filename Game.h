@@ -29,6 +29,8 @@ typedef union LargeInteger
 } LargeInteger;
 #endif
 
+/* A description of the complete game state.
+   The next player to move is implied by the number of moves played. */
 typedef struct Board
 {
 	int   moves;          /* number of moves played on this board */

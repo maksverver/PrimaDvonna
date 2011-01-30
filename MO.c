@@ -31,7 +31,7 @@ void move_to_front(Move *moves, int nmove, Move killer)
 }
 
 /* Principle: moves onto the opponent's stacks are good, moves onto your own
-   stacks are bad, moves onto neutral stacks (Dvonn stones) are medium.
+   stacks are bad, moves onto Dvonn stones somewhere in between.
 
    Note that unlike earlier implementations, this version of the code is
    unstable in the sense that it does not preserve the relative order of
@@ -73,12 +73,6 @@ static void order_evaluated(Board *board, Move *moves, int nmove)
 	{
 		extern val_t ai_evaluate(const Board *board);
 		board_do(board, &moves[i]);
-		/* Don't call ai_evaluate here, to avoid updating eval counter? */
-		/*
-		values[i] =
-			(board->moves < D) ? 0 :
-			(board->moves < N) ? eval_placing(board) : eval_stacking(board);
-		*/
 		values[i] = ai_evaluate(board);
 		board_undo(board, &moves[i]);
 	}

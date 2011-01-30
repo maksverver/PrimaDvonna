@@ -1,4 +1,3 @@
-#include "Crash.h"
 #include "Game.h"
 #include "AI.h"
 #include "Time.h"
@@ -13,14 +12,19 @@
 #include <time.h>
 #include <unistd.h>
 
+/* Default player time when none is given on the command line.  This is used
+   during official matches, and is slightly below the official limit of 5s
+   to account for startup delays and small errors in timekeeping. */
 #define default_player_time 4.95
 
-static int         arg_seed      = 0;
-static const char *arg_state     = NULL;
-static int         arg_color     = -1;
-static int         arg_analyze   = 0;
-static AI_Limit    arg_limit     = { 0, 0, 0.0 };
+/* Command line arguments: */
+static int         arg_seed      = 0;         /* Random number generator seed */
+static const char *arg_state     = NULL;         /* Initial state description */
+static int         arg_color     = -1;           /* Color(s) played by the AI */
+static bool        arg_analyze   = false; /* Analyze board instead of playing */
+static AI_Limit    arg_limit     = { 0, 0, 0.0 };         /* AI search limits */
 
+/* Removes leading and trailing whitespace from `s' and returns it again. */
 static char *trim(char *s)
 {
 	char *p = s, *q = s + strlen(s);
@@ -31,6 +35,8 @@ static char *trim(char *s)
 	return s;
 }
 
+/* Reads and returns one line of input. Empty lines are skipped, and if "Quit"
+   is read, the program exits instead. */
 static const char *read_line(void)
 {
 	static char line[1024];
@@ -60,10 +66,10 @@ static const char *read_line(void)
 	}
 }
 
-/* Parses a move string and then executes it.
-   To verify internal consistency, we check that the move is indeed valid
-   according to the current board state, even though the arbiter already
-   guarantees that no invalid moves will be passed to the players. */
+/* Parses a move string and then executes it, or exits if the move is invalid
+   (which does not occur in normal matches, because the arbiter guarantees
+    only valid moves are passed to the players, but it's useful to verify
+    internal consistency.) */
 static void parse_and_execute_move(Board *board, const char *line)
 {
 	Move move;
@@ -80,90 +86,45 @@ static void parse_and_execute_move(Board *board, const char *line)
 	board_validate(board);
 }
 
-#if 0
-static int est_moves_left(const Board *board, Color player)
-{
-	int r1, c1, r2, c2, d, res = 0;
-	const Field *f;
-
-	for (r1 = 0; r1 < H; ++r1) {
-		for (c1 = 0; c1 < W; ++c1) {
-			f = &board->fields[r1][c1];
-			if (!f->removed && f->player == player) {
-				for (d = 0; d < 6; ++d) {
-					r2 = r1 + DR[d]*f->pieces;
-					if (r2 >= 0 && r2 < H) {
-						c2 = c1 + DC[d]*f->pieces;
-						if (c2 >= 0 && c2 < W) {
-							if (!board->fields[r2][c2].removed) {
-								++res;
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return res;
-}
-#endif
-
-#if 0
-static int max_moves_left(const Board *board)
-{
-	int n, stacks = 0;
-
-	if (board->moves < N) return N + (N - 1) - board->moves;
-	for (n = 0; n < N; ++n) if (!board->fields[n].removed) ++stacks;
-	return stacks - 1;
-}
-#endif
-
-/* Conservative estimate of number of moves left in the game: */
+/* Estimates the number of moves left in the game. This is not a strict
+   upperbound, but overestimates more often than not. Used to allocate time. */
 static int max_moves_left(const Board *board)
 {
 	int n, res = 0;
 
-	if (board->moves < N) return N + (N - 1) - board->moves;
+	if (board->moves < N) {  /* placement phase */
+		return N + (N - 1) - board->moves; 
+	}
 	for (n = 0; n < N; ++n) {
+		/* Assume stacks of at most five pieces can move. */
 		if (!board->fields[n].removed && board->fields[n].pieces <= 5) ++res;
 	}
 	return res;
 }
 
+/* Uses the AI to select the best move for the given game state. */
 static bool select_move(Board *board, Move *move)
 {
 	bool ok;
 	AI_Result result;
 	AI_Limit limit = arg_limit;
 
-	if (board->moves < N) {
-		/* Placement phase. */
+	if (board->moves < N) {  /* placement phase */
 		limit.eval  = 1000;
 		limit.depth = N - board->moves;
 		limit.time  = 0;
 		ok = ai_select_move(board, &limit, &result);
-	} else {
-		/* Stacking phase: divide remaining time over est. moves to play: */
+	} else {  /* stacking phase */
 		if (!limit.time && !limit.depth && !limit.eval)
 		{
-#if 0
-			/* "New" and "improved" budget code that actually performs worse
-			   than the old version, below! I should try to figure out why,
-			   before changing the budget code again, and even then test very
-			   carefully to ensure the change is actually an improvement. */
-			int d = est_moves_left(board, next_player(board)) - 6;
-			if (d > 12) d = 12;
-			if (d <  3) d =  3;
-#endif
+			/* Dynamically allocate some time for the computation. This is used
+			   during official matches. The number of moves in the game is
+			   divided by 2 because I play half of the moves (and my opponent
+			   the other half) and 10 is subtracted for overestimation in
+			   max_moves_left() and the fact that last few moves are trivial. */
 			int d = max_moves_left(board)/2 - 10;
 			if (d < 2) d = 2;
 			limit.time = time_left()/d;
-			/*
-			limit.time = time_left()/2;
-			if (limit.time > time_limit/10) limit.time = time_limit/10;
-			*/
 			fprintf(stderr, "%.3fs+%.3fs\n", time_used(), limit.time);
 		}
 		ok = ai_select_move(board, &limit, &result);
@@ -172,6 +133,9 @@ static bool select_move(Board *board, Move *move)
 	return ok;
 }
 
+/* Runs a game starting from the initial game state passed in `board', where
+   the least two bits in `my_colors' indicate which colors are played by the AI.
+   Moves for the other colors are read from standard input. */
 static void run_game(Board *board, int my_colors)
 {
 	const char *move_str;
@@ -201,34 +165,33 @@ static void run_game(Board *board, int my_colors)
 	}
 }
 
-static void analyze(Board *board, Color next_player)
+/* Analyzes the given game state and prints some statistics on the value of
+   the board, the principal variation, number of states evaluated, and so on. */
+static void analyze(Board *board)
 {
 	AI_Result result;
 	Move pv[AI_MAX_DEPTH];
 	int n, npv;
 
 	fprintf(stderr, "Intermediate value: "VAL_FMT"\n", ai_evaluate(board));
-	if (next_player == NONE) {
-		fprintf(stderr, "Game already finished!\n");
-	} else {
-		if (!ai_select_move(board, &arg_limit, &result)) {
-			fprintf(stderr, "Internal error: no move selected!\n");
-			exit(EXIT_FAILURE);
-		}
-		board_validate(board);
-		npv = ai_extract_pv(board, pv, AI_MAX_DEPTH);
-		fprintf(stderr, "Principal variation:");
-		for (n = 0; n < npv; ++n) {
-			fprintf(stderr, " %s", format_move(&pv[n]));
-		}
-		fprintf(stderr, "\n");
-		board_do(board, &result.move);
-		fprintf(stderr, "New state: %s\n", format_state(board));
-		board_undo(board, &result.move);
-		printf("%s\n", format_move(&result.move));
+	if (!ai_select_move(board, &arg_limit, &result)) {
+		fprintf(stderr, "Internal error: no move selected!\n");
+		exit(EXIT_FAILURE);
 	}
+	board_validate(board);
+	npv = ai_extract_pv(board, pv, AI_MAX_DEPTH);
+	fprintf(stderr, "Principal variation:");
+	for (n = 0; n < npv; ++n) {
+		fprintf(stderr, " %s", format_move(&pv[n]));
+	}
+	fprintf(stderr, "\n");
+	board_do(board, &result.move);
+	fprintf(stderr, "New state: %s\n", format_state(board));
+	board_undo(board, &result.move);
+	printf("%s\n", format_move(&result.move));
 }
 
+/* Prints information about the command line options available. */
 static void print_usage(void)
 {
 	printf(
@@ -265,6 +228,7 @@ static void print_usage(void)
 #endif /* ndef FIXED_PARAMS */
 }
 
+/* Parses command line arguments passed to the program. */
 static void parse_args(int argc, char *argv[])
 {
 	int pos;
@@ -318,6 +282,8 @@ static void parse_args(int argc, char *argv[])
 	}
 }
 
+/* Prints total amount of memory mapped by the process by quering procfs.
+   Completely Linux-specific, but only used for debugging. */
 static void print_memory_use(void)
 {
 	char line[1024];
@@ -349,9 +315,6 @@ int main(int argc, char *argv[])
 
 	/* Initialize timer, as early as possible! */
 	time_restart();
-
-	/* Set-up crash handler. */
-	crash_init();
 
 	/* Parse command line arguments. */
 	parse_args(argc, argv);
@@ -414,7 +377,11 @@ int main(int argc, char *argv[])
 	
 	/* Run main program: */
 	if (arg_analyze) {
-		analyze(&board, next_player);
+		if (next_player == NONE) {
+			fprintf(stderr, "Game already finished!\n");
+		} else {
+			analyze(&board);
+		}
 	} else {
 		if (arg_color < 0) {
 			const char *move_str = read_line();
@@ -430,7 +397,6 @@ int main(int argc, char *argv[])
 
 	/* Clean up: */
 	if (ai_use_tt) tt_fini();
-	crash_fini();
 
 	return EXIT_SUCCESS;
 }
