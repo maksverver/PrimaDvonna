@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #define N    49             /* maximum number of accessible fields */
-#define D     3             /* nubmer of Dvonn pieces */
+#define D     3             /* number of Dvonn pieces */
 #define M ((N-D)/2*6)       /* maximum number of moves (for one player) */
 
 typedef enum Color { WHITE = 0, BLACK = 1, NONE = -1 } Color;
