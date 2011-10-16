@@ -334,8 +334,10 @@ int main(int argc, char *argv[])
 
 	/* Initialize transposition table: */
 	if (ai_use_tt > 0) {
+#ifndef FIXED_PARAMS
 		if (ai_use_tt < 10) ai_use_tt = 10;
 		if (ai_use_tt > 28) ai_use_tt = 28;
+#endif
 		tt_init(1<<ai_use_tt);  /* 2 M entries = 48 MB at 24 bytes per entry */
 		fprintf(stderr, "%.3f MB transposition table is enabled.\n",
 			1.0*tt_size*sizeof(TTEntry)/1024/1024);
